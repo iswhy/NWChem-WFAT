@@ -1,0 +1,67 @@
+tcgmsg/tcgmsg-mpi/pbeginf.lo: ../ga-5.6.3/tcgmsg/tcgmsg-mpi/pbeginf.c \
+ /usr/include/stdc-predef.h ./config.h /usr/include/stdio.h \
+ /usr/include/features.h /usr/include/sys/cdefs.h /usr/include/bits/wordsize.h \
+ /usr/include/gnu/stubs.h /usr/include/gnu/stubs-64.h \
+ /home/packages/compilers/Intel/parallel_studio_xe_2019.5/compilers_and_libraries_2019.5.281/linux/compiler/include/stddef.h \
+ /usr/include/bits/types.h /usr/include/bits/typesizes.h /usr/include/libio.h \
+ /usr/include/_G_config.h /usr/include/wchar.h \
+ /home/packages/compilers/Intel/parallel_studio_xe_2019.5/compilers_and_libraries_2019.5.281/linux/compiler/include/stdarg.h \
+ /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h \
+ /usr/include/bits/stdio.h /usr/include/string.h /usr/include/xlocale.h \
+ /usr/include/bits/string.h /usr/include/bits/string2.h gaf2c/farg.h \
+ gaf2c/typesf2c.h ../ga-5.6.3/tcgmsg/tcgmsg-mpi/sndrcv.h \
+ ../ga-5.6.3/tcgmsg/tcgmsg-mpi/msgtypesc.h ../ga-5.6.3/tcgmsg/tcgmsg-mpi/srftoc.h
+
+/usr/include/stdc-predef.h:
+
+./config.h:
+
+/usr/include/stdio.h:
+
+/usr/include/features.h:
+
+/usr/include/sys/cdefs.h:
+
+/usr/include/bits/wordsize.h:
+
+/usr/include/gnu/stubs.h:
+
+/usr/include/gnu/stubs-64.h:
+
+/home/packages/compilers/Intel/parallel_studio_xe_2019.5/compilers_and_libraries_2019.5.281/linux/compiler/include/stddef.h:
+
+/usr/include/bits/types.h:
+
+/usr/include/bits/typesizes.h:
+
+/usr/include/libio.h:
+
+/usr/include/_G_config.h:
+
+/usr/include/wchar.h:
+
+/home/packages/compilers/Intel/parallel_studio_xe_2019.5/compilers_and_libraries_2019.5.281/linux/compiler/include/stdarg.h:
+
+/usr/include/bits/stdio_lim.h:
+
+/usr/include/bits/sys_errlist.h:
+
+/usr/include/bits/stdio.h:
+
+/usr/include/string.h:
+
+/usr/include/xlocale.h:
+
+/usr/include/bits/string.h:
+
+/usr/include/bits/string2.h:
+
+gaf2c/farg.h:
+
+gaf2c/typesf2c.h:
+
+../ga-5.6.3/tcgmsg/tcgmsg-mpi/sndrcv.h:
+
+../ga-5.6.3/tcgmsg/tcgmsg-mpi/msgtypesc.h:
+
+../ga-5.6.3/tcgmsg/tcgmsg-mpi/srftoc.h:

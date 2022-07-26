@@ -1,0 +1,46 @@
+
+NWC_SRC = ~/src/nwchem-6.8/DEV_intel-18.0.0_impi-2018.0.128
+
+
+Before any modification to the source code is done, be sure to do the following:
+1) Either run this 
+     source ~/src/nwchem-6.8/NOTES/DEV_SETENV.sh
+   or this
+     source ~/src/nwchem-6.8/NOTES/KENL_SETENV.sh
+   or this
+     source ~/src/nwchem-6.8/NOTES/NWXC_SETENV.sh
+2) source ~/src/nwchem-6.8/DEV_intel-18.0.0_impi-2018.0.128/nwchem_make_env.sh
+
+The path of the created executable is:
+~/src/nwchem-6.8/DEV_intel-18.0.0_impi-2018.0.128/bin/LINUX64/nwchem
+
+program nwchem:
+  errquit => NWC_SRC/util/errquit.F
+  rtdb_init => NWC_SRC/rtdb/rtdb_seq.c
+  task => NWC_SRC/task/task.F
+
+function task_energy:
+  task_qmmm_energy => qmmm/task_qmmm_energy.F
+
+
+
+
+
+NWChem questions:
+
+
+
+
+
+
+Edited files for input to incorporate WFAT:
+1) $NWC_SRC/src/input/input_parse.F
+2) $NWC_SRC/src/task/task_input.F
+3) $NWC_SRC/src/task/task.F
+
+
+Where nspin has been replaced by nspin0:
+1) subroutine wfat_init() in $NWC_SRC/nwdft/scf_dft/wfat_init.F
+2) $NWC_SRC/nwdft/include/wfat_qm_param.fh
+3) subroutine wfat_calc_intgl in $NWC_SRC/nwdft/scf_dft/wfat_calc_intgl.F
+4) function task_wfat in $NWC_SRC/nwdft/scf_dft/wfat_task.F

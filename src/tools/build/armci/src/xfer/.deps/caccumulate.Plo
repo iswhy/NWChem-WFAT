@@ -1,0 +1,8 @@
+src/xfer/caccumulate.lo: ../../ga-5.6.3/armci/src/xfer/caccumulate.c \
+ /usr/include/stdc-predef.h ./config.h ../../ga-5.6.3/armci/src/include/acc.h
+
+/usr/include/stdc-predef.h:
+
+./config.h:
+
+../../ga-5.6.3/armci/src/include/acc.h:
