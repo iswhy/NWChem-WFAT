@@ -1,0 +1,82 @@
+# $Id$
+#
+
+	OBJ_OPTIMIZE =
+
+	OBJ=\
+	wfat_input.o \
+	wfat_process_input.o \
+	wfat_task.o \
+	wfat_prepare_task.o \
+	wfat_init.o \
+	wfat_init_test.o \
+	wfat_calc_intgl.o \
+	wfat_calc_structuref.o \
+	wfat_calc_ionyield.o \
+	wfat_calc_tmd.o \
+	wfat_calc_ti.o \
+	wfat_calc_td.o \
+	wfat_field_factor.o \
+	wfat_celf.o \
+	wfat_chypgeom.o \
+	wfat_density.o \
+	wfat_eval_basis.o \
+	wfat_grid.o \
+	wfat_lebedev.o \
+	wfat_omega.o \
+	wfat_potential_calc.o \
+	wfat_potential_calc_asy.o \
+	wfat_potential.o \
+	wfat_potential_asy.o \
+	wfat_potential_rs.o \
+	wfat_tools.o \
+	wfat_par_tools.o \
+	wfat_test.o \
+	wfat_test2.o \
+	wfat_numdens.o \
+	wfat_orb_property.o \
+	wfat_eval_mo.o \
+	wfat_eval_laser.o \
+	wfat_print.o \
+	wfat_print_sf.o \
+	wfat_print_rt.o \
+	wfat_print_iy.o \
+	wfat_print_tm.o \
+	wfat_print_tmar.o \
+	wfat_print_info.o \
+	wfat_print_dens.o \
+	wfat_util.o \
+	wfat_orb_mulliken.o \
+	wfat_opvec_coef.o \
+	wfat_get_opmat.o \
+	wfat_get_fock.o \
+	wfat_perturb.o \
+	wfat_perturb_bw.o \
+	wfat_perturb_rs.o \
+	wfat_perturb_analyse.o \
+	wfat_perturb_print.o \
+	wfat_partial_integ.o \
+	mewfat_task.o \
+	mewfat_init.o \
+	mewfat_print_info.o \
+	mewfat_need_input_v2.o \
+	mewfat_channel_property.o \
+	mewfat_calc_intgl.o \
+	mewfat_io_intgl.o \
+	mewfat_calc_detcoef.o \
+	mewfat_density.o \
+	mewfat_dfterg.o \
+	mewfat_eval_dyson.o \
+	mewfat_potential.o \
+	mewfat_potential_calc.o \
+	mewfat_dyson_print.o \
+	imam_test.o
+
+     LIBRARY = libnwdft.a
+
+LIB_INCLUDES = -I../include
+
+   USES_BLAS = wfat_tools.F
+
+include ../../config/makefile.h
+include ../../config/makelib.h
