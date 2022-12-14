@@ -14,7 +14,8 @@ c=================================================
       integer rtdb
 
       character(len=FLD_TP_LEN) las_env(max_nfield)
-      logical res_mode, td, rtdb_stat, os, oc, or, extf
+      character*4096 fname
+      logical res_mode, td, rtdb_stat, os, oc, or, extf, isthere
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
       integer gqual, lmax
@@ -106,13 +107,26 @@ c     ==== Calculate (or load) WFAT integrals ====
 
       smh = 0.0d0
       call util_get_rtdb_state(rtdb, os, oc, or)
+
+      if (.not. rtdb_cget(rtdb, 'wfat:intgl_name', 1, fname))
+     &     call errquit('MEWFAT: Cannot read wfat:intgl_name from '//
+     &     'RTDB.', 1, RTDB_ERR)
+      inquire(file=fname, exist=isthere)      
       if (os .and. .not. or) then
+cNEWRESTART      if (.not. isthere .or. os) then
 c        ==== Calculate and store WFAT integrals on 'start' startup mode ====
+         if (isthere) then
+            if (ndid == 0)
+     &           write(luout, '("WARNING: An integral file exist. '//
+     &           'This file will be overwritten.")')
+         endif
+         
          call mewfat_store_intgl(rtdb, nsh, natm, nqn, int_mb(k_npa), 
      &        int_mb(k_mpa), lmax, gqual, smh, res_mode, dbl_mb(k_eg), 
      &        dbl_mb(k_ps), dbl_mb(k_cmm), dbl_mb(k_idp), g_il)
          call ga_sync()
       else if (.not. os .and. or) then
+cNEWRESTART      else
 c        ==== Binary-load MEWFAT integrals on 'restart' startup mode ====
          if (ndid == 0) then
             call mewfat_load_intgl(rtdb, nsh, natm, nqn, 1,

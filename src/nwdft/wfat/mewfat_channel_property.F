@@ -398,7 +398,7 @@ cfordebug      endif
          ns1 = 2
       endif
       call mewfat_dfterg(geom, bas, ns1, gq, mcel, rdm1, xce1)
-      
+
       if (ga_nodeid()==0) write(luout, '("xcerg:", 2f20.12)') xce0, xce1
       
 
@@ -417,6 +417,7 @@ cfordebug      endif
             gse1 = gse1 + g
          enddo
       enddo
+      if (ga_nodeid()==0) write(luout, '("hferg:", 2f20.12)') gse0, gse1
       gse0 = gse0 / 2 + xce0
       gse1 = gse1 / 2 + xce1
       ionerg = gse0 - gse1

@@ -26,8 +26,7 @@ c=================================================
       
 
       if (.not. rtdb_get(rtdb, 'mewfat:dyson_print', mt_log, 
-     &     1, ds_print)) call errquit('MEWFAT: Cannot read '//
-     &     'dyson_print from RTDB', 67, RTDB_ERR)
+     &     1, ds_print)) ds_print = .false.
       if (ds_print) then
          if (.not. rtdb_get(rtdb, 'mewfat:dyson_print_npoint', mt_int,
      &        3, np)) call errquit('MEWFAT: Cannot read '//

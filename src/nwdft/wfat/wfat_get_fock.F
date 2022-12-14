@@ -81,7 +81,7 @@ c=======================================================
       integer g_xcinv, g_rd_fde(2)
       integer is, ndid
       double precision zero, one, mone, jfac(2), kfac(2), chfx
-      double precision numnel, exc(2)
+      double precision numnel, exc(2), normm
 
       parameter (zero=0.0d0, one=1.0d0, mone=-1.0d0)
 
@@ -135,7 +135,16 @@ c     ==== Calculate Hartree (classical repulsion) matrix ====
       call fock_2e(geom, bas, 1, jfac, kfac, tol2e, oskel,
      &     g_trd, g_j, .false.)
 cfordebug      if (ndid==0) write(luout, '("HF Hartree matrix (REF)")')
-cfordebug      call ga_print(g_j(1))  
+cfordebug      call ga_print(g_j(1))
+      if (ndid==0) write(luout, '("herex1")')
+      normm = ga_ddot(g_trd(1), g_trd(1))
+      if (ndid==0) write(luout, '("TRD norm = ", es14.6)') normm
+
+      if (ndid==0) write(luout, '("herex2")')
+      normm = ga_ddot(g_j(1), g_j(1))
+      if (ndid==0) write(luout, '("J norm = ", es14.6)') normm
+
+      if (ndid==0) write(luout, '("herex3")')
       
 
 c     ==== Calculate HF exchange matrix ====      
@@ -145,6 +154,12 @@ c     ==== Calculate HF exchange matrix ====
       enddo
       jfac = zero
       kfac = one
+      if (nwxc_has_cam()) then
+         if (ndid==0) write(luout, '("CAM is used")')
+      else
+         if (ndid==0) write(luout, '("CAM is NOT used")')
+      endif
+      
       if (nwxc_has_cam()) call case_setflags (.true.)
       call fock_2e(geom, bas, ns, jfac, kfac, tol2e, oskel,
      &     g_rd, g_k, .false.)
@@ -152,6 +167,13 @@ cfordebug      if (ndid==0) write(luout, '("HF exchange matrix (REF), is=1")')
 cfordebug      call ga_print(g_k(1))      
       if (nwxc_has_cam()) call case_setflags (.false.)
 
+
+
+      normm = ga_ddot(g_k(1), g_k(1))
+      if (ndid==0) write(luout, '("K norm = ", es14.6)') normm
+
+
+      
 
 c     ==== Calculate HF 2e matrix (J+c*K) ====
       chfx = nwxc_wght_hfx()

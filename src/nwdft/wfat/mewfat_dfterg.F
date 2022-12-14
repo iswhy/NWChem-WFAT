@@ -57,7 +57,7 @@ c     ==== Perform quadrature summation ====
      &     mcel, nat, rdm, xce)
       
 
-c     ==== Accumulate to global intgl (g_il) ====
+c     ==== Accumulate to g_xce ====
       call ga_acc(g_xce, 1, 1, 1, 1, xce, 1, 1.0d0)
       call ga_sync()
       call ga_get(g_xce, 1, 1, 1, 1, xcerg, 1)

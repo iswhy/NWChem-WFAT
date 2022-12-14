@@ -293,19 +293,19 @@ c=================================================
 
 
       if (.not. rtdb_get(rtdb, 'mewfat:gserg0', mt_dbl, nch, gserg0))
-     &     call errquit('MEWFAT: Failed writing gserg0 to RTDB.',
+     &     call errquit('MEWFAT: Failed reading gserg0 from RTDB.',
      &     1, RTDB_ERR)
       if (.not. rtdb_get(rtdb, 'mewfat:gserg1', mt_dbl, nch, gserg1))
-     &     call errquit('MEWFAT: Failed writing gserg1 to RTDB.',
+     &     call errquit('MEWFAT: Failed reading gserg1 from RTDB.',
      &     1, RTDB_ERR)
       if (.not. rtdb_get(rtdb, 'mewfat:ionerg', mt_dbl, nch, ionerg))
      &     call errquit('MEWFAT: Failed reading ionerg from RTDB.',
      &     1, RTDB_ERR)
       if (.not. rtdb_get(rtdb, 'mewfat:edipm0', mt_dbl, 3*nch, edipm0))
-     &     call errquit('MEWFAT: Failed writing edipm0 to RTDB.',
+     &     call errquit('MEWFAT: Failed reading edipm0 from RTDB.',
      &     1, RTDB_ERR)
       if (.not. rtdb_get(rtdb, 'mewfat:edipm1', mt_dbl, 3*nch, edipm1))
-     &     call errquit('MEWFAT: Failed writing edipm1 to RTDB.',
+     &     call errquit('MEWFAT: Failed reading edipm1 from RTDB.',
      &     1, RTDB_ERR)
       if (.not. rtdb_get(rtdb, 'mewfat:chcent', mt_dbl, 3*nch, chcent))
      &     call errquit('MEWFAT: Failed reading chcent from RTDB.',

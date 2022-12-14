@@ -44,14 +44,14 @@ cOLD      character*5 ftlas(nlas)       ! Function type of envelope, 'gauss' or 
       double precision zi             ! [input]
       double complex intgl(1:*)       ! [input]
 
-      logical gap
+      logical gap, sumbtgm
       integer nsf, nbt, ngm, nat
       integer ib, ig, ndid
       integer l_sf, l_sfn
       integer k_sf, k_sfn
       double precision bt_start, bt_last, dbt, dbtr, bt
       double precision gm_start, gm_last, dgm, dgmr, gm
-      double precision yield, a_yield
+      double precision yield, a_yield, yieldbt, yieldbtgm, f
       double precision deg2rad, pi_const
 
       parameter (deg2rad = 0.01745329251994d0)
@@ -72,7 +72,7 @@ c     ==== Obtaining info on gamma ====
       dgmr = dgm * deg2rad
 
       
-c     ==== Allocation of structure factors and ion yields ====
+c     ==== Allocation of structure factors ====
       if (.not. geom_ncent(geom, nat))
      &     call errquit('WFAT: Getting natom failed', 31, GEOM_ERR)
       nsf = nat * nqn * nch
@@ -91,15 +91,27 @@ c     ==== Initializing the printings ====
      &     call wfat_initprint_yield()
       if (ndid == 0 .and. pr_avbeta) 
      &     call wfat_initprint_avbeta()
+
+      
+      sumbtgm = .false.
+      if (rtdb_get(rtdb, 'wfat:sumbtgm', mt_log, 1, sumbtgm)) then
+         if (sumbtgm .and. .not. pr_yild) call errquit('WFAT: When '//
+     &        'summation of yields over angles is requested, '//
+     &        'print_yield must be used.', 1, UERR)
+         write(luout, '("INFO : Summation of yields over angles '//
+     &        'is requested.")')
+      endif
       
       
 c     ==== Calculate and print structure factor and ion yield ====
+      yieldbtgm = 0.0d0
       do ig = 1, ngm
          gm = gm_start + dgm*(ig-1)
          if (pr_yild .and. pr_avbeta) then
             a_yield = 0.0d0
          endif
-         
+
+         yieldbt = 0.0d0
          do ib = 1, nbt
             bt = bt_start + dbt*(ib-1)
 
@@ -138,15 +150,44 @@ c              ==== Calculate beta-averaged ion yield ====
                   a_yield = a_yield + yield * dbtr * sin(bt*deg2rad) / 2
                endif
             endif
-            
+
+c           ==== Sum the yield over the range of beta ====
+            if (sumbtgm) then
+               f = 1.0d0
+               if (ib==1 .or. ib==nbt) f = 0.5d0
+               yieldbt = yieldbt + f * yield * sin(bt*deg2rad) * dbtr
+            endif            
          enddo
 
 c        ==== Print beta-averaged ion yield ====
          if (ndid == 0 .and. pr_avbeta) then
             call wfat_print_avbeta(gm, nch, a_yield)
          endif
+
+c        ==== Sum the yield over the range of gamma ====
+         if (sumbtgm) then
+            f = 1.0d0
+            if (ig==1 .or. ig==ngm) f = 0.5d0
+            yieldbtgm = yieldbtgm + f * yieldbt * dgmr
+         endif         
       enddo
 
+
+c     ==== Calculate the integral of yields over 4pi ====
+c     ====   solid angle using Lebedev quadrature    ====
+      if (sumbtgm) then
+         write(luout, '("INFO : Sum of the yield over the specified "'//
+     &        '"interval is ", es14.6)') yieldbtgm
+         write(luout, '("INFO : beta interval   ", 2f11.4, i5)')
+     &        bt_start, bt_last, nbt
+         write(luout, '("INFO : gamma interval  ", 2f11.4, i5)')
+     &        gm_start, gm_last, ngm
+
+         call wfat_sumyield_lebedev(geom, nlas, ftlas, alas, wlas, 
+     &        plas, tlas, dlas, nt, tmax, extf, nch,
+     &        erg, chmmt, nqn, nid, mid, lmax, zi, intgl)
+      endif
+      
 
 c     ==== Initializing the printings ====
       if (ndid == 0 .and. pr_avgamma) 

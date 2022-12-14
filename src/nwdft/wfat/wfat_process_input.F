@@ -1235,6 +1235,9 @@ c=======================================================
       integer nt_00, er(2)
       double precision dt_00, tmax_00
 
+c     == The following line is temporary ==
+      character*4096 sitype
+
 
       call util_get_rtdb_state(rtdb, os, oc, or)
 
@@ -1580,6 +1583,18 @@ cOLD      if (prtb_ord_need .and. os) then
      &        , 1, INPUT_ERR)
       endif
 
+      if (.true.) then    !! sitype_need=.true.
+c     ====  The following two lines are temporary and should be  ====
+c     ==== removed/changed once the proper input has been set up ====
+         if (.not. rtdb_cget(rtdb, 'mewfat:si', 1, sitype))
+     &        sitype='none'
+         
+         if (.not. rtdb_cput(rtdb, 'mewfat:si', 1,
+     &        trim(adjustl(sitype))))
+     &        call errquit('WFAT: Failed writing si to '//
+     &        'RTDB', 1, RTDB_ERR)
+      endif
+         
       
       end
 c=======================================================
