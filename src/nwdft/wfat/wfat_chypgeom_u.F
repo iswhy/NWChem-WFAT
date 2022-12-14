@@ -1,4 +1,4 @@
-subroutine chgubi ( a, b, x, hu, id )
+subroutine wfat_chgubi ( a, b, x, hu, id )
 
 c*********************************************************************72
 c
@@ -97,21 +97,21 @@ c
         end if
       end do
 
-      call psi ( a, ps )
-      call gamma ( a, ga )
+      call wfat_psif ( a, ps )
+      call wfat_gammaf ( a, ga )
 
       if ( 0.0D+00 .lt. b ) then
         a0 = a
         a1 = a - n
         a2 = a1
-        call gamma ( a1, ga1 )
+        call wfat_gammaf ( a1, ga1 )
         ua = ( - 1 ) ** ( n - 1 ) / ( rn * ga1 )
         ub = rn1 / ga * x ** ( - n )
       else
         a0 = a + n
         a1 = a0
         a2 = a
-        call gamma ( a1, ga1 )
+        call wfat_gammaf ( a1, ga1 )
         ua = ( - 1 ) ** ( n - 1 ) / ( rn * ga ) * x ** n
         ub = rn1 / ga1
       end if

@@ -480,3 +480,125 @@ c      !
       return
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_psif ( x, ps )
+c*********************************************************************72
+c
+cc PSI computes the Psi function.
+c
+c  Licensing:
+c
+c    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However, 
+c    they give permission to incorporate this routine into a user program 
+c    provided that the copyright is acknowledged.
+c
+c  Modified:
+c
+c    22 July 2012
+c
+c  Author:
+c
+c    Shanjie Zhang, Jianming Jin
+c
+c  Reference:
+c
+c    Shanjie Zhang, Jianming Jin,
+c    Computation of Special Functions,
+c    Wiley, 1996,
+c    ISBN: 0-471-11963-6,
+c    LC: QA351.C45.
+c
+c  Parameters:
+c
+c    Input, double precision X, the argument.
+c
+c    Output, double precision PS, the value of the function.
+c
+      implicit none
+
+      double precision a1
+      double precision a2
+      double precision a3
+      double precision a4
+      double precision a5
+      double precision a6
+      double precision a7
+      double precision a8
+      double precision el
+      integer k
+      integer n
+      double precision pi
+      double precision ps
+      double precision s
+      double precision x
+      double precision x2
+      double precision xa
+
+      xa = abs ( x )
+      pi = 3.141592653589793D+00
+      el = 0.5772156649015329D+00
+      s = 0.0D+00
+
+      if ( x .eq. int ( x ) .and. x .le. 0.0D+00 ) then
+
+        ps = 1.0D+300
+        return
+
+      else if ( xa .eq. int ( xa ) ) then
+
+        n = int ( xa )
+        do k = 1, n - 1
+          s = s + 1.0D+00 / k
+        end do
+        ps = - el + s
+
+      else if ( xa + 0.5D+00 .eq. int ( xa + 0.5D+00 ) ) then
+
+        n = int ( xa - 0.5D+00 )
+        do k = 1, n
+          s = s + 1.0D+00 / ( 2.0D+00 * k - 1.0D+00 )
+        end do
+        ps = - el + 2.0D+00 * s - 1.386294361119891D+00
+
+      else
+
+        if ( xa .lt. 10.0D+00 ) then
+          n = 10 - int ( xa )
+          do k = 0, n - 1 
+            s = s + 1.0D+00 / ( xa + k )
+          end do
+          xa = xa + n
+        end if
+
+        x2 = 1.0D+00 / ( xa * xa )
+        a1 = -0.8333333333333D-01
+        a2 = 0.83333333333333333D-02
+        a3 = -0.39682539682539683D-02
+        a4 = 0.41666666666666667D-02
+        a5 = -0.75757575757575758D-02
+        a6 = 0.21092796092796093D-01
+        a7 = -0.83333333333333333D-01
+        a8 = 0.4432598039215686D+00
+        ps = log ( xa ) - 0.5D+00 / xa + x2 * (((((((
+     &      a8   * x2
+     &    + a7 ) * x2
+     &    + a6 ) * x2
+     &    + a5 ) * x2
+     &    + a4 ) * x2
+     &    + a3 ) * x2
+     &    + a2 ) * x2
+     &    + a1 )
+        ps = ps-s
+
+      end if
+
+      if ( x .lt. 0.0D+00 ) then
+        ps = ps - pi * cos ( pi * x ) / sin ( pi * x ) - 1.0D+00 / x
+      end if
+
+      return
+      end      
+c=======================================================
