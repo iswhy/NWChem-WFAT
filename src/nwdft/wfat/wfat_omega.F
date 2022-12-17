@@ -121,7 +121,7 @@ c     ==== Calculate confluent hypergeometric functions ====
       lmb = 2 * kappa
       a = 1.0d0 - zq/kappa
       b = 2.0d0
-      call wfat_chgf_1pt(r, lmin_, lmax_, a, b, lmb, dbl_mb(k_hf))
+      call wfat_chgm_1pt(r, lmin_, lmax_, a, b, lmb, dbl_mb(k_hf))
       
       do iq = 1, nqn
 c        ==== Calculate radial functions ====

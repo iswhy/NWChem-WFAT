@@ -1,90 +1,97 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_chgf_1pt(r, lmin_, lmax_, a_, b_, lmb, chgf)
+      subroutine wfat_chgm_1pt(r, lmin_, lmax_, a_, b_, lmb, chgm)
 
       implicit none
 #include "stdio.fh"      
       integer lmin_, lmax_
       double precision r, a_, b_, lmb
-      double precision chgf(lmin_:lmax_)
+      double precision chgm(lmin_:lmax_)
       
       integer l
-      double precision a, aa, b, bb, b0, z, chg_1, chg_2, chg_3
+      double precision a, aa, b, bb, b0, z, chgm_1, chgm_2, chgm_3
       double complex zz, uu
       
       
 c     ==== Prepare initial values for recurrence calculation ====
       z = lmb * r
-      zz = cmplx(z, 0.0d0, kind=kind(1.0d0))      
-      
+      zz = cmplx(z, 0.0d0, kind=kind(1.0d0))
       a = a_ + (lmax_ + 1)
       b = b_ + 2*(lmax_ + 1)
       
       b0 = b - 0
-      call wfat_cchg(a, b0, zz, uu)
-      chg_3 = real(uu)
+c      call wfat_chgm(a, b0, z, chgm_3)
+      call wfat_cchg(a, b0, zz, uu)           ! 1)
+      chgm_3 = real(uu)
       
       b0 = b - 1
-      call wfat_cchg(a, b0, zz, uu)
-      chg_2 = real(uu)
+c      call wfat_chgm(a, b0, z, chgm_2)
+      call wfat_cchg(a, b0, zz, uu)           ! 1)
+      chgm_2 = real(uu)
       
       b0 = b - 2
-      call wfat_cchg(a, b0, zz, uu)
-      chg_1 = real(uu)
+c      call wfat_chgm(a, b0, z, chgm_1)
+      call wfat_cchg(a, b0, zz, uu)           ! 1)
+      chgm_1 = real(uu)
       
       
 c     ==== Calculate the confluent hypergeometric function by recurrence ====
-      if (chg_3 < 5.0d2) then
-         call wfat_chgf_1pt_recur(lmin_, lmax_, a_, b_, z,
-     &                            chg_1, chg_2, chg_3, chgf)
+      if (abs(chgm_3) < 5.0d2) then
+         call wfat_chgm_1pt_recur(lmin_, lmax_, a_, b_, z,
+     &                            chgm_1, chgm_2, chgm_3, chgm)
       else
          do l = lmin_, lmax_
             aa = l + a_
             bb = 2*l + b_
-            call wfat_cchg(aa, bb, zz, uu)
-            chgf(l) = real(uu)
+c            call wfat_chgm(aa, bb, z, chgm(l))
+            call wfat_cchg(aa, bb, zz, uu)           ! 1)
+            chgm(l) = real(uu)
          enddo
       endif
          
       
 c     ==== Scan for too big values ====
       do l = lmin_, lmax_
-c           if (chgf(l) > 1.0d+20 .or. isnan(chgf(l)) ) then
-         if (isnan(chgf(l)) ) then        
-c              print *, "rmax = ", r0, l, chgf(l)
-            chgf(l) = 0.0d0
+c         if (chgm(l) > 1.0d+20 .or. isnan(chgm(l)) ) then
+         if (isnan(chgm(l)) ) then        
+c              print *, "rmax = ", r0, l, chgm(l)
+            chgm(l) = 0.0d0
          endif
       enddo
       
       end
+c     NOTES:
+c     1) wfat cchg is used instead of wfat_chgm that is more specifically
+c        used for real arguments because for some reason the latter 
+c        produced NaN in calculating the structure factors.
 c=======================================================
 
 
 c=======================================================
 c=======================================================
-      subroutine wfat_chgf_1pt_recur(m, ll, a0, b0, z, chg_1_, chg_2_, 
-     &                               chg_3_, chgf)
+      subroutine wfat_chgm_1pt_recur(m, ll, a0, b0, z, chgm_1_, chgm_2_,
+     &                               chgm_3_, chgm)
       
 c      !! DESCRIPTION:
-c      !!   chg_1_ = M(ll+a0, 2ll+0+b0, z)
-c      !!   chg_2_ = M(ll+a0, 2ll+1+b0, z)
-c      !!   chg_3_ = M(ll+a0, 2ll+2+b0, z)
-c      !!   chgf   = M(l+a0,  2l+b0,    z)  with l = m, m+1, ..., ll
+c      !!   chgm_1_ = M(ll+1+a0, 2ll+0+b0, z)
+c      !!   chgm_2_ = M(ll+1+a0, 2ll+1+b0, z)
+c      !!   chgm_3_ = M(ll+1+a0, 2ll+2+b0, z)
+c      !!   chgm    = M(l+a0,    2l+b0,    z)  with l = m, m+1, ..., ll
 c      !!   m >= 0
       
       implicit none
 #include "errquit.fh"
       integer m, ll
       double precision a0, b0, z
-      double precision chg_1_, chg_2_, chg_3_
-      double precision chgf(m:ll)
+      double precision chgm_1_, chgm_2_, chgm_3_
+      double precision chgm(m:ll)
       
       integer l
-      double precision a, b, chg_1, chg_2, chg_3, chg_4
+      double precision a, b, chgm_1, chgm_2, chgm_3, chgm_4
 
 
       if (m < 0) then
-         call errquit('WFAT: Argument m of wfat_chgf_1pt_recur '//
+         call errquit('WFAT: Argument m of wfat_chgm_1pt_recur '//
      &                'cannot be negative.', 1, UERR)
       endif
       
@@ -93,37 +100,227 @@ c      !!   m >= 0
          a = a0 + l
          b = b0 + 2*l + 1       
       
-         !!==== chg_4 ====!! Use eq. (13.4.4) of Ref. [1]
-         chg_4 = (b * chg_2_ - z * chg_3_) / b
+         !!==== chgm_4 ====!! Use eq. (13.4.4) of Ref. [1]
+         chgm_4 = (b * chgm_2_ - z * chgm_3_) / b
       
-         !!==== chg_3 ====!! Use eq. (13.4.4) of Ref. [1]
+         !!==== chgm_3 ====!! Use eq. (13.4.4) of Ref. [1]
          b = b - 1
-         chg_3 = (b * chg_1_ - z * chg_2_) / b
-         chgf(l) = chg_3
+         chgm_3 = (b * chgm_1_ - z * chgm_2_) / b
+         chgm(l) = chgm_3
       
          !!==== Avoid unnecessary calculations ====!!
          if (l == m) exit
       
-         !!==== chg_2 ====!! Use eq. (13.4.2) of Ref. [1]
+         !!==== chgm_2 ====!! Use eq. (13.4.2) of Ref. [1]
          b = b - 1
-         chg_2 = -(-(b+1)*(b+z)*chg_3 + z*(b+1-a)*chg_4) / b / (b+1)
+         chgm_2 = -(-(b+1)*(b+z)*chgm_3 + z*(b+1-a)*chgm_4) / b / (b+1)
       
-         !!==== chg_1 ====!! Use eq. (13.4.2) of Ref. [1]
+         !!==== chgm_1 ====!! Use eq. (13.4.2) of Ref. [1]
          b = b - 1
-         chg_1 = -(-(b+1)*(b+z)*chg_2 + z*(b+1-a)*chg_3) / b / (b+1)
+         chgm_1 = -(-(b+1)*(b+z)*chgm_2 + z*(b+1-a)*chgm_3) / b / (b+1)
       
          !!==== For next iteration ====!!
-         chg_3_ = chg_3
-         chg_2_ = chg_2
-         chg_1_ = chg_1
+         chgm_3_ = chgm_3
+         chgm_2_ = chgm_2
+         chgm_1_ = chgm_1
       enddo
             
       end
 c     References:
 c        [1] Handbook of Mathematical Functions by Abramowitz and Stegun.
 c=======================================================
-      
 
+
+c=======================================================
+c=======================================================
+      subroutine wfat_chgm ( a, b, x, hg )
+
+c*********************************************************************72
+c
+cc CHGM computes the confluent hypergeometric function M(a,b,x).
+c
+c  Licensing:
+c
+c    This routine is copyrighted by Shanjie Zhang and Jianming Jin.  However, 
+c    they give permission to incorporate this routine into a user program 
+c    provided that the copyright is acknowledged.
+c
+c  Modified:
+c
+c    27 July 2012
+c
+c  Author:
+c
+c    Shanjie Zhang, Jianming Jin
+c
+c  Reference:
+c
+c    Shanjie Zhang, Jianming Jin,
+c    Computation of Special Functions,
+c    Wiley, 1996,
+c    ISBN: 0-471-11963-6,
+c    LC: QA351.C45.
+c
+c  Parameters:
+c
+c    Input, double precision A, B, parameters.
+c
+c    Input, double precision X, the argument.
+c
+c    Output, double precision HG, the value of M(a,b,x).
+c
+      implicit none
+
+      double precision a
+      double precision a0
+      double precision a1
+      double precision b
+      double precision hg
+      double precision hg1
+      double precision hg2
+      integer i
+      integer j
+      integer k
+      integer la
+      integer m
+      integer n
+      integer nl
+      double precision pi
+      double precision r
+      double precision r1
+      double precision r2
+      double precision rg
+      double precision sum1
+      double precision sum2
+      double precision ta
+      double precision tb
+      double precision tba
+      double precision x
+      double precision x0
+      double precision xg
+      double precision y0
+      double precision y1
+
+      pi = 3.141592653589793D+00
+      a0 = a
+      a1 = a
+      x0 = x
+      hg = 0.0D+00
+
+      if ( b .eq. 0.0D+00 .or. b .eq. - abs ( int ( b ) ) ) then
+        hg = 1.0D+300
+      else if ( a .eq. 0.0D+00 .or. x .eq. 0.0D+00 ) then
+        hg = 1.0D+00
+      else if ( a .eq. -1.0D+00 ) then
+        hg = 1.0D+00 - x / b
+      else if ( a .eq. b ) then
+        hg = exp ( x )
+      else if ( a - b .eq. 1.0D+00 ) then
+        hg = ( 1.0D+00 + x / b ) * exp ( x )
+      else if ( a .eq. 1.0D+00 .and. b .eq. 2.0D+00 ) then
+        hg = ( exp ( x ) - 1.0D+00 ) / x
+      else if ( a .eq. int ( a ) .and. a .lt. 0.0D+00 ) then
+        m = int ( - a )
+        r = 1.0D+00
+        hg = 1.0D+00
+        do k = 1, m
+          r = r * ( a + k - 1.0D+00 ) / k / ( b + k - 1.0D+00 ) * x
+          hg = hg + r
+        end do
+      end if
+
+      if ( hg .ne. 0.0D+00 ) then
+        return
+      end if
+
+      if ( x .lt. 0.0D+00 ) then
+        a = b - a
+        a0 = a
+        x = abs ( x )
+      end if
+
+      if ( a .lt. 2.0D+00 ) then
+        nl = 0
+      end if
+
+      if ( 2.0D+00 .le. a ) then
+        nl = 1
+        la = int ( a )
+        a = a - la - 1.0D+00
+      end if
+
+      do n = 0, nl
+
+        if ( 2.0D+00 .le. a0 ) then
+          a = a + 1.0D+00
+        end if
+
+        if ( x .le. 30.0D+00 + abs ( b ) .or. a .lt. 0.0D+00 ) then
+
+          hg = 1.0D+00
+          rg = 1.0D+00
+          do j = 1, 500
+            rg = rg * ( a + j - 1.0D+00 ) 
+     &        / ( j * ( b + j - 1.0D+00 ) ) * x
+            hg = hg + rg
+            if ( abs ( rg / hg ) .lt. 1.0D-15 ) then
+              go to 10
+            end if
+          end do
+
+10        continue
+
+        else
+
+          call wfat_gammaf ( a, ta )
+          call wfat_gammaf ( b, tb )
+          xg = b - a
+          call wfat_gammaf ( xg, tba )
+          sum1 = 1.0D+00
+          sum2 = 1.0D+00
+          r1 = 1.0D+00
+          r2 = 1.0D+00
+          do i = 1, 8
+            r1 = - r1 * ( a + i - 1.0D+00 ) * ( a - b + i ) / ( x * i )
+            r2 = - r2 * ( b - a + i - 1.0D+00 ) * ( a - i ) / ( x * i )
+            sum1 = sum1 + r1
+            sum2 = sum2 + r2
+          end do
+          hg1 = tb / tba * x ** ( - a ) * cos ( pi * a ) * sum1
+          hg2 = tb / ta * exp ( x ) * x ** ( a - b ) * sum2
+          hg = hg1 + hg2
+
+        end if
+
+        if ( n .eq. 0 ) then
+          y0 = hg
+        else if ( n .eq. 1 ) then
+          y1 = hg
+        end if
+
+      end do
+
+      if ( 2.0D+00 .le. a0 ) then
+        do i = 1, la - 1
+          hg = ( ( 2.0D+00 * a - b + x ) * y1 + ( b - a ) * y0 ) / a
+          y0 = y1
+          y1 = hg
+          a = a + 1.0D+00
+        end do
+      end if
+
+      if ( x0 .lt. 0.0D+00 ) then
+        hg = hg * exp ( x0 )
+      end if
+
+      a = a1
+      x = x0
+
+      return
+      end      
+c=======================================================
+
+      
 c=======================================================
 c=======================================================  
       subroutine wfat_cchg ( a, b, z, chg )
