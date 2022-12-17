@@ -19,6 +19,7 @@
 	wfat_field_factor.o \
 	wfat_celf.o \
 	wfat_chypgeom.o \
+	wfat_chypgeom_u.o \
 	wfat_density.o \
 	wfat_eval_basis.o \
 	wfat_grid.o \
@@ -57,6 +58,7 @@
 	wfat_perturb_print.o \
 	wfat_partial_integ.o \
 	wfat_sumyield_lebedev.o \
+	wfat_test_chg.o \
 	mewfat_task.o \
 	mewfat_init.o \
 	mewfat_print_info.o \

@@ -1,4 +1,126 @@
-subroutine wfat_chgubi ( a, b, x, hu, id )
+c=======================================================
+c=======================================================
+      subroutine wfat_chgu_1pt(r, lmin_, lmax_, a_, b_, lmb, chgu)
+
+      implicit none
+#include "stdio.fh"      
+      integer lmin_, lmax_
+      double precision r, a_, b_, lmb
+      double precision chgu(lmin_:lmax_)
+      
+      integer l, id
+      double precision a, aa, b, b0, bb, z, chgu_1, chgu_2, chgu_3
+
+
+c     ==== Prepare initial values for recurrence calculation ====
+      z = lmb * r      
+      a = a_ + (lmax_ + 1)
+      b = b_ + 2*(lmax_ + 1)
+      
+      b0 = b - 0
+      call wfat_chgubi(a, b0, z, chgu_3, id)
+      write(luout, '("initial U")')
+      write(luout, '(es14.6, i4, 2es14.6)') a, int(b0), z, chgu_3
+      
+      b0 = b - 1
+      call wfat_chgubi(a, b0, z, chgu_2, id)
+      
+      b0 = b - 2
+      call wfat_chgubi(a, b0, z, chgu_1, id)
+
+
+c     ==== Calculate the confluent hypergeometric function by recurrence ====
+      if (chgu_3 < 5.0d2) then
+         call wfat_chgu_1pt_recur(lmin_, lmax_, a_, b_, z,
+     &                            chgu_1, chgu_2, chgu_3, chgu)
+      else
+         do l = lmin_, lmax_
+            aa = l + a_
+            bb = 2*l + b_
+            call wfat_chgubi(aa, bb, z, chgu(l), id)
+         enddo
+      endif
+      
+
+c     ==== Scan for too big values ====
+      do l = lmin_, lmax_
+c           if (chgf(l) > 1.0d+20 .or. isnan(chgf(l)) ) then
+         if (isnan(chgu(l)) ) then        
+c              print *, "rmax = ", r0, l, chgf(l)
+            chgu(l) = 0.0d0
+         endif
+      enddo
+      
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_chgu_1pt_recur(m, ll, a0, b0, z, chgu_1_, chgu_2_,
+     &                               chgu_3_, chgu)
+c      !! DESCRIPTION:
+c      !!   chgu_1_ = U(ll+1+a0, 2ll+0+b0, z)
+c      !!   chgu_2_ = U(ll+1+a0, 2ll+1+b0, z)
+c      !!   chgu_3_ = U(ll+1+a0, 2ll+2+b0, z)
+c      !!   chgu    = U(l+a0,  2l+b0,    z)  with l = m, m+1, ..., ll
+c      !!   m >= 0
+      
+      implicit none
+#include "errquit.fh"
+      integer m, ll
+      double precision a0, b0, z
+      double precision chgu_1_, chgu_2_, chgu_3_
+      double precision chgu(m:ll)
+      
+      integer l
+      double precision a, b, chgu_1, chgu_2, chgu_3, chgu_4
+
+
+      if (m < 0) then
+         call errquit('WFAT: Argument m of wfat_chgu_1pt_recur '//
+     &                'cannot be negative.', 1, UERR)
+      endif
+      
+            
+      do l = ll, m, -1
+         a = a0 + l
+         b = b0 + 2*l + 1       
+      
+         !!==== chgu_4 ====!! Use eq. (13.4.18) of Ref. [1]
+         chgu_4 = z*chgu_3_ - (b-a-1)*chgu_2_
+      
+         !!==== chgu_3 ====!! Use eq. (13.4.18) of Ref. [1]
+         b = b - 1
+         chgu_3 = z*chgu_2_ - (b-a-1)*chgu_1_
+         chgu(l) = chgu_3
+      
+         !!==== Avoid unnecessary calculations ====!!
+         if (l == m) exit
+      
+         !!==== chgu_2 ====!! Use eq. (13.4.16) of Ref. [1]
+         b = b - 1
+         chgu_2 = (z*chgu_4 - (z+b)*chgu_3) / (a-b)
+
+         !!==== chgu_1 ====!! Use eq. (13.4.16) of Ref. [1]
+         b = b - 1
+         chgu_1 = (z*chgu_3 - (z+b)*chgu_2) / (a-b)
+
+         !!==== For next iteration ====!!
+         chgu_3_ = chgu_3
+         chgu_2_ = chgu_2
+         chgu_1_ = chgu_1
+      enddo
+            
+      end
+c     References:
+c        [1] Handbook of Mathematical Functions by Abramowitz and Stegun.
+c=======================================================
+      
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_chgubi ( a, b, x, hu, id )
 
 c*********************************************************************72
 c
@@ -224,4 +346,4 @@ c
 
       return
       end
-c =================
+c=======================================================

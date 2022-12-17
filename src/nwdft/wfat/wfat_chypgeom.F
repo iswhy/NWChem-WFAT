@@ -9,7 +9,7 @@ c=======================================================
       double precision chgf(lmin_:lmax_)
       
       integer l
-      double precision a, b, b0, z, chg_1, chg_2, chg_3
+      double precision a, aa, b, bb, b0, z, chg_1, chg_2, chg_3
       double complex zz, uu
       
       
@@ -34,9 +34,18 @@ c     ==== Prepare initial values for recurrence calculation ====
       
       
 c     ==== Calculate the confluent hypergeometric function by recurrence ====
-      call wfat_chgf_1pt_recur(lmin_, lmax_, a_, b_, z,
-     &                         chg_1, chg_2, chg_3, chgf)
-
+      if (chg_3 < 5.0d2) then
+         call wfat_chgf_1pt_recur(lmin_, lmax_, a_, b_, z,
+     &                            chg_1, chg_2, chg_3, chgf)
+      else
+         do l = lmin_, lmax_
+            aa = l + a_
+            bb = 2*l + b_
+            call wfat_cchg(aa, bb, zz, uu)
+            chgf(l) = real(uu)
+         enddo
+      endif
+         
       
 c     ==== Scan for too big values ====
       do l = lmin_, lmax_
@@ -57,10 +66,10 @@ c=======================================================
      &                               chg_3_, chgf)
       
 c      !! DESCRIPTION:
-c      !!   chg_1_ = M(ll+1+a0,   2ll+b0, z)
-c      !!   chg_2_ = M(ll+1+a0, 2ll+1+b0, z)
-c      !!   chg_3_ = M(ll+1+a0, 2ll+2+b0, z)
-c      !!   chgf   = M(l+a0, 2l+b0, z)  with l = m, m+1, ..., ll
+c      !!   chg_1_ = M(ll+a0, 2ll+0+b0, z)
+c      !!   chg_2_ = M(ll+a0, 2ll+1+b0, z)
+c      !!   chg_3_ = M(ll+a0, 2ll+2+b0, z)
+c      !!   chgf   = M(l+a0,  2l+b0,    z)  with l = m, m+1, ..., ll
 c      !!   m >= 0
       
       implicit none
@@ -84,10 +93,10 @@ c      !!   m >= 0
          a = a0 + l
          b = b0 + 2*l + 1       
       
-         !!==== chg_4 ====!!
+         !!==== chg_4 ====!! Use eq. (13.4.4) of Ref. [1]
          chg_4 = (b * chg_2_ - z * chg_3_) / b
       
-         !!==== chg_3 ====!!
+         !!==== chg_3 ====!! Use eq. (13.4.4) of Ref. [1]
          b = b - 1
          chg_3 = (b * chg_1_ - z * chg_2_) / b
          chgf(l) = chg_3
@@ -95,11 +104,11 @@ c      !!   m >= 0
          !!==== Avoid unnecessary calculations ====!!
          if (l == m) exit
       
-         !!==== chg_2 ====!!
+         !!==== chg_2 ====!! Use eq. (13.4.2) of Ref. [1]
          b = b - 1
          chg_2 = -(-(b+1)*(b+z)*chg_3 + z*(b+1-a)*chg_4) / b / (b+1)
       
-         !!==== chg_1 ====!!
+         !!==== chg_1 ====!! Use eq. (13.4.2) of Ref. [1]
          b = b - 1
          chg_1 = -(-(b+1)*(b+z)*chg_2 + z*(b+1-a)*chg_3) / b / (b+1)
       
@@ -110,6 +119,8 @@ c      !!   m >= 0
       enddo
             
       end
+c     References:
+c        [1] Handbook of Mathematical Functions by Abramowitz and Stegun.
 c=======================================================
       
 

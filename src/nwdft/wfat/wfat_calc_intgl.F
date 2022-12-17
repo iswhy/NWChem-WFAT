@@ -47,7 +47,7 @@ c==== Imam ====
       integer k_i_, k_sc, k_il, k_icp, k_ipp, k_nu, k_hf, k_xc, k_vs
       integer k_mo, k_rda
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
-      integer g_rd(2), i_mo
+      integer g_rd(2), i_mo, l_chgtest(2)
       double precision atp(3), znuc, v_c(3), v_m(3), asc(3), rasfac
       double precision r_mas, ras, exc(2), normch, celf, numnel
       double complex czero
@@ -86,7 +86,12 @@ c     ==== Get the reduced density matrix ====
       if (.not. MA_alloc_get(MT_DBL, nrd, 'rdm', l_rd, k_rd))
      &     call errquit('WFAT: rdm allocation failed', 59, MA_ERR)
       call wfat_get_rdm(dbl_mb(k_rd:k_rd+nrd-1))
+
       
+c     ==== Some tests ====
+      if (rtdb_get(rtdb, 'wfat:test_chg', mt_int, 2, l_chgtest)) then
+         if (ndid==0) call wfat_test_chg(0, lmax_, zion, erg(1))
+      endif
 
 
 
