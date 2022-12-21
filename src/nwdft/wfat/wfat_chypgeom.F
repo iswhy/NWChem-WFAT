@@ -62,7 +62,7 @@ c              print *, "rmax = ", r0, l, chgm(l)
       end
 c     NOTES:
 c     1) wfat cchg is used instead of wfat_chgm that is more specifically
-c        used for real arguments because for some reason the latter 
+c        used for real arguments because for some reason the latter
 c        produced NaN in calculating the structure factors.
 c=======================================================
 

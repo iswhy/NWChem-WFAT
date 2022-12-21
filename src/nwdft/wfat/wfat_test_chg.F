@@ -30,7 +30,7 @@ c=======================================================
       write(luout, '(1x)')
       write(luout, '(" erg = ", es14.6)') erg
       write(luout, '(" kappa = ", es14.6)') kappa
-      r = (/ 0.5d0, 1.0d0, 4.8d0, 8.3d0, 240.7d0 /)
+      r = (/ 0.005d0, 1.0d0, 4.8d0, 8.3d0, 240.7d0 /)
 
       do i = 1, nr
          write(luout, '(1x)')
