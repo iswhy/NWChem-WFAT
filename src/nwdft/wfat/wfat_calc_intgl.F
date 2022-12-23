@@ -47,7 +47,7 @@ c==== Imam ====
       integer k_i_, k_sc, k_il, k_icp, k_ipp, k_nu, k_hf, k_xc, k_vs
       integer k_mo, k_rda
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
-      integer g_rd(2), i_mo, l_chgtest(2)
+      integer g_rd(2), i_mo, l_chgtest(2), l_r1test(2)
       double precision atp(3), znuc, v_c(3), v_m(3), asc(3), rasfac
       double precision r_mas, ras, exc(2), normch, celf, numnel
       double complex czero
@@ -90,8 +90,15 @@ c     ==== Get the reduced density matrix ====
       
 c     ==== Some tests ====
       if (rtdb_get(rtdb, 'wfat:test_chg', mt_int, 2, l_chgtest)) then
-         if (ndid==0) call wfat_test_chg(0, lmax_, zion, erg(1))
+         if (ndid==0) call wfat_test_chg(l_chgtest(1), l_chgtest(2),
+     &        zion, erg(1))
       endif
+      if (rtdb_get(rtdb, 'wfat:test_r1', mt_int, 2, l_r1test)) then
+         if (ndid==0) call wfat_test_r1(l_r1test(1), l_r1test(2),
+     &        erg(1), zion, chmmt(:,1))
+      endif
+      call ga_sync()
+      
 
 
 

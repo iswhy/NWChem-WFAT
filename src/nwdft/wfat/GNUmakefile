@@ -57,8 +57,10 @@
 	wfat_perturb_analyse.o \
 	wfat_perturb_print.o \
 	wfat_partial_integ.o \
+	wfat_firstord_r.o \
 	wfat_sumyield_lebedev.o \
 	wfat_test_chg.o \
+	wfat_test_r1.o \
 	mewfat_task.o \
 	mewfat_init.o \
 	mewfat_print_info.o \
