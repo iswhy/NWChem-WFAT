@@ -920,11 +920,16 @@ c=======================================================
       double precision f
 
       
-      f = 1.0d0
-      do i = 1, n
-         f = f * (x+i-1)
-      enddo
-      rise_fact = f
+      
+      if (n == 0) then
+         rise_fact = 1.0d0
+      else
+         f = 1.0d0
+         do i = 1, n
+            f = f * (x+i-1)
+         enddo
+         rise_fact = f
+      endif
       
       end
 c=======================================================
