@@ -1,24 +1,47 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_q_particular(r, lmin, lmax, q_p1, q_p2)
+      subroutine wfat_q_particular(nr, r, n, m, lmax, erg, zq, nlgl,
+     &                             q_p1, q_p2)
 
       implicit none
-      double precision r(nr) ! [input]
-      double precision q_p1(lmin:lmax, nr)       ! [output], orientation-independent
-      double precision q_p2(lmin:lmax, nr)       ! [output], orientation-dependent
+#include "stdio.fh"
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer nr
+      double precision r(nr)    ! [input]
+      integer n
+      integer m
+      integer lmax
+      double precision erg
+      double precision zq
+      integer nlgl
+      double precision q_p1(abs(m):lmax, nr)       ! [output], orientation-independent
+      double precision q_p2(abs(m):lmax, nr)       ! [output], orientation-dependent
 
+      integer i, l, l_pt, l_wt, k_pt, k_wt
+      double precision kappa, lmb, a, b, f, g, h
+      double precision g_i0(2,abs(m):lmax), h_i0(2,abs(m):lmax)
+      double precision g_i(2,abs(m):lmax), h_i(2,abs(m):lmax)
+      double precision gg(2,abs(m):lmax), hh(2,abs(m):lmax)
+      double precision chgm(abs(m):lmax), chgu(abs(m):lmax)
 
-      kappa = sqrt()
+      
+      kappa = sqrt(2 * abs(erg))
       lmb = 2 * kappa
       a = 1.0d0 - zq/kappa
       b = 2.0d0
 
-      call wfat_lgl(-1.0d0, 1.0d0, nlgl-1, pt, wt)
+      
+      if (.not. MA_alloc_get(MT_DBL, nlgl, 'lgl_pt', l_pt, k_pt))
+     &     call errquit('WFAT: lgl_pt allocation failed', 84, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nlgl, 'lgl_wt', l_wt, k_wt))
+     &     call errquit('WFAT: lgl_wt allocation failed', 85, MA_ERR)
+      call wfat_lgl(-1.0d0, 1.0d0, nlgl-1, dbl_mb(k_pt), dbl_mb(k_wt))
+      
       
       do i = 1, nr             ! Loop over the increasingly-ordered radial points
-
          if (r(i) < 1.0d-13) then
-            do l = lmin, lmax
+            do l = abs(m), lmax
                q_p1(l,i) = 0.0d0
                q_p2(l,i) = 0.0d0
                g_i0(1:2,l) = 0.0d0
@@ -27,15 +50,15 @@ c=======================================================
             cycle
          endif
 
-         call wfat_chgm_1pt(r(i), lmin, lmax, a, b, lmb, chgm)
-         call wfat_chgu_1pt(r(i), lmin, lmax, a, b, lmb, chgu)
+         call wfat_chgm_1pt(r(i), abs(m), lmax, a, b, lmb, chgm)
+         call wfat_chgu_1pt(r(i), abs(m), lmax, a, b, lmb, chgu)
 
-         call wfat_calc_gh_i(r(i-1), r(i), lmin, lmax, a, b, lmb, nlgl,
-     &        pt, wt, gg, hh)
+         call wfat_calc_gh_i(r(i-1), r(i), n, m, lmax, erg, zq, nlgl,
+     &        dbl_mb(k_pt), dbl_mb(k_wt), gg, hh)
          g_i = g_i0 + gg
          h_i = h_i0 + hh
          
-         do l = lmin, lmax
+         do l = abs(m), lmax
             f = (kappa*r(i))**l * exp(-kappa*r(i))
             g = f * chgm(l)
             h = f * chgu(l)
@@ -46,6 +69,13 @@ c=======================================================
          g_i0 = g_i
          h_i0 = h_i
       enddo
+
+
+c     ==== Deallocations ====
+      if (.not. ma_free_heap(l_pt))
+     &     call errquit('WFAT: Cannot deallocate lgl_pt', 49, MA_ERR)
+      if (.not. ma_free_heap(l_wt))
+     &     call errquit('WFAT: Cannot deallocate lgl_wt', 49, MA_ERR)
       
       
       end
@@ -54,7 +84,8 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_calc_gh_i(r1, r2, n, m, erg, zq, gg, hh)
+      subroutine wfat_calc_gh_i(r1, r2, n, m, lmax, erg, zq, nlgl,
+     &                          pt, wt, gg, hh)
 
       implicit none
 #include "stdio.fh"      
@@ -62,16 +93,20 @@ c=======================================================
       double precision r2
       integer n
       integer m
+      integer lmax
       double precision erg
       double precision zq
-      double precision gg(2,lmin:lmax)
-      double precision hh(2,lmin:lmax)
+      integer nlgl
+      double precision pt(nlgl)
+      double precision wt(nlgl)
+      double precision gg(2,abs(m):lmax)
+      double precision hh(2,abs(m):lmax)
 
       integer nfem, ngr, id, i, j, l
       double precision pt_4(4), wt_4(4), pt_6(6), wt_6(6)
-      double precision dr, dfem, kappa, a, b, r1_, r2_, r, wt_, f
+      double precision dr, dfem, kappa, lmb, a, b, r1_, r2_, r, wt_, f
       double precision g, h, c, c_m, c_p, k_m, k_p, y, ind_oi, ind_od
-      double precision chgm(lmin:lmax), chgu(lmin:lmax)
+      double precision chgm(abs(m):lmax+1), chgu(abs(m):lmax)
       double precision min_dfem
       parameter( min_dfem=2.0d0 )
 
@@ -125,6 +160,7 @@ c     dfem = the finite element interval
       endif
 
       kappa = sqrt(2 * abs(erg))
+      lmb = 2 * kappa
       a = 1.0d0 - zq/kappa
       b = 2.0d0
 
@@ -159,10 +195,10 @@ c           ==== Determine the shifted grids and weights ====
             
 
 c           ==== Calculate the necessary Hypergeometric functions ====
-            call wfat_chgm_1pt(r, lmin, lmax+1, a, b, lmb, chgm)     ! lmax+1 instead of just lmax because the integrands
-            call wfat_chgu_1pt(r, lmin, lmax+1, a, b, lmb, chgu)     ! involve the evaluation of R_{l+1}^\nu, see below.
+            call wfat_chgm_1pt(r, abs(m), lmax+1, a, b, lmb, chgm)     ! 1)
+            call wfat_chgu_1pt(r, abs(m), lmax, a, b, lmb, chgu)     
 
-            do l = lmin, lmax
+            do l = abs(m), lmax
                f = (kappa*r)**l * exp(-kappa*r)
                g = f * chgm(l)
                h = f * chgu(l)
@@ -171,7 +207,7 @@ c           ==== Calculate the necessary Hypergeometric functions ====
                call wfat_calc_radnorm(l+1, n, m, zq, kappa, c_p)
                k_p = sqrt(dble((l+1)**2-m**2) / (4*(l+1)**2-1))
                y = k_p * c_p*(kappa*r)**(l+1)*exp(-kappa*r) * chgm(l+1)
-               if (l > lmin) then
+               if (l > abs(m)) then
                   call wfat_calc_radnorm(l-1, n, m, zq, kappa, c_m)
                   k_m = sqrt(dble(l**2-m**2) / (4*l**2-1))
                   y = y + k_m *
@@ -196,4 +232,7 @@ c              ==== The h_l^\nu part ====
       
 
       end
+c     NOTES:
+c     1) lmax+1 instead of just lmax because the integrands involve the evaluation
+c        of R_{l+1}^\nu, see below.
 c=======================================================
