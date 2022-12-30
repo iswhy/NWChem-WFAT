@@ -34,7 +34,7 @@ c     ==== Calculate the confluent hypergeometric function by recurrence ====
       if (abs(chgu_3) < 5.0d2) then
          call wfat_chgu_1pt_recur(lmin_, lmax_, a_, b_, z,
      &                            chgu_1, chgu_2, chgu_3, chgu)
-      else
+      else                   ! 2)
          do l = lmin_, lmax_
             aa = l + a_
             bb = 2*l + b_
@@ -55,9 +55,13 @@ c              print *, "rmax = ", r0, l, chgf(l)
       
       end
 c     NOTES:
-c     1) wfat chgu is used instead of wfat_chgubi that is more specifically
+c     1) wfat_chgu is used instead of wfat_chgubi that is more specifically
 c        used for integer b because the latter produced wrong values for
 c        large arguments as is evidenced by calling wfat_test_chg.
+c     2) When the value of the U(a,b,x) function is large, don't use
+c        recurrence, use direct calculation instead. This is because it has
+c        been found that recurrence method accumulates error faster when 
+c        the values of U(a,b,x) are large.
 c=======================================================
 
 
