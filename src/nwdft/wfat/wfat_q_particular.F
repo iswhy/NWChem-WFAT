@@ -8,7 +8,7 @@ c=======================================================
 #include "mafdecls.fh"
 #include "errquit.fh"
       integer nr
-      double precision r(nr)    ! [input]
+      double precision r(nr)    ! [input], increasingly ordered radial points
       integer n
       integer m
       integer lmax
@@ -18,11 +18,10 @@ c=======================================================
       double precision q_p1(abs(m):lmax, nr)       ! [output], orientation-independent
       double precision q_p2(abs(m):lmax, nr)       ! [output], orientation-dependent
 
-      integer i, l, l_pt, l_wt, k_pt, k_wt
+      integer i, l, nn
+      integer l_pt, l_wt, l_gi, l_hi, l_gg, l_hh
+      integer k_pt, k_wt, k_gi, k_hi, k_gg, k_hh
       double precision kappa, lmb, a, b, f, g, h
-      double precision g_i0(2,abs(m):lmax), h_i0(2,abs(m):lmax)
-      double precision g_i(2,abs(m):lmax), h_i(2,abs(m):lmax)
-      double precision gg(2,abs(m):lmax), hh(2,abs(m):lmax)
       double precision chgm(abs(m):lmax), chgu(abs(m):lmax)
 
       
@@ -31,43 +30,70 @@ c=======================================================
       a = 1.0d0 - zq/kappa
       b = 2.0d0
 
-      
+
+c     ==== Obtain the unshifted LGL quadrature nodes and weights ====
       if (.not. MA_alloc_get(MT_DBL, nlgl, 'lgl_pt', l_pt, k_pt))
      &     call errquit('WFAT: lgl_pt allocation failed', 84, MA_ERR)
       if (.not. MA_alloc_get(MT_DBL, nlgl, 'lgl_wt', l_wt, k_wt))
      &     call errquit('WFAT: lgl_wt allocation failed', 85, MA_ERR)
       call wfat_lgl(-1.0d0, 1.0d0, nlgl-1, dbl_mb(k_pt), dbl_mb(k_wt))
+
+      nn = 2 * (lmax - abs(m) + 1)
+      if (.not. MA_alloc_get(MT_DBL, nn, 'g_i', l_gi, k_gi))
+     &     call errquit('WFAT: g_i allocation failed', 84, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nn, 'h_i', l_hi, k_hi))
+     &     call errquit('WFAT: h_i allocation failed', 85, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nn, 'gg', l_gg, k_gg))
+     &     call errquit('WFAT: gg allocation failed', 84, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nn, 'hh', l_hh, k_hh))
+     &     call errquit('WFAT: hh allocation failed', 85, MA_ERR)
+
       
-      
-      do i = 1, nr             ! Loop over the increasingly-ordered radial points
+      dbl_mb(k_gi:k_gi+nn-1) = 0.0d0
+      dbl_mb(k_hi:k_hi+nn-1) = 0.0d0
+c     ==== Loop over the increasingly-ordered radial points ====
+      do i = 1, nr             
          if (r(i) < 1.0d-13) then
-            do l = abs(m), lmax
-               q_p1(l,i) = 0.0d0
-               q_p2(l,i) = 0.0d0
-               g_i0(1:2,l) = 0.0d0
-               h_i0(1:2,l) = 0.0d0
-            enddo
+            q_p1(abs(m):lmax, i) = 0.0d0
+            q_p2(abs(m):lmax, i) = 0.0d0
+            dbl_mb(k_gi:k_gi+nn-1) = 0.0d0
+            dbl_mb(k_hi:k_hi+nn-1) = 0.0d0
             cycle
          endif
 
          call wfat_chgm_1pt(r(i), abs(m), lmax, a, b, lmb, chgm)
          call wfat_chgu_1pt(r(i), abs(m), lmax, a, b, lmb, chgu)
 
-         call wfat_calc_gh_i(r(i-1), r(i), n, m, lmax, erg, zq, nlgl,
-     &        dbl_mb(k_pt), dbl_mb(k_wt), gg, hh)
-         g_i = g_i0 + gg
-         h_i = h_i0 + hh
          
+c        ==== Calculate the integrals involving g ====
+c        ====     and h within r(i-1) and r(i)    ====
+         call wfat_calc_gh_i(r(i-1), r(i), n, m, lmax, erg, zq, nlgl,
+     &        dbl_mb(k_pt), dbl_mb(k_wt), dbl_mb(k_gg), dbl_mb(k_hh))
+
+         
+c        ==== Calculate the integrals involving g ====
+c        ====       and h within 0 and r(i)       ====
+         dbl_mb(k_gi:k_gi+nn-1) = dbl_mb(k_gi:k_gi+nn-1) +
+     &                            dbl_mb(k_gg:k_gg+nn-1)
+         dbl_mb(k_hi:k_hi+nn-1) = dbl_mb(k_hi:k_hi+nn-1) +
+     &                            dbl_mb(k_hh:k_hh+nn-1)
+
+         
+c        ==== Calculate q_p1 and q_p2 at r(i) ====
          do l = abs(m), lmax
             f = (kappa*r(i))**l * exp(-kappa*r(i))
             g = f * chgm(l)
             h = f * chgu(l)
-            q_p1(l, i) = h * g_i(1,l) - g * h_i(1,l)
-            q_p2(l, i) = h * g_i(2,l) - g * h_i(2,l)
-         enddo
+c            q_p1(l, i) = h * g_i(1,l) - g * h_i(1,l)
+c            q_p2(l, i) = h * g_i(2,l) - g * h_i(2,l)
 
-         g_i0 = g_i
-         h_i0 = h_i
+            i_gi1 = k_gi + (l-abs(m))*2
+            i_gi2 = i_gi1 + 1
+            i_hi1 = k_hi + (l-abs(m))*2
+            i_hi2 = i_hi1 + 1
+            q_p1(l, i) = h * dbl_mb(i_gi1) - g * dbl_mb(i_hi1)
+            q_p2(l, i) = h * dbl_mb(i_gi2) - g * dbl_mb(i_hi2)
+         enddo
       enddo
 
 
@@ -76,6 +102,14 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: Cannot deallocate lgl_pt', 49, MA_ERR)
       if (.not. ma_free_heap(l_wt))
      &     call errquit('WFAT: Cannot deallocate lgl_wt', 49, MA_ERR)
+      if (.not. ma_free_heap(l_gi))
+     &     call errquit('WFAT: Cannot deallocate g_i', 49, MA_ERR)
+      if (.not. ma_free_heap(l_hi))
+     &     call errquit('WFAT: Cannot deallocate h_i', 49, MA_ERR)
+      if (.not. ma_free_heap(l_gg))
+     &     call errquit('WFAT: Cannot deallocate gg', 49, MA_ERR)
+      if (.not. ma_free_heap(l_hh))
+     &     call errquit('WFAT: Cannot deallocate hh', 49, MA_ERR)
       
       
       end
