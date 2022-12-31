@@ -21,14 +21,20 @@ c=======================================================
       integer i, l, nn
       integer l_pt, l_wt, l_gi, l_hi, l_gg, l_hh
       integer k_pt, k_wt, k_gi, k_hi, k_gg, k_hh
-      double precision kappa, lmb, a, b, f, g, h
+      double precision kappa, lmb, a, b, gl, f, g, h, r_
       double precision chgm(abs(m):lmax), chgu(abs(m):lmax)
+      double precision qq(abs(m):lmax), factorial
+      external factorial
 
       
       kappa = sqrt(2 * abs(erg))
       lmb = 2 * kappa
       a = 1.0d0 - zq/kappa
       b = 2.0d0
+      do l = abs(m), lmax
+         call wfat_gammaf(l + 1 - zq/kappa, gl)
+         qq(l) = kappa * 2**(2*l+2) * gl / factorial(2*l+1)
+      enddo
 
 
 c     ==== Obtain the unshifted LGL quadrature nodes and weights ====
@@ -65,14 +71,16 @@ c     ==== Loop over the increasingly-ordered radial points ====
          call wfat_chgu_1pt(r(i), abs(m), lmax, a, b, lmb, chgu)
 
          
-c        ==== Calculate the integrals involving g ====
-c        ====     and h within r(i-1) and r(i)    ====
-         call wfat_calc_gh_i(r(i-1), r(i), n, m, lmax, erg, zq, nlgl,
+c        ==== Calculate the integrals involving ====
+c        ====   g and h within r(i-1) and r(i)  ====
+         r_ = r(i-1)
+         if (i == 1) r_ = 0.0d0
+         call wfat_calc_gh_i(r_, r(i), n, m, lmax, erg, zq, nlgl,
      &        dbl_mb(k_pt), dbl_mb(k_wt), dbl_mb(k_gg), dbl_mb(k_hh))
 
          
-c        ==== Calculate the integrals involving g ====
-c        ====       and h within 0 and r(i)       ====
+c        ==== Calculate the integrals involving ====
+c        ====     g and h within 0 and r(i)     ====
          dbl_mb(k_gi:k_gi+nn-1) = dbl_mb(k_gi:k_gi+nn-1) +
      &                            dbl_mb(k_gg:k_gg+nn-1)
          dbl_mb(k_hi:k_hi+nn-1) = dbl_mb(k_hi:k_hi+nn-1) +
@@ -91,11 +99,13 @@ c            q_p2(l, i) = h * g_i(2,l) - g * h_i(2,l)
             i_gi2 = i_gi1 + 1
             i_hi1 = k_hi + (l-abs(m))*2
             i_hi2 = i_hi1 + 1
-            q_p1(l, i) = h * dbl_mb(i_gi1) - g * dbl_mb(i_hi1)
-            q_p2(l, i) = h * dbl_mb(i_gi2) - g * dbl_mb(i_hi2)
+            q_p1(l, i) = qq(l) * (h * dbl_mb(i_gi1) - g * dbl_mb(i_hi1))
+            q_p2(l, i) = qq(l) * (h * dbl_mb(i_gi2) - g * dbl_mb(i_hi2))
          enddo
       enddo
 
+           
+      
 
 c     ==== Deallocations ====
       if (.not. ma_free_heap(l_pt))
