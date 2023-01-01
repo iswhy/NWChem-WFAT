@@ -18,7 +18,7 @@ c=======================================================
       double precision q_p1(abs(m):lmax, nr)       ! [output], orientation-independent
       double precision q_p2(abs(m):lmax, nr)       ! [output], orientation-dependent
 
-      integer i, l, nn
+      integer i, l, nn, i_gi1, i_gi2, i_hi1, i_hi2
       integer l_pt, l_wt, l_gi, l_hi, l_gg, l_hh
       integer k_pt, k_wt, k_gi, k_hi, k_gg, k_hh
       double precision kappa, lmb, a, b, gl, f, g, h, r_
@@ -85,13 +85,15 @@ c        ====     g and h within 0 and r(i)     ====
      &                            dbl_mb(k_gg:k_gg+nn-1)
          dbl_mb(k_hi:k_hi+nn-1) = dbl_mb(k_hi:k_hi+nn-1) +
      &                            dbl_mb(k_hh:k_hh+nn-1)
-
+         write(luout, '("heres1", i5)') i
+         
          
 c        ==== Calculate q_p1 and q_p2 at r(i) ====
          do l = abs(m), lmax
             f = (kappa*r(i))**l * exp(-kappa*r(i))
             g = f * chgm(l)
             h = f * chgu(l)
+            write(luout, '(3x, "heres2", i5)') l
 c            q_p1(l, i) = h * g_i(1,l) - g * h_i(1,l)
 c            q_p2(l, i) = h * g_i(2,l) - g * h_i(2,l)
 
@@ -101,6 +103,7 @@ c            q_p2(l, i) = h * g_i(2,l) - g * h_i(2,l)
             i_hi2 = i_hi1 + 1
             q_p1(l, i) = qq(l) * (h * dbl_mb(i_gi1) - g * dbl_mb(i_hi1))
             q_p2(l, i) = qq(l) * (h * dbl_mb(i_gi2) - g * dbl_mb(i_hi2))
+            write(luout, '(3x, "heres3")') 
          enddo
       enddo
 

@@ -1026,7 +1026,7 @@ c     ==== Construct the dipole moment matrix ====
             end if
          end do
       end do
-      call wfat_dprintmat(m+1, m+1, 'e', dbl_mb(k_dm))
+cfordebug      call wfat_dprintmat(m+1, m+1, 'e', dbl_mb(k_dm))
       call wfat_dsyev_wrap(m+1, dbl_mb(k_dm), dbl_mb(k_nd))
 
 

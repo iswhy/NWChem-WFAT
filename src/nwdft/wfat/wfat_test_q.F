@@ -1,20 +1,35 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_test_q()
+      subroutine wfat_test_q(n, m, erg, zq, lmax, chmmt)
 
       implicit none
+#include "wfat.fh"
+#include "errquit.fh"
+#include "mafdecls.fh"
+#include "stdio.fh"
+      integer n
+      integer m
+      double precision erg
+      double precision zq
+      integer lmax
+      double precision chmmt(3)
 
-      double precision protmat(3,3), mu(3)
+      character*255 fname
+      integer nr, nlgl, i, nl, l
+      integer l_r, l_qp1, l_qp2, k_r, k_qp1, k_qp2
+      integer i_q1_2h, i_q1_1h, i_q1_0h, i_q1_1h_, i_q1_2h_
+      integer i_q2_2h, i_q2_1h, i_q2_0h, i_q2_1h_, i_q2_2h_
+      double precision r_first, r_last, kappa, lmb, a, b, dr, r, epsi
+      double precision f2h, f1h, f0h, f1h_, f2h_, dif1, dif2
+      double precision k_m, k_p, c_m, c_p, c, r0_m, r0_p, r0, lhs, rhs
+      double precision protmat(3,3), mu(3), chgm(abs(m):lmax+1)
       
 
-      nr =
-      n =
-      m =
-      lmax =
-      nlgl = 
+      nr = 126
+      nlgl = 8
 
-      r_first =
-      r_last =
+      r_first = 3.0d0
+      r_last = 10.0d0
 
       kappa = sqrt(2 * abs(erg))
       lmb = 2 * kappa
@@ -27,6 +42,7 @@ c     ==== Get the passive rotation matrix ===
       mu = matmul(transpose(protmat), -chmmt)      
       
 
+c     ==== Generate the radial points ====
       if (.not. MA_alloc_get(MT_DBL, nr, 'r', l_r, k_r))
      &     call errquit('WFAT: r allocation failed', 52, MA_ERR)
       dr = (r_last - r_first) / (nr-1)
@@ -35,35 +51,25 @@ c     ==== Get the passive rotation matrix ===
       enddo
 
       nl = lmax - abs(m) + 1
-      if (.not. MA_alloc_get(MT_DBL, nr, 'q_p1', l_qp1, k_qp1))
+      if (.not. MA_alloc_get(MT_DBL, nl*nr, 'q_p1', l_qp1, k_qp1))
      &     call errquit('WFAT: q_p1 allocation failed', 52, MA_ERR)
-      if (.not. MA_alloc_get(MT_DBL, nr, 'q_p2', l_qp2, k_qp2))
+      if (.not. MA_alloc_get(MT_DBL, nl*nr, 'q_p2', l_qp2, k_qp2))
      &     call errquit('WFAT: q_p2 allocation failed', 52, MA_ERR)
             
 
+c     ==== Calculate Q_l ====
       call wfat_q_particular(nr, dbl_mb(k_r), n, m, lmax, erg, zq,
      &     nlgl, dbl_mb(k_qp1), dbl_mb(k_qp2))
+      write(luout, '("herev1")')
       
 
-      call util_file_name('qtest.wr1', .false., .false., fname)
+c     ==== Open the test result file and print the header ====
+      call util_file_name('test.wq', .false., .false., fname)
       open(WF_QTEST_UNIT, file=fname, action='write')
-
-      write(WF_QTEST_UNIT, '("#", i5, i15)', advance='no') 1, 2
-      do i = 1, lmax-abs(m)+1
-         j = 5*i - 2
-         write(WF_QTEST_UNIT, '(6x, 5i15)', advance='no')
-     &        j, j+1, j+2, j+3, j+4
-      enddo
-      write(WF_QTEST_UNIT, '(" ")')
-      
-      write(WF_QTEST_UNIT, '("#", a5, a15)', advance='no') 'No.', 'r'
-      do l = abs(m), lmax
-         write(WF_QTEST_UNIT, '(6x, 5a15)', advance='no')
-     &        'LHS', 'RHS', 'epsilon', 'Q_l', 'R_l'
-      enddo
-      write(WF_QTEST_UNIT, '(" ")')
+      call wfat_test_q_header(m, lmax)      
       
 
+c     ==== Loop over radial points ====
       do i = 1, nr-2
          r = dbl_mb(k_r+i-1)
          write(WF_QTEST_UNIT, '(1x, i5, es15.6)', advance='no') i, r
@@ -74,20 +80,26 @@ c           ==== Calculate the derivatives ====
             i_q1_2h = k_qp1 + ((i+2)-1)*nl + l - abs(m)
             i_q1_1h = k_qp1 + ((i+1)-1)*nl + l - abs(m)
             i_q1_0h = k_qp1 + ((i+0)-1)*nl + l - abs(m)
-            i_q1_1h_ = k_qp1 + ((i-1)-1)*nl + l - abs(m)
-            i_q1_2h_ = k_qp1 + ((i-2)-1)*nl + l - abs(m)
+            if (i > 1)
+     &           i_q1_1h_ = k_qp1 + ((i-1)-1)*nl + l - abs(m)
+            if (i > 2)
+     &           i_q1_2h_ = k_qp1 + ((i-2)-1)*nl + l - abs(m)
 
             i_q2_2h = k_qp2 + ((i+2)-1)*nl + l - abs(m)
             i_q2_1h = k_qp2 + ((i+1)-1)*nl + l - abs(m)
             i_q2_0h = k_qp2 + ((i+0)-1)*nl + l - abs(m)
-            i_q2_1h_ = k_qp2 + ((i-1)-1)*nl + l - abs(m)
-            i_q2_2h_ = k_qp2 + ((i-2)-1)*nl + l - abs(m)
+            if (i > 1)
+     &           i_q2_1h_ = k_qp2 + ((i-1)-1)*nl + l - abs(m)
+            if (i > 2)
+     &           i_q2_2h_ = k_qp2 + ((i-2)-1)*nl + l - abs(m)
 
             f2h = dbl_mb(i_q1_2h) + mu(3)*dbl_mb(i_q2_2h)
             f1h = dbl_mb(i_q1_1h) + mu(3)*dbl_mb(i_q2_1h)
             f0h = dbl_mb(i_q1_0h) + mu(3)*dbl_mb(i_q2_0h)
-            f1h_ = dbl_mb(i_q1_1h_) + mu(3)*dbl_mb(i_q2_1h_)
-            f2h_ = dbl_mb(i_q1_2h_) + mu(3)*dbl_mb(i_q2_2h_)
+            if (i > 1)
+     &           f1h_ = dbl_mb(i_q1_1h_) + mu(3)*dbl_mb(i_q2_1h_)
+            if (i > 2)
+     &           f2h_ = dbl_mb(i_q1_2h_) + mu(3)*dbl_mb(i_q2_2h_)
 
             if (i == 1) then
                dif2 = 0.0d0
@@ -131,9 +143,70 @@ c           ==== Calculate the LHS and RHS ====
 
          write(WF_QTEST_UNIT, '(" ")')
       enddo
+      close(WF_QTEST_UNIT)
 
       
+c     ==== Deallocations ====
+      if (.not. ma_free_heap(l_r))
+     &     call errquit('WFAT: Cannot deallocate r', 49, MA_ERR)
+      if (.not. ma_free_heap(l_qp1))
+     &     call errquit('WFAT: Cannot deallocate q_p1', 49, MA_ERR)
+      if (.not. ma_free_heap(l_qp2))
+     &     call errquit('WFAT: Cannot deallocate q_p2', 49, MA_ERR)      
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_test_q_header(m, lmax)
+
+      implicit none
+#include "wfat.fh"
+#include "errquit.fh"
+      integer m
+      integer lmax
+
+      logical isopen
+      integer i, j, l
+
+
+c     ==== Check if the unit is opened ====
+      inquire(unit=WF_QTEST_UNIT, opened=isopen)
+      if (.not. isopen)
+     &     call errquit('WFAT: WF_QTEST_UNIT must first be opened '//
+     &     'before calling wfat_test_q_header', 1, UERR)
+      
+
+c     ==== Column number ====
+      write(WF_QTEST_UNIT, '("#", i5, i15)', advance='no') 1, 2
+      do i = 1, lmax-abs(m)+1
+         j = 5*i - 2
+         write(WF_QTEST_UNIT, '(6x, 5i15)', advance='no')
+     &        j, j+1, j+2, j+3, j+4
+      enddo
+      write(WF_QTEST_UNIT, '(" ")')
+
+
+c     ==== Angular momenta ====
+      write(WF_QTEST_UNIT, '("#", a20)', advance='no') " "
+      do l = abs(m), lmax
+         write(WF_QTEST_UNIT, '(6x, a70, i5)', advance='no')
+     &        "l = ", l
+      enddo
+      write(WF_QTEST_UNIT, '(" ")')
+      
+
+c     ==== Column title ====
+      write(WF_QTEST_UNIT, '("#", a5, a15)', advance='no') 'No.', 'r'
+      do l = abs(m), lmax
+         write(WF_QTEST_UNIT, '(6x, 5a15)', advance='no')
+     &        'LHS', 'RHS', 'epsilon', 'Q_l', 'R_l'
+      enddo
+      write(WF_QTEST_UNIT, '(" ")')
+
 
       end
 c=======================================================
+      
       
