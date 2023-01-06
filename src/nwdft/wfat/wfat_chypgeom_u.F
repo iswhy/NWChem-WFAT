@@ -126,11 +126,34 @@ c      !!   m >= 0
 c     References:
 c        [1] Handbook of Mathematical Functions by Abramowitz and Stegun.
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_chgu(a, b, x, hu, md)
+
+      implicit none
+#include "stdio.fh"
+      double precision a
+      double precision b
+      double precision x
+      double precision hu
+      integer md
+
+
+      if (x < 3.0d0 .and. abs(int(b)-b) <= 1.0d-14 ) then
+         call wfat_chgubi_smallx(a, b, x, hu, md)
+      else
+         call wfat_chgu_szjj(a, b, x, hu, md)
+      endif
+
+      end
+c=======================================================
       
 
 c=======================================================
 c=======================================================
-      subroutine wfat_chgu ( a, b, x, hu, md )
+      subroutine wfat_chgu_szjj ( a, b, x, hu, md )
 c*********************************************************************72
 c
 cc CHGU computes the confluent hypergeometric function U(a,b,x).
@@ -882,3 +905,66 @@ c
       return
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_chgubi_smallx(a, b, x, hu, kk)
+
+      implicit none
+#include "errquit.fh"      
+      double precision a
+      double precision b
+      double precision x
+      double precision hu
+      integer kk
+
+      integer n, k
+      double precision ga, hu1, ln_x, gn, c, hu2, ps1, ps2, ps3, p, gk 
+      double precision xx_k, factorial, rise_fact
+      external factorial, rise_fact
+      integer kmax
+      parameter(kmax=200)
+
+
+      if (abs(int(b)-b) > 1.0d-14)
+     &     call errquit('WFAT: Argument b of wfat_chgubi_smallx must '//
+     &     'be integer (but with double precision type).', 63, UERR)
+
+      
+      n = int(b) - 1
+      call wfat_gammaf(a, ga)
+
+      hu1 = 0.0d0
+      if (b > 1) then
+         do k = 1, n
+            hu1 = hu1 + factorial(k-1)*rise_fact(1-a+k, n-k)
+     &            /factorial(n-k) * x**(-k)
+         enddo
+         hu1 = hu1 / ga
+      endif
+
+
+      ln_x = log(x)
+      call wfat_gammaf(a-n, gn)
+      c = (-1)**(n+1) / ga / gn        ! c = the constant pre-factor for hu2 part
+      hu2 = 0.0d0
+      do k = 1, kmax
+         call wfat_psif(a+k, ps1)
+         call wfat_psif(dble(1+k), ps2)
+         call wfat_psif(dble(1+k+n), ps3)
+         p = ln_x + ps1 - ps2 - ps3
+         call wfat_gammaf(a+k, gk)
+         xx_k = c * gk / factorial(k) / factorial(n+k) * p * x**k
+         hu2 = hu2 + xx_k
+         
+         if (abs(xx_k/(hu1+hu2)) < 1.0d-12) then
+            kk = 100000 + k
+            exit
+         endif
+      enddo
+      hu = hu1 + hu2
+
+      end
+c=======================================================
+      

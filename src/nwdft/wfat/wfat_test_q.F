@@ -25,10 +25,10 @@ c=======================================================
       double precision protmat(3,3), mu(3), chgm(abs(m):lmax+1)
       
 
-      nr = 126
-      nlgl = 8
+      nr = 1001
+      nlgl = 12
 
-      r_first = 3.0d0
+      r_first = 0.0d0
       r_last = 10.0d0
 
       kappa = sqrt(2 * abs(erg))
@@ -36,7 +36,14 @@ c=======================================================
       a = 1.0d0 - zq/kappa
       b = 2.0d0
 
+      write(luout, '("TESTING FOR Q_l")')
+      write(luout, '("nr = ", i4)') nr
+      write(luout, '("nlgl = ", i4)') nlgl
+      write(luout, '("(n,m) = ", 2i4)') n, m
+      write(luout, '("kappa = ", es15.6)') kappa
+      write(luout, '("lmax = ", i5)') lmax
 
+      
 c     ==== Get the passive rotation matrix ===
       call wfat_passrot(-0.0d0, -0.0d0, protmat)
       mu = matmul(transpose(protmat), -chmmt)      
@@ -72,7 +79,7 @@ c     ==== Open the test result file and print the header ====
 c     ==== Loop over radial points ====
       do i = 1, nr-2
          r = dbl_mb(k_r+i-1)
-         write(WF_QTEST_UNIT, '(1x, i5, es15.6)', advance='no') i, r
+         write(WF_QTEST_UNIT, '(1x, i5, es15.6)', advance='no') i, lmb*r
          call wfat_chgm_1pt(r, abs(m), lmax+1, a, b, lmb, chgm)
 
          do l = abs(m), lmax
@@ -80,26 +87,20 @@ c           ==== Calculate the derivatives ====
             i_q1_2h = k_qp1 + ((i+2)-1)*nl + l - abs(m)
             i_q1_1h = k_qp1 + ((i+1)-1)*nl + l - abs(m)
             i_q1_0h = k_qp1 + ((i+0)-1)*nl + l - abs(m)
-            if (i > 1)
-     &           i_q1_1h_ = k_qp1 + ((i-1)-1)*nl + l - abs(m)
-            if (i > 2)
-     &           i_q1_2h_ = k_qp1 + ((i-2)-1)*nl + l - abs(m)
+            if (i > 1) i_q1_1h_ = k_qp1 + ((i-1)-1)*nl + l - abs(m)
+            if (i > 2) i_q1_2h_ = k_qp1 + ((i-2)-1)*nl + l - abs(m)
 
             i_q2_2h = k_qp2 + ((i+2)-1)*nl + l - abs(m)
             i_q2_1h = k_qp2 + ((i+1)-1)*nl + l - abs(m)
             i_q2_0h = k_qp2 + ((i+0)-1)*nl + l - abs(m)
-            if (i > 1)
-     &           i_q2_1h_ = k_qp2 + ((i-1)-1)*nl + l - abs(m)
-            if (i > 2)
-     &           i_q2_2h_ = k_qp2 + ((i-2)-1)*nl + l - abs(m)
+            if (i > 1) i_q2_1h_ = k_qp2 + ((i-1)-1)*nl + l - abs(m)
+            if (i > 2) i_q2_2h_ = k_qp2 + ((i-2)-1)*nl + l - abs(m)
 
             f2h = dbl_mb(i_q1_2h) + mu(3)*dbl_mb(i_q2_2h)
             f1h = dbl_mb(i_q1_1h) + mu(3)*dbl_mb(i_q2_1h)
             f0h = dbl_mb(i_q1_0h) + mu(3)*dbl_mb(i_q2_0h)
-            if (i > 1)
-     &           f1h_ = dbl_mb(i_q1_1h_) + mu(3)*dbl_mb(i_q2_1h_)
-            if (i > 2)
-     &           f2h_ = dbl_mb(i_q1_2h_) + mu(3)*dbl_mb(i_q2_2h_)
+            if (i > 1) f1h_ = dbl_mb(i_q1_1h_) + mu(3)*dbl_mb(i_q2_1h_)
+            if (i > 2) f2h_ = dbl_mb(i_q1_2h_) + mu(3)*dbl_mb(i_q2_2h_)
 
             if (i == 1) then
                dif2 = 0.0d0
@@ -117,17 +118,18 @@ c           ==== Calculate the derivatives ====
 c           ==== Calculate the terms on the RHS ====
             if (l == abs(m)) then
                r0_m = 0.0d0
+               k_m = 0.0d0
             else
-               call wfat_calc_radnorm(l-1, n, m, zq, kappa, c_m)
+               call wfat_calc_radnorm(l-1, n, m, int(zq), kappa, c_m)
                k_m = sqrt(dble(l**2-m**2) / (4*l**2-1))
                r0_m = c_m * (kappa*r)**(l-1)*exp(-kappa*r) * chgm(l-1)
             endif
 
-            call wfat_calc_radnorm(l+1, n, m, zq, kappa, c_p)
+            call wfat_calc_radnorm(l+1, n, m, int(zq), kappa, c_p)
             k_p = sqrt(dble((l+1)**2-m**2) / (4*(l+1)**2-1))
             r0_p = c_p * (kappa*r)**(l+1)*exp(-kappa*r) * chgm(l+1)
 
-            call wfat_calc_radnorm(l, n, m, zq, kappa, c)
+            call wfat_calc_radnorm(l, n, m, int(zq), kappa, c)
             r0 = c * (kappa*r)**l*exp(-kappa*r) * chgm(l)
 
 
@@ -198,7 +200,7 @@ c     ==== Angular momenta ====
       
 
 c     ==== Column title ====
-      write(WF_QTEST_UNIT, '("#", a5, a15)', advance='no') 'No.', 'r'
+      write(WF_QTEST_UNIT, '("#", a5, a15)', advance='no') 'No.', 'y'
       do l = abs(m), lmax
          write(WF_QTEST_UNIT, '(6x, 5a15)', advance='no')
      &        'LHS', 'RHS', 'epsilon', 'Q_l', 'R_l'

@@ -276,7 +276,8 @@ c=======================================================
       
       implicit none
 #include "errquit.fh"      
-      integer l, n, m, znuc    ! [input]  
+#include "stdio.fh"
+      integer l, n, m, znuc     ! [input]  
       double precision kp      ! [input]
       double precision cc      ! [output]
       
@@ -311,13 +312,22 @@ c=======================================================
       do i = 0, min(n, l-abs(m))
          xx = l + 1 - znuc/kp + n - i
          call wfat_gammaf(xx, ff)
+
+c         write(luout, '("xx : ", 2i3, es15.6, 2i3)') l, znuc, kp, n, i
+c         write(luout, '("ff1 = ", 2es15.6)') xx, ff
+
          ff = ff / ( factorial(i) * factorial(l-i) * 
      &        factorial(abs(m)+i) * factorial(l-abs(m)-i) * 
      &        factorial(n-i) )
          f = f + ff
+
+c         write(luout, '("ff2 = ", es15.6)') ff
+         
       end do
       
       cc = a * b * c * d * e * f
 
+c      write(luout, '("cc = ", es15.6)') cc
+      
       end
 c=======================================================

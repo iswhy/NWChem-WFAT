@@ -6,7 +6,7 @@ c=======================================================
 #include "errquit.fh"
 #include "mafdecls.fh"
 #include "stdio.fh"
-      double precision et            ! [input]
+      double precision et            ! [input], unused
       integer n                      ! [input]
       integer m                      ! [input]
       double precision erg           ! [input]
