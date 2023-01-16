@@ -19,10 +19,12 @@ c=======================================================
       double precision q_p2(abs(m):lmax, nr)       ! [output], orientation-dependent
 
       logical first_r_1
-      integer i, j, l, nn, nc, i_gi1, i_gi2, i_hi1, i_hi2, i_ci, i_cd
-      integer pmax
-      integer l_pt, l_wt, l_gi, l_hi, l_gg, l_hh, l_ci, l_cd
-      integer k_pt, k_wt, k_gi, k_hi, k_gg, k_hh, k_ci, k_cd
+      integer i, j, l, nn, nc, nci, i_gi1, i_gi2, i_hi1, i_hi2, i_ci
+      integer i_cd, i_chi, i_chil, i_cgi, pmax
+      integer l_pt, l_wt, l_gi, l_hi, l_gg, l_hh, l_ci, l_cd, l_chi
+      integer l_chil, l_cgi
+      integer k_pt, k_wt, k_gi, k_hi, k_gg, k_hh, k_ci, k_cd, k_chi
+      integer k_chil, k_cgi
       double precision kappa, lmb, a, b, gl, f, g, h, r_, y, kp, km
       double precision om_m, om_p, om_e, ybound, rbound
       double precision chgm(abs(m):lmax), chgu(abs(m):lmax)
@@ -61,12 +63,19 @@ c     ==== Obtain the unshifted LGL quadrature nodes and weights ====
      &     call errquit('WFAT: hh allocation failed', 85, MA_ERR)
 
       
-c     ==== Power series coefficients of q_p1 and q_p2 (for small r) ====
+c     ==== Obtain various power series coefficients (for small r) ====
       nc = pmax * (lmax - abs(m) + 1)
       if (.not. MA_alloc_get(MT_DBL, nc, 'coeff_oi', l_ci, k_ci))
      &     call errquit('WFAT: coeff_oi allocation failed', 84, MA_ERR)
       if (.not. MA_alloc_get(MT_DBL, nc, 'coeff_od', l_cd, k_cd))
      &     call errquit('WFAT: coeff_od allocation failed', 85, MA_ERR)
+      nci = pmax * 2 * (lmax - abs(m) + 1)
+      if (.not. MA_alloc_get(MT_DBL, nci, 'coeff_hi', l_chi, k_chi))
+     &     call errquit('WFAT: coeff_hi allocation failed', 85, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nci, 'coeff_hil', l_chil, k_chil))
+     &     call errquit('WFAT: coeff_hil allocation failed', 85, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nci, 'coeff_gi', l_cgi, k_cgi))
+     &     call errquit('WFAT: coeff_gi allocation failed', 85, MA_ERR)
       do l = abs(m), lmax
          if (l == abs(m)) then
             km = 0.0d0
@@ -79,24 +88,26 @@ c     ==== Power series coefficients of q_p1 and q_p2 (for small r) ====
          call wfat_calc_radnorm(l+1, n, m, int(zq), kappa, om_p)
          call wfat_calc_radnorm(l, n, m, int(zq), kappa, om_e)
 
+c        == Coefficients of A-B ==
          i_ci = k_ci + (l-abs(m))*pmax
          i_cd = k_cd + (l-abs(m))*pmax
          call wfat_q_particular_coeff(l, m, km, kp, om_m, om_p, om_e,
      &        erg, zq, pmax, dbl_mb(i_ci), dbl_mb(i_cd))
 
-         i_chi =
-         i_chil = 
+c        == Coefficients of h_i ==
+         i_chi = k_chi + (l-abs(m))*pmax*2
+         i_chil = k_chil + (l-abs(m))*pmax*2
          call wfat_h_i_coeff(l, m, km, kp, om_m, om_p, om_e,
      &        erg, zq, pmax, dbl_mb(i_chi), dbl_mb(i_chil))
-         i_cgi = 
+
+c        == Coefficients of g_i ==
+         i_cgi = k_cgi + (l-abs(m))*pmax*2
          call wfat_g_i_coeff(l, m, km, kp, om_m, om_p, om_e,
      &        erg, zq, pmax, dbl_mb(i_cgi))
       enddo
       
 
       first_r_1 = .true.
-cOLD      dbl_mb(k_gi:k_gi+nn-1) = 0.0d0
-cOLD      dbl_mb(k_hi:k_hi+nn-1) = 0.0d0
 c     ==== Loop over the increasingly-ordered radial points ====
       do i = 1, nr             
          if (lmb*r(i) < ybound) then
@@ -126,11 +137,15 @@ c           ==== Calculate the integrals involving ====
 c           ====   g and h within r(i-1) and r(i)  ====
             r_ = r(i-1)
             if (first_r_1) then
-               r_ = rbound
                first_r_1 = .false.
-               call wfat_calc_gh_i_smallr(rbound, dbl_mb(k_chi), 
-     &              dbl_mb(k_chil), dbl_mb(k_cgi), dbl_mb(k_hi),
-     &              dbl_mb(k_gi))  resolvethis
+               r_ = rbound
+               call wfat_calc_gh_i_smallr(rbound, erg, m, lmax, pmax, 
+     &              dbl_mb(k_chi), dbl_mb(k_chil), dbl_mb(k_cgi), 
+     &              dbl_mb(k_gi), dbl_mb(k_hi))
+
+cOLD               r_ = 0.0d0
+cOLD               dbl_mb(k_gi:k_gi+nn-1) = 0.0d0
+cOLD               dbl_mb(k_hi:k_hi+nn-1) = 0.0d0
             endif
             
             
@@ -183,6 +198,12 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: Cannot deallocate coeff_oi', 49, MA_ERR)
       if (.not. ma_free_heap(l_cd))
      &     call errquit('WFAT: Cannot deallocate coeff_od', 49, MA_ERR)
+      if (.not. ma_free_heap(l_chi))
+     &     call errquit('WFAT: Cannot deallocate coeff_hi', 49, MA_ERR)
+      if (.not. ma_free_heap(l_chil))
+     &     call errquit('WFAT: Cannot deallocate coeff_hil', 49, MA_ERR)
+      if (.not. ma_free_heap(l_cgi))
+     &     call errquit('WFAT: Cannot deallocate coeff_gi', 49, MA_ERR)
       
       
       end
@@ -195,7 +216,8 @@ c=======================================================
      &                          pt, wt, gg, hh)
 
       implicit none
-#include "stdio.fh"      
+#include "stdio.fh"
+#include "global.fh"      
       double precision r1
       double precision r2
       integer n
@@ -266,6 +288,10 @@ c     dfem = the finite element interval
          id = 3
       endif
 
+      if (ga_nodeid()==0)
+     &     write(luout, '("nfem, ngr, id : ", 3i4)') nfem, ngr, id
+      
+      
       kappa = sqrt(2 * abs(erg))
       lmb = 2 * kappa
       a = 1.0d0 - zq/kappa
@@ -583,12 +609,11 @@ c=======================================================
       
 
       if (l < abs(m))
-     &     call errquit('WFAT: Argument l of wfat_q_particular_coeff '//
-     &     'cannot be smaller than |m|.', 48, UERR)
+     &     call errquit('WFAT: Argument l of wfat_h_i_coeff cannot be'//
+     &     'smaller than |m|.', 48, UERR)
       if (pmax < 2)
-     &     call errquit('WFAT: Argument pmax of '//
-     &     'wfat_q_particular_coeff cannot be smaller than 2.',
-     &     48, UERR)
+     &     call errquit('WFAT: Argument pmax of wfat_h_i_coeff '//
+     &     'cannot be smaller than 2.', 48, UERR)
       
       
       kappa = sqrt(2*abs(erg))
@@ -713,4 +738,131 @@ c                 == Terms without ln ==
       end
 c=======================================================
       
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_g_i_coeff(l, m, km, kp, om_m, om_p, om_e, erg, zq,
+     &           pmax, gi)
+
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"      
+      integer l
+      integer m                       ! [input],
+      double precision km             ! [input],
+      double precision kp             ! [input],
+      double precision om_m           ! [input],
+      double precision om_p           ! [input],
+      double precision om_e           ! [input],
+      double precision erg            ! [input],
+      double precision zq             ! [input],
+      integer pmax                    ! [input],
+      double precision gi(pmax, 2)      ! 1st row: orientation-independent
+                                        ! 2nd row: orientation-dependent
+
+      logical lg_m, lg_p, lg_e
+      integer i, j, k_, ii, jj, kk, ubound
+      double precision kappa, a, b, mk, w, t_m, t_p, u
+      double precision factorial, rise_fact
+      external factorial, rise_fact
+      
+
+      if (l < abs(m))
+     &     call errquit('WFAT: Argument l of wfat_h_i_coeff cannot be'//
+     &     'smaller than |m|.', 48, UERR)
+      if (pmax < 2*l + 3)
+     &     call errquit('WFAT: Argument pmax of wfat_h_i_coeff '//
+     &     'cannot be smaller than 2l+3.', 48, UERR)
+      
+      
+      kappa = sqrt(2*abs(erg))
+      a = l + 1 - zq/kappa
+      b = dble(2*l + 2)
+      
+
+      gi = 0.0d0
+      ubound = pmax - 2*l - 3
+      do i = 0, ubound
+         do j = 0, ubound
+            do k_ = 0, ubound
+               ii = 2*l + 3 + i + j + k_
+               jj = 2*l + 5 + i + j + k_
+               kk = 2*l + 3 + i + j + k_
+               lg_m = (ii >= 2*l+3 .and. ii <= pmax .and. l > abs(m))
+               lg_p = (jj >= 2*l+5 .and. jj <= pmax)
+               lg_e = (kk >= 2*l+3 .and. kk <= pmax)
+
+               if (lg_m .or. lg_p .or. lg_e) then
+                  w = ( (-1)**i/factorial(i) )
+     &                *( 1.0d0/factorial(j) )
+     &                *( rise_fact(a,k_)/rise_fact(b,k_)/factorial(k_) )
+     &                /(2*kappa)**4
+               endif
+
+               if (lg_m) then
+                  mk = rise_fact(a-1,j) / rise_fact(b-2,j) / ii
+                  t_m = km * om_m / 2**(2*l-1) * mk
+                  gi(ii, 1) = gi(ii, 1) + w * t_m
+               endif
+
+               if (lg_p) then
+                  mk = rise_fact(a+1,j) / rise_fact(b+2,j) / jj
+                  t_p = kp * om_p / 2**(2*l+1) * mk
+                  gi(jj, 1) = gi(jj, 1) + w * t_p
+               endif
+
+               if (lg_e) then
+                  mk = rise_fact(a,j) / rise_fact(b,j) / kk
+                  u = 2*kappa * om_e / 2**(2*l) * mk
+                  gi(kk, 2) = gi(kk, 2) + w * u
+               endif
+
+            enddo
+         enddo
+      enddo
+      
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_calc_gh_i_smallr(r, erg, m, lmax, pmax, chi, chil,
+     &           cgi, gi, hi)
+
+      implicit none
+      double precision r                           ! [input],
+      double precision erg                         ! [input],
+      integer m                                    ! [input],
+      integer lmax                                 ! [input],
+      integer pmax                                 ! [input],
+      double precision chi(pmax, 2, abs(m):lmax)   ! [input],
+      double precision chil(pmax, 2, abs(m):lmax)  ! [input],
+      double precision cgi(pmax, 2, abs(m):lmax)   ! [input],
+      double precision gi(2, abs(m):lmax)          ! [output],
+      double precision hi(2, abs(m):lmax)          ! [output],
+
+      integer l, i, j
+      double precision kappa, y, ln_y
+
+
+      kappa = sqrt(2 * abs(erg))
+      y = 2*kappa*r
+      ln_y = log(y)
+
+      gi = 0.0d0
+      hi = 0.0d0
+      do l = abs(m), lmax
+         do i = 1, 2
+            do j = 1, pmax
+               gi(i,l) = gi(i,l) + cgi(j,i,l) * y**j
+               hi(i,l) = hi(i,l) +
+     &                   (ln_y*chil(j,i,l) + chi(j,i,l)) * y**j
+            enddo
+         enddo
+      enddo
+
+      end
+c=======================================================
       

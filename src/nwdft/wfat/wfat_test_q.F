@@ -23,13 +23,18 @@ c=======================================================
       double precision f2h, f1h, f0h, f1h_, f2h_, dif1, dif2
       double precision k_m, k_p, c_m, c_p, c, r0_m, r0_p, r0, lhs, rhs
       double precision protmat(3,3), mu(3), chgm(abs(m):lmax+1)
+      integer nrr, k
+      parameter (nrr=4)
+      integer ii(nrr)
+      double precision rr(nrr)
+      double precision q_p1_(abs(m):lmax,nrr), q_p2_(abs(m):lmax,nrr) 
       
 
-      nr = 1001
-      nlgl = 12
+      nr = 10001
+      nlgl = 10
 
       r_first = 0.0d0
-      r_last = 10.0d0
+      r_last = 100.0d0
 
       kappa = sqrt(2 * abs(erg))
       lmb = 2 * kappa
@@ -67,7 +72,6 @@ c     ==== Generate the radial points ====
 c     ==== Calculate Q_l ====
       call wfat_q_particular(nr, dbl_mb(k_r), n, m, lmax, erg, zq,
      &     nlgl, dbl_mb(k_qp1), dbl_mb(k_qp2))
-      write(luout, '("herev1")')
       
 
 c     ==== Open the test result file and print the header ====
@@ -139,12 +143,38 @@ c           ==== Calculate the LHS and RHS ====
             rhs = 2*k_m*r**3*r0_m + 2*k_p*r**3*r0_p + 2*mu(3)*r**2*r0
             epsi = lhs - rhs
 
-            write(WF_QTEST_UNIT, '(6x, 5es15.6)', advance='no')
+            write(WF_QTEST_UNIT, '(6x, 5es21.12)', advance='no')
      &           lhs, rhs, epsi, f0h, r0
          enddo
 
          write(WF_QTEST_UNIT, '(" ")')
       enddo
+
+
+
+      ii(1) = int(1.0d0/4 * nr)
+      rr(1) = dbl_mb(k_r + ii(1) - 1)
+      ii(2) = int(2.0d0/4 * nr)
+      rr(2) = dbl_mb(k_r + ii(2) - 1)
+      ii(3) = int(3.0d0/4 * nr)
+      rr(3) = dbl_mb(k_r + ii(3) - 1)
+      ii(4) = int(3.8d0/4 * nr)
+      rr(4) = dbl_mb(k_r + ii(4) - 1)
+      call wfat_q_particular(nrr, rr, n, m, lmax, erg, zq,
+     &     nlgl, q_p1_, q_p2_)
+      do i = 1, nrr
+         write(WF_QTEST_UNIT, '(2x, i7, es15.6)', advance='no')
+     &        ii(i), lmb*rr(i)
+         do l = abs(m), lmax
+            i_q1_0h = k_qp1 + ((ii(i)+0)-1)*nl + l - abs(m)
+            i_q2_0h = k_qp2 + ((ii(i)+0)-1)*nl + l - abs(m)
+            write(WF_QTEST_UNIT, '(8x, 2es15.6)', advance='no')
+     &           q_p1_(l,i) + mu(3)*q_p2_(l,i), 
+     &           dbl_mb(i_q1_0h) + mu(3)*dbl_mb(i_q2_0h)
+         enddo
+         write(WF_QTEST_UNIT, '(" ")')
+      enddo
+      
       close(WF_QTEST_UNIT)
 
       

@@ -58,6 +58,8 @@
 	wfat_perturb_print.o \
 	wfat_partial_integ.o \
 	wfat_q_particular.o \
+	wfat_calc_d.o \
+	wfat_calc_q.o \
 	wfat_firstord_r.o \
 	wfat_sumyield_lebedev.o \
 	wfat_test_chg.o \

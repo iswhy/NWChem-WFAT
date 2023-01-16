@@ -18,30 +18,30 @@ c     ==== Prepare initial values for recurrence calculation ====
       b = b_ + 2*(lmax_ + 1)
       
       b0 = b - 0
-c      call wfat_chgubi(a, b0, z, chgu_3, id)
+cDEPRCTED      call wfat_chgubi(a, b0, z, chgu_3, id)
       call wfat_chgu(a, b0, z, chgu_3, id)           ! 1)
       
       b0 = b - 1
-c      call wfat_chgubi(a, b0, z, chgu_2, id)
+cDEPRCTED      call wfat_chgubi(a, b0, z, chgu_2, id)
       call wfat_chgu(a, b0, z, chgu_2, id)           ! 1)
       
       b0 = b - 2
-c      call wfat_chgubi(a, b0, z, chgu_1, id)
+cDEPRCTED      call wfat_chgubi(a, b0, z, chgu_1, id)
       call wfat_chgu(a, b0, z, chgu_1, id)           ! 1)
 
 
 c     ==== Calculate the confluent hypergeometric function by recurrence ====
-      if (abs(chgu_3) < 5.0d2) then
-         call wfat_chgu_1pt_recur(lmin_, lmax_, a_, b_, z,
-     &                            chgu_1, chgu_2, chgu_3, chgu)
-      else                   ! 2)
+cc      if (abs(chgu_3) < 5.0d2) then
+cc         call wfat_chgu_1pt_recur(lmin_, lmax_, a_, b_, z,
+cc     &                            chgu_1, chgu_2, chgu_3, chgu)
+cc      else                   ! 2)
          do l = lmin_, lmax_
             aa = l + a_
             bb = 2*l + b_
-c            call wfat_chgubi(aa, bb, z, chgu(l), id)
+cDEPRCTED            call wfat_chgubi(aa, bb, z, chgu(l), id)
             call wfat_chgu(aa, bb, z, chgu(l), id)           ! 1)
          enddo
-      endif
+cc      endif
       
 
 c     ==== Scan for too big values ====
@@ -141,8 +141,12 @@ c=======================================================
       integer md
 
 
-      if (x < 3.0d0 .and. abs(int(b)-b) <= 1.0d-14 ) then
-         call wfat_chgubi_smallx(a, b, x, hu, md)
+      if (x < 1.0d0 .and. abs(int(b)-b) <= 1.0d-14 ) then
+cOLD         call wfat_chgubi_smallx(a, b, x, hu, md)          ! For some reason, the result of wfat_chgubi_smallx is inaccurate for small a and b.
+         call wfat_chgu_szjj(a, b, x, hu, md)
+cforlater      else if (x >= 1.0d0 .and. x < 30.0d0) then
+cforlater         call wfat_chguit_isw(a, b, x, hu)
+cforlater         md = 0
       else
          call wfat_chgu_szjj(a, b, x, hu, md)
       endif
@@ -191,7 +195,8 @@ c
 c    Output, integer MD, the method code.
 c
       implicit none
-
+#include "stdio.fh"
+#include "global.fh"
       double precision a
       double precision a00
       double precision aa
@@ -210,6 +215,9 @@ c
       logical il3
       integer md
       double precision x
+
+      double complex x_c, hm_c
+      
 
       aa = a - b + 1.0D+00
       il1 = a .eq. int ( a ) .and. a .le. 0.0D+00
@@ -270,11 +278,19 @@ c
         end if
       end if
 
+      
       if ( id .lt. 6 ) then
-        write ( *, '(a)' ) ' '
-        write ( *, '(a)' ) 'CHGU - Warning!'
-        write ( *, '(a)' ) '  Accurate results were not obtained.'
-      end if
+         x_c = cmplx(x, 0.0d0, kind=kind(1.0d0))
+         call wfat_cchg(a, b, x_c, hm_c)
+         call wfat_chguit_isw(a, b, x, hu)
+         if (ga_nodeid() == 0) then
+           write ( *, '(a)' ) ' '
+           write ( *, '(a)' ) 'CHGU - Warning!'
+           write ( *, '(a)' ) '  Accurate results were not obtained.'
+           write (luout, '("a, b, x, hu, hm : ", 5es25.10)')
+     &          a, b, x, hu, real(hm_c)
+        end if
+      endif
 
       return
       end
@@ -635,6 +651,8 @@ c
       double precision x
       double precision xg1
       double precision xg2
+      double precision kmax
+      parameter ( kmax=400 )
 
       id = -100
       pi = 3.141592653589793D+00
@@ -650,7 +668,7 @@ c
       hu = r1 - r2
       hmax = 0.0D+00
       hmin = 1.0D+300
-      do j = 1, 150
+      do j = 1, kmax           ! 150
         r1 = r1 * ( a + j - 1.0D+00 ) / ( j * ( b + j - 1.0D+00 ) ) * x
         r2 = r2 * ( a - b + j ) / ( j * ( 1.0D+00 - b + j ) ) * x
         hu = hu + r1 - r2
@@ -764,6 +782,8 @@ c
       double precision ua
       double precision ub
       double precision x
+      double precision kmax
+      parameter( kmax=400 )
 
       id = -100
       el = 0.5772156649015329D+00
@@ -801,7 +821,7 @@ c
       hmax = 0.0D+00
       hmin = 1.0D+300
 
-      do k = 1, 150
+      do k = 1, kmax          ! 150
         r = r * ( a0 + k - 1.0D+00 ) * x / ( ( n + k ) * k )
         hm1 = hm1 + r
         hu1 = abs ( hm1 )
@@ -833,7 +853,7 @@ c
       r = 1.0D+00
       hmax = 0.0D+00
       hmin = 1.0D+300
-      do k = 1, 150
+      do k = 1, kmax        ! 150
         s1 = 0.0D+00
         s2 = 0.0D+00
         if ( 0.0D+00 .lt. b ) then
@@ -924,7 +944,7 @@ c=======================================================
       double precision xx_k, factorial, rise_fact
       external factorial, rise_fact
       integer kmax
-      parameter(kmax=200)
+      parameter(kmax=400)
 
 
       if (abs(int(b)-b) > 1.0d-14)
@@ -967,4 +987,70 @@ c=======================================================
 
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_chguit_isw(a, b, x, hu)
+
+      implicit none
+#include "stdio.fh"      
+      double precision a
+      double precision b
+      double precision x
+      double precision hu
+
+      integer k
+      double precision u(30), w(30), t, f, ga
+
+
+      u = (/
+     &     4.74071805408049d-02, 2.49923916753160d-01,
+     &     6.14833454392768d-01, 1.14319582566610d+00,
+     &     1.83645455462257d+00, 2.69652187455722d+00,
+     &     3.72581450777951d+00, 4.92729376584988d+00,
+     &     6.30451559096507d+00, 7.86169329337026d+00,
+     &     9.60377598547926d+00, 1.15365465979561d+01,
+     &     1.36667446930642d+01, 1.60022211889811d+01,
+     &     1.85521348401432d+01, 2.13272043217831d+01,
+     &     2.43400357645327d+01, 2.76055547967810d+01,
+     &     3.11415867011112d+01, 3.49696520082491d+01,
+     &     3.91160849490679d+01, 4.36136529084848d+01,
+     &     4.85039861638042d+01, 5.38413854065075d+01,
+     &     5.96991218592355d+01, 6.61806177944385d+01,
+     &     7.34412385955599d+01, 8.17368105067277d+01,
+     &     9.15564665225368d+01, 1.04157524431059d+02
+     &     /)
+
+      w = (/
+     &     1.16044086020393d-01, 2.20851124750696d-01,
+     &     2.41399827587874d-01, 1.94636768446417d-01,
+     &     1.23728415966881d-01, 6.36787803689883d-02,
+     &     2.68604752733805d-02, 9.33807088160423d-03,
+     &     2.68069689133690d-03, 6.35129121940878d-04,
+     &     1.23907459906887d-04, 1.98287884389530d-05,
+     &     2.58935092913148d-06, 2.74094284053609d-07,
+     &     2.33283116502580d-08, 1.58074557477838d-09,
+     &     8.42747912305705d-11, 3.48516123490798d-12,
+     &     1.09901805975347d-13, 2.58831266495924d-15,
+     &     4.43783805984030d-17, 5.36591830821235d-19,
+     &     4.39394689229172d-21, 2.31140979438865d-23,
+     &     7.27458849829254d-26, 1.23914970144827d-28,
+     &     9.83237508310564d-32, 2.84232355340280d-35,
+     &     1.87860803174957d-39, 8.74598044046519d-45
+     &     /)
+
+      hu = 0.0d0
+      do k = 1, 30
+         t = u(k) / x
+         f = t**(a-1) * (1+t)**(b-a-1)
+         hu = hu + w(k) * f / x
+      enddo
+      call wfat_gammaf(a, ga)
+      hu = hu / ga
+
+      end
+      
+c=======================================================
+      
       

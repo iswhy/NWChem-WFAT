@@ -36,10 +36,10 @@ c      call wfat_chgm(a, b0, z, chgm_1)
       
       
 c     ==== Calculate the confluent hypergeometric function by recurrence ====
-      if (abs(chgm_3) < 5.0d2) then
-         call wfat_chgm_1pt_recur(lmin_, lmax_, a_, b_, z,
-     &                            chgm_1, chgm_2, chgm_3, chgm)
-      else
+cc      if (abs(chgm_3) < 5.0d2) then
+cc         call wfat_chgm_1pt_recur(lmin_, lmax_, a_, b_, z,
+cc     &                            chgm_1, chgm_2, chgm_3, chgm)
+cc      else
          do l = lmin_, lmax_
             aa = l + a_
             bb = 2*l + b_
@@ -47,7 +47,7 @@ c            call wfat_chgm(aa, bb, z, chgm(l))
             call wfat_cchg(aa, bb, zz, uu)           ! 1)
             chgm(l) = real(uu)
          enddo
-      endif
+cc      endif
          
       
 c     ==== Scan for too big values ====
