@@ -73,12 +73,11 @@ c     ==== Get the passive rotation matrix ===
       if (.not. MA_alloc_get(MT_DBL, npt, 'r1', l_r1, k_r1))
      &     call errquit('WFAT: r1 allocation failed', 86, MA_ERR)      
 
-
       
       cr_1_ref = -g/kappa/factorial(abs(m)+1) * beta1
       if (.not. MA_alloc_get(MT_DBL, pmax, 'r1_coef', l_cr, k_cr))
      &     call errquit('WFAT: r1_coef allocation failed', 62, MA_ERR)
-      call wfat_r1_coeff(et, n, m, erg, zq, mu(3), pmax, dbl_mb(k_cr))
+      call wfat_r1_coeff(n, m, erg, zq, mu(3), pmax, dbl_mb(k_cr))
       write(luout, '("Coefficients of R^{(1)} :")')
       do j = 1, pmax
          if (j <= 1) then
@@ -123,9 +122,15 @@ c     &           del, dbl_mb(k_r1+i-1))
                first_notsmalleta = .false.
             endif
 
-            call wfat_r1_trapz(et-de, et, n, m, erg, zq, mu(3), nlgl,
-     &           r1_)
+c            call wfat_r1_trapz(et-de, et, n, m, erg, zq, mu(3), nlgl,
+c     &           r1_)
 
+
+            
+            resolve here
+
+
+            
 c            call wfat_r1(et-de, et, r0_1, o0_1, n, m, erg, zq, mu(3),
 c     &           nlgl, dbl_mb(k_pt), dbl_mb(k_wt), r0_2, o0_2, r1_)
             dbl_mb(k_r1+i-1) = dbl_mb(k_r1+i-2) + r1_

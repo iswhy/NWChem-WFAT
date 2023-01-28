@@ -1,12 +1,88 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_r1_coeff(et, n, m, erg, zq, mu, pmax, cr1)
+      subroutine wfat_r1(neta, eta, n, m, erg, zq, chmmt, r1)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer neta
+      double precision eta(neta)
+      integer n
+      integer m
+      double precision erg
+      double precision zq
+      double precision chmmt(3)
+      double precision r1(neta)
+
+      logical first_notsmalleta
+      integer i, j, pmax, l_cr, k_cr
+      double precision protmat(3,3), mu(3), kappa, z, rr
+      double precision zbound
+      parameter (zbound=1.0d0, pmax=40)
+      
+
+c     ==== Get the passive rotation matrix ===
+      call wfat_passrot(-0.0d0, -0.0d0, protmat)
+      mu = matmul(transpose(protmat), -chmmt)
+      
+
+      kappa = sqrt(2 * abs(erg))
+cforlater      a = 1 + abs(m) + n - zq/kappa
+cforlater      b = dble(abs(m) + 1)
+cforlater      beta0 = zq - kappa*(n + (abs(m)+1)/2.0d0)
+cforlater      beta1 = -mu(3)/2/kappa * (2*n+1+abs(m))
+cforlater     &        -1.0d0/4/kappa**2
+cforlater     &        * (6*n*(n+abs(m)+1) + m**2 + 3*abs(m) + 2)
+cforlater      call wfat_gammaf(a, g)
+cforlater      d = g / factorial(abs(m))
+
+
+cforlater      if (.not. MA_alloc_get(MT_DBL, nlgl, 'lgl_pt', l_pt, k_pt))
+cforlater     &     call errquit('WFAT: lgl_pt allocation failed', 84, MA_ERR)
+cforlater      if (.not. MA_alloc_get(MT_DBL, nlgl, 'lgl_wt', l_wt, k_wt))
+cforlater     &     call errquit('WFAT: lgl_wt allocation failed', 85, MA_ERR)
+cforlater      call wfat_lgl(-1.0d0, 1.0d0, nlgl-1, dbl_mb(k_pt), dbl_mb(k_wt))
+
+      
+c     ==== Coefficients of A1-A2 ====
+      if (.not. MA_alloc_get(MT_DBL, pmax, 'r1_coef', l_cr, k_cr))
+     &     call errquit('WFAT: r1_coef allocation failed', 62, MA_ERR)
+      call wfat_r1_coeff(n, m, erg, zq, mu(3), pmax, dbl_mb(k_cr))
+
+      
+      first_notsmalleta = .true.
+c     ==== Loop over the increasingly-ordered radial points ====
+      do i = 1, neta
+         z = kappa * eta(i)
+         if (z < zbound) then
+            rr = 0.0d0
+            do j = 1, pmax
+               rr = rr + dbl_mb(k_cr+j-1) * z**j
+            enddo
+            r1(i) = z**(b/2) * exp(-z/2) * rr
+
+         else
+            call errquit('WFAT: For the moment, z cannot exceed 1.0 '//
+     &           'in wfat_r1.', 49, UERR)
+         endif
+      enddo
+
+      
+      if (.not. ma_free_heap(l_cr))
+     &     call errquit('WFAT: Cannot deallocate r1_coef', 49, MA_ERR)
+      
+      end
+c=======================================================
+      
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_r1_coeff(n, m, erg, zq, mu, pmax, cr1)
 
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
 #include "stdio.fh"
-      double precision et            ! [input], unused
       integer n                      ! [input]
       integer m                      ! [input]
       double precision erg           ! [input]
@@ -190,211 +266,211 @@ c     ==== Deallocations ====
 c=======================================================
 
       
-c=======================================================
-c=======================================================
-      subroutine wfat_r1(et1, et2, r0_1, o0_1, n, m, erg, zq,
-     &                   mu, npt, pt, wt, r0_2, o0_2, r1)
-c     r0_1 = g/f_m * z1^(b/2) * exp(-z1/2) * M(a, b, z1)
-c     r0_2 = g/f_m * z2^(b/2) * exp(-z2/2) * M(a, b, z2)
-c     o0_1 = z1^(b/2) * exp(-z1/2) * U(a, b, z1)
-c     o0_2 = z2^(b/2) * exp(-z2/2) * U(a, b, z2)
-c     where
-c     z1 = kappa * et1
-c     z2 = kappa * et2
-c     a = 1 + |m| + n - zq/kappa
-c     b = |m| + 1
-c     kappa = sqrt(2 * abs(erg))
-c     g = the value of gamma function when its argument is equal to a.
-c     f_m = the factorial of |m|.
-c     
-c     M(a,b,z) is calculated by wfat_cchg subroutine, while U(a,b,z) is calculated
-c     by wfat_chgu subroutine.
-
-      implicit none
-#include "errquit.fh"
-#include "stdio.fh"
-      double precision et1         ! [input], 
-      double precision et2         ! [input], 
-      double precision r0_1        ! [input], 
-      double precision o0_1        ! [input], 
-      integer n                    ! [input], 
-      integer m                    ! [input], 
-      double precision erg         ! [input], 
-      double precision zq          ! [input], 
-      double precision mu          ! [input], 
-      integer npt                  ! [input], 
-      double precision pt(1:npt)   ! [input], 
-      double precision wt(1:npt)   ! [input], 
-      double precision r0_2        ! [output], 
-      double precision o0_2        ! [output], 
-      double precision r1          ! [output], 
-
-      integer i, id
-      double precision kappa, a, b, beta1, g, d, z2, f2, f, wt_, intd
-      double precision r0, o0, et, z, chgm, chgu, chgm2, chgu2
-      double complex zz, chgm_
-      double precision factorial
-      external factorial
-
-      
-      if (et1 > et2)
-     &     call errquit('Argument et1 and et2 of wfat_r1 '//
-     &     'must be such that et1 < et2.', 27, UERR)
-      if (et2 < 1.0d-2)
-     &     call errquit('Argument et2 of wfat_r1 must be '//
-     &     'larger than or equal to 0.01.', 28, UERR)
-      if (n < 0) call errquit('Argument n of '//
-     &     'wfat_r1 must be zero or positive.', 29, UERR)
-
-      
-      kappa = sqrt(2*abs(erg))
-      a = 1 + abs(m) + n - zq/kappa
-      b = dble(abs(m) + 1)
-      beta1 = -mu/2/kappa * (2*n+1+abs(m))
-     &        -1.0d0/4/kappa**2
-     &        * (6*n*(n+abs(m)+1) + m**2 + 3*abs(m) + 2)
-      
-      call wfat_gammaf(a, g)
-      d = g / factorial(abs(m))
-      z2 = kappa * et2
-      zz = cmplx(z2, 0.0d0, kind=kind(1.0d0))
-      call wfat_cchg(a, b, zz, chgm_)
-      chgm2 = real(chgm_)
-      call wfat_chgu(a, b, z2, chgu2, id)
-            
-      f2 = z2**(b/2) * exp(-z2/2)
-      r0_2 = d * f2 * chgm2
-      o0_2 = f2 * chgu2
-      
-
-      if (et2 < 5.0d0) then
-         write(luout, '(2es15.6)') et1, et2
-         write(luout, '(4x, a5, 5a15)')
-     &        'No.', 'eta', 'R^(0)', 'O^(0)', 'weight', 'integrand'
-      endif
-      
-      r1 = 0.0d0
-      do i = 1, npt
-         if (i == 1) then
-            et = et1
-            r0 = r0_1
-            o0 = o0_1
-         else if (i == npt) then
-            et = et2
-            r0 = r0_2
-            o0 = o0_2
-         else
-            et = 0.5d0*((et2-et1)*pt(i) + et2 + et1)
-            z = kappa * et
-            zz = cmplx(z, 0.0d0, kind=kind(1.0d0))
-            call wfat_cchg(a, b, zz, chgm_)
-            chgm = real(chgm_)
-            call wfat_chgu(a, b, z, chgu, id)
-   
-            f = z**(b/2) * exp(-z/2)
-            r0 = d * f * chgm
-            o0 = f * chgu
-         endif
-
-         wt_ = (et2 - et1)/2 * wt(i)
-         intd = (r0*o0_2 - r0_2*o0) * (beta1/et - mu/2 + et/4) *
-     &          r0
-         r1 = r1 + wt_*intd
-
-         if (et2 < 5.0d0) then
-            write(luout, '(4x, i5, 5es15.6)')
-     &           i, et, r0, o0, wt_, intd
-         endif
-         
-      enddo
-      r1 = r1 / kappa
-      
-      end
-c=======================================================
-
-
-c=======================================================
-c=======================================================
-      subroutine wfat_r1_trapz(et1, et2, n, m, erg, zq,
-     &     mu, npt, r1)
-
-      implicit none
-#include "errquit.fh"
-#include "stdio.fh"
-      double precision et1         ! [input], 
-      double precision et2         ! [input], 
-      integer n                    ! [input], 
-      integer m                    ! [input], 
-      double precision erg         ! [input], 
-      double precision zq          ! [input], 
-      double precision mu          ! [input], 
-      integer npt                  ! [input], 
-      double precision r1          ! [output], 
-
-      integer i, id
-      double precision kappa, a, b, beta1, g, d, z2, f2, f, intd
-      double precision de, r0_2, o0_2, r0, o0, et, z, chgm, chgu
-      double precision chgm2, chgu2, wt
-      double complex zz, chgm_
-      double precision factorial
-      external factorial
-
-      
-      if (et1 > et2)
-     &     call errquit('Argument et1 and et2 of wfat_r1 '//
-     &     'must be such that et1 < et2.', 27, UERR)
-      if (et2 < 1.0d-2)
-     &     call errquit('Argument et2 of wfat_r1 must be '//
-     &     'larger than or equal to 0.01.', 28, UERR)
-      if (n < 0) call errquit('Argument n of '//
-     &     'wfat_r1 must be zero or positive.', 29, UERR)
-
-      
-      kappa = sqrt(2*abs(erg))
-      a = 1 + abs(m) + n - zq/kappa
-      b = dble(abs(m) + 1)
-      beta1 = -mu/2/kappa * (2*n+1+abs(m))
-     &        -1.0d0/4/kappa**2
-     &        * (6*n*(n+abs(m)+1) + m**2 + 3*abs(m) + 2)
-      
-      call wfat_gammaf(a, g)
-      d = g / factorial(abs(m))
-      z2 = kappa * et2
-      zz = cmplx(z2, 0.0d0, kind=kind(1.0d0))
-      call wfat_cchg(a, b, zz, chgm_)
-      chgm2 = real(chgm_)
-      call wfat_chgu(a, b, z2, chgu2, id)
-            
-      f2 = z2**(b/2) * exp(-z2/2)
-      r0_2 = d * f2 * chgm2
-      o0_2 = f2 * chgu2
-
-
-      de = (et2-et1)/(npt-1)
-
-      r1 = 0.0d0
-      do i = 1, npt
-         et = et1 + (i-1)*de
-         z = kappa * et
-         zz = cmplx(z, 0.0d0, kind=kind(1.0d0))
-         call wfat_cchg(a, b, zz, chgm_)
-         chgm = real(chgm_)
-         call wfat_chgu(a, b, z, chgu, id)
-         f = z**(b/2) * exp(-z/2)
-         r0 = d * f * chgm
-         o0 = f * chgu
-
-         intd = (r0*o0_2 - r0_2*o0) * (beta1/et - mu/2 + et/4) * r0
-         wt = de
-         if (i==1 .or. i==npt) wt = de/2
-         
-         r1 = r1 + wt * intd
-      enddo
-
-      r1 = r1 / kappa
-      
-      end
-c=======================================================
+cOLDc=======================================================
+cOLDc=======================================================
+cOLD      subroutine wfat_r1_BAD(et1, et2, r0_1, o0_1, n, m, erg, zq,
+cOLD     &                   mu, npt, pt, wt, r0_2, o0_2, r1)
+cOLDc     r0_1 = g/f_m * z1^(b/2) * exp(-z1/2) * M(a, b, z1)
+cOLDc     r0_2 = g/f_m * z2^(b/2) * exp(-z2/2) * M(a, b, z2)
+cOLDc     o0_1 = z1^(b/2) * exp(-z1/2) * U(a, b, z1)
+cOLDc     o0_2 = z2^(b/2) * exp(-z2/2) * U(a, b, z2)
+cOLDc     where
+cOLDc     z1 = kappa * et1
+cOLDc     z2 = kappa * et2
+cOLDc     a = 1 + |m| + n - zq/kappa
+cOLDc     b = |m| + 1
+cOLDc     kappa = sqrt(2 * abs(erg))
+cOLDc     g = the value of gamma function when its argument is equal to a.
+cOLDc     f_m = the factorial of |m|.
+cOLDc     
+cOLDc     M(a,b,z) is calculated by wfat_cchg subroutine, while U(a,b,z) is calculated
+cOLDc     by wfat_chgu subroutine.
+cOLD
+cOLD      implicit none
+cOLD#include "errquit.fh"
+cOLD#include "stdio.fh"
+cOLD      double precision et1         ! [input], 
+cOLD      double precision et2         ! [input], 
+cOLD      double precision r0_1        ! [input], 
+cOLD      double precision o0_1        ! [input], 
+cOLD      integer n                    ! [input], 
+cOLD      integer m                    ! [input], 
+cOLD      double precision erg         ! [input], 
+cOLD      double precision zq          ! [input], 
+cOLD      double precision mu          ! [input], 
+cOLD      integer npt                  ! [input], 
+cOLD      double precision pt(1:npt)   ! [input], 
+cOLD      double precision wt(1:npt)   ! [input], 
+cOLD      double precision r0_2        ! [output], 
+cOLD      double precision o0_2        ! [output], 
+cOLD      double precision r1          ! [output], 
+cOLD
+cOLD      integer i, id
+cOLD      double precision kappa, a, b, beta1, g, d, z2, f2, f, wt_, intd
+cOLD      double precision r0, o0, et, z, chgm, chgu, chgm2, chgu2
+cOLD      double complex zz, chgm_
+cOLD      double precision factorial
+cOLD      external factorial
+cOLD
+cOLD      
+cOLD      if (et1 > et2)
+cOLD     &     call errquit('Argument et1 and et2 of wfat_r1 '//
+cOLD     &     'must be such that et1 < et2.', 27, UERR)
+cOLD      if (et2 < 1.0d-2)
+cOLD     &     call errquit('Argument et2 of wfat_r1 must be '//
+cOLD     &     'larger than or equal to 0.01.', 28, UERR)
+cOLD      if (n < 0) call errquit('Argument n of '//
+cOLD     &     'wfat_r1 must be zero or positive.', 29, UERR)
+cOLD
+cOLD      
+cOLD      kappa = sqrt(2*abs(erg))
+cOLD      a = 1 + abs(m) + n - zq/kappa
+cOLD      b = dble(abs(m) + 1)
+cOLD      beta1 = -mu/2/kappa * (2*n+1+abs(m))
+cOLD     &        -1.0d0/4/kappa**2
+cOLD     &        * (6*n*(n+abs(m)+1) + m**2 + 3*abs(m) + 2)
+cOLD      
+cOLD      call wfat_gammaf(a, g)
+cOLD      d = g / factorial(abs(m))
+cOLD      z2 = kappa * et2
+cOLD      zz = cmplx(z2, 0.0d0, kind=kind(1.0d0))
+cOLD      call wfat_cchg(a, b, zz, chgm_)
+cOLD      chgm2 = real(chgm_)
+cOLD      call wfat_chgu(a, b, z2, chgu2, id)
+cOLD            
+cOLD      f2 = z2**(b/2) * exp(-z2/2)
+cOLD      r0_2 = d * f2 * chgm2
+cOLD      o0_2 = f2 * chgu2
+cOLD      
+cOLD
+cOLD      if (et2 < 5.0d0) then
+cOLD         write(luout, '(2es15.6)') et1, et2
+cOLD         write(luout, '(4x, a5, 5a15)')
+cOLD     &        'No.', 'eta', 'R^(0)', 'O^(0)', 'weight', 'integrand'
+cOLD      endif
+cOLD      
+cOLD      r1 = 0.0d0
+cOLD      do i = 1, npt
+cOLD         if (i == 1) then
+cOLD            et = et1
+cOLD            r0 = r0_1
+cOLD            o0 = o0_1
+cOLD         else if (i == npt) then
+cOLD            et = et2
+cOLD            r0 = r0_2
+cOLD            o0 = o0_2
+cOLD         else
+cOLD            et = 0.5d0*((et2-et1)*pt(i) + et2 + et1)
+cOLD            z = kappa * et
+cOLD            zz = cmplx(z, 0.0d0, kind=kind(1.0d0))
+cOLD            call wfat_cchg(a, b, zz, chgm_)
+cOLD            chgm = real(chgm_)
+cOLD            call wfat_chgu(a, b, z, chgu, id)
+cOLD   
+cOLD            f = z**(b/2) * exp(-z/2)
+cOLD            r0 = d * f * chgm
+cOLD            o0 = f * chgu
+cOLD         endif
+cOLD
+cOLD         wt_ = (et2 - et1)/2 * wt(i)
+cOLD         intd = (r0*o0_2 - r0_2*o0) * (beta1/et - mu/2 + et/4) *
+cOLD     &          r0
+cOLD         r1 = r1 + wt_*intd
+cOLD
+cOLD         if (et2 < 5.0d0) then
+cOLD            write(luout, '(4x, i5, 5es15.6)')
+cOLD     &           i, et, r0, o0, wt_, intd
+cOLD         endif
+cOLD         
+cOLD      enddo
+cOLD      r1 = r1 / kappa
+cOLD      
+cOLD      end
+cOLDc=======================================================
+cOLD
+cOLD
+cOLDc=======================================================
+cOLDc=======================================================
+cOLD      subroutine wfat_r1_trapz(et1, et2, n, m, erg, zq,
+cOLD     &     mu, npt, r1)
+cOLD
+cOLD      implicit none
+cOLD#include "errquit.fh"
+cOLD#include "stdio.fh"
+cOLD      double precision et1         ! [input], 
+cOLD      double precision et2         ! [input], 
+cOLD      integer n                    ! [input], 
+cOLD      integer m                    ! [input], 
+cOLD      double precision erg         ! [input], 
+cOLD      double precision zq          ! [input], 
+cOLD      double precision mu          ! [input], 
+cOLD      integer npt                  ! [input], 
+cOLD      double precision r1          ! [output], 
+cOLD
+cOLD      integer i, id
+cOLD      double precision kappa, a, b, beta1, g, d, z2, f2, f, intd
+cOLD      double precision de, r0_2, o0_2, r0, o0, et, z, chgm, chgu
+cOLD      double precision chgm2, chgu2, wt
+cOLD      double complex zz, chgm_
+cOLD      double precision factorial
+cOLD      external factorial
+cOLD
+cOLD      
+cOLD      if (et1 > et2)
+cOLD     &     call errquit('Argument et1 and et2 of wfat_r1 '//
+cOLD     &     'must be such that et1 < et2.', 27, UERR)
+cOLD      if (et2 < 1.0d-2)
+cOLD     &     call errquit('Argument et2 of wfat_r1 must be '//
+cOLD     &     'larger than or equal to 0.01.', 28, UERR)
+cOLD      if (n < 0) call errquit('Argument n of '//
+cOLD     &     'wfat_r1 must be zero or positive.', 29, UERR)
+cOLD
+cOLD      
+cOLD      kappa = sqrt(2*abs(erg))
+cOLD      a = 1 + abs(m) + n - zq/kappa
+cOLD      b = dble(abs(m) + 1)
+cOLD      beta1 = -mu/2/kappa * (2*n+1+abs(m))
+cOLD     &        -1.0d0/4/kappa**2
+cOLD     &        * (6*n*(n+abs(m)+1) + m**2 + 3*abs(m) + 2)
+cOLD      
+cOLD      call wfat_gammaf(a, g)
+cOLD      d = g / factorial(abs(m))
+cOLD      z2 = kappa * et2
+cOLD      zz = cmplx(z2, 0.0d0, kind=kind(1.0d0))
+cOLD      call wfat_cchg(a, b, zz, chgm_)
+cOLD      chgm2 = real(chgm_)
+cOLD      call wfat_chgu(a, b, z2, chgu2, id)
+cOLD            
+cOLD      f2 = z2**(b/2) * exp(-z2/2)
+cOLD      r0_2 = d * f2 * chgm2
+cOLD      o0_2 = f2 * chgu2
+cOLD
+cOLD
+cOLD      de = (et2-et1)/(npt-1)
+cOLD
+cOLD      r1 = 0.0d0
+cOLD      do i = 1, npt
+cOLD         et = et1 + (i-1)*de
+cOLD         z = kappa * et
+cOLD         zz = cmplx(z, 0.0d0, kind=kind(1.0d0))
+cOLD         call wfat_cchg(a, b, zz, chgm_)
+cOLD         chgm = real(chgm_)
+cOLD         call wfat_chgu(a, b, z, chgu, id)
+cOLD         f = z**(b/2) * exp(-z/2)
+cOLD         r0 = d * f * chgm
+cOLD         o0 = f * chgu
+cOLD
+cOLD         intd = (r0*o0_2 - r0_2*o0) * (beta1/et - mu/2 + et/4) * r0
+cOLD         wt = de
+cOLD         if (i==1 .or. i==npt) wt = de/2
+cOLD         
+cOLD         r1 = r1 + wt * intd
+cOLD      enddo
+cOLD
+cOLD      r1 = r1 / kappa
+cOLD      
+cOLD      end
+cOLDc=======================================================
       
 
 cOLDc=======================================================

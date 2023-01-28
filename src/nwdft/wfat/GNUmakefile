@@ -61,6 +61,8 @@
 	wfat_calc_d.o \
 	wfat_calc_q.o \
 	wfat_firstord_r.o \
+	wfat_calc_tau.o \
+	wfat_calc_phixi.o \
 	wfat_sumyield_lebedev.o \
 	wfat_test_chg.o \
 	wfat_test_r1.o \
