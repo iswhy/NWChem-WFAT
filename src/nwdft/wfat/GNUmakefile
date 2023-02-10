@@ -67,6 +67,7 @@
 	wfat_test_chg.o \
 	wfat_test_r1.o \
 	wfat_test_q.o \
+	wfat_test_tau.o \
 	mewfat_task.o \
 	mewfat_init.o \
 	mewfat_print_info.o \

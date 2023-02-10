@@ -122,8 +122,8 @@ c     &           del, dbl_mb(k_r1+i-1))
                first_notsmalleta = .false.
             endif
 
-c            call wfat_r1_trapz(et-de, et, n, m, erg, zq, mu(3), nlgl,
-c     &           r1_)
+cOLD            call wfat_r1_trapz(et-de, et, n, m, erg, zq, mu(3), nlgl,
+cOLD     &           r1_)
 
 
             
@@ -131,8 +131,8 @@ c     &           r1_)
 
 
             
-c            call wfat_r1(et-de, et, r0_1, o0_1, n, m, erg, zq, mu(3),
-c     &           nlgl, dbl_mb(k_pt), dbl_mb(k_wt), r0_2, o0_2, r1_)
+cOLD            call wfat_r1(et-de, et, r0_1, o0_1, n, m, erg, zq, mu(3),
+cOLD     &           nlgl, dbl_mb(k_pt), dbl_mb(k_wt), r0_2, o0_2, r1_)
             dbl_mb(k_r1+i-1) = dbl_mb(k_r1+i-2) + r1_
             r0_1 = r0_2
             o0_1 = o0_2

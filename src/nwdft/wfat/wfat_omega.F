@@ -91,7 +91,7 @@ c      write(luout, '("ZERO here = ", 2f23.14)') real(czero), imag(czero)
       omega = czero
       
       
-c     ==== Convert Cartesian inputs to sperical ones ====
+c     ==== Convert Cartesian inputs to spherical ones ====
       r = sqrt(sum(vp*vp))
       th = acos(vp(3)/r)
       if (th >= 0.0d0 .and. th < 1.0d-12) then
@@ -167,7 +167,7 @@ c=======================================================
       
       implicit none      
       integer lmax              ! [input]
-      double precision th, ph   ! [input]
+      double precision th, ph   ! [input], theta and phi angles in radians.
       double complex sphm(1:*)  ! [output]
       
       integer nl, inow, ipast1, ipast2, imin, l, m, i
@@ -313,16 +313,10 @@ c=======================================================
          xx = l + 1 - znuc/kp + n - i
          call wfat_gammaf(xx, ff)
 
-c         write(luout, '("xx : ", 2i3, es15.6, 2i3)') l, znuc, kp, n, i
-c         write(luout, '("ff1 = ", 2es15.6)') xx, ff
-
          ff = ff / ( factorial(i) * factorial(l-i) * 
      &        factorial(abs(m)+i) * factorial(l-abs(m)-i) * 
      &        factorial(n-i) )
          f = f + ff
-
-c         write(luout, '("ff2 = ", es15.6)') ff
-         
       end do
       
       cc = a * b * c * d * e * f

@@ -1,6 +1,6 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_r1(neta, eta, n, m, erg, zq, chmmt, r1)
+      subroutine wfat_r1(neta, eta, n, m, erg, zq, bt, gm, chmmt, r1)
 
       implicit none
 #include "errquit.fh"
@@ -11,6 +11,8 @@ c=======================================================
       integer m
       double precision erg
       double precision zq
+      double precision bt           ! [input], beta orientation angle in degree.
+      double precision gm           ! [input], gamma orientation angle in degree.
       double precision chmmt(3)
       double precision r1(neta)
 
@@ -22,7 +24,7 @@ c=======================================================
       
 
 c     ==== Get the passive rotation matrix ===
-      call wfat_passrot(-0.0d0, -0.0d0, protmat)
+      call wfat_passrot(-bt, -gm, protmat)
       mu = matmul(transpose(protmat), -chmmt)
       
 

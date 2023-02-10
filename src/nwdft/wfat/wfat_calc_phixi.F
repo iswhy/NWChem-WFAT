@@ -36,7 +36,7 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_calc_phi1xi(xi, n, m, erg, chmmt, phi1)
+      subroutine wfat_calc_phi1xi(xi, n, m, erg, bt, gm, chmmt, phi1)
 
       implicit none
 #include "errquit.fh"
@@ -45,6 +45,8 @@ c=======================================================
       integer n
       integer m
       double precision erg
+      double precision bt           ! [input], beta orientation angle in degree.
+      double precision gm           ! [input], gamma orientation angle in degree.
       double precision chmmt(3)
       double precision phi1
 
@@ -55,7 +57,7 @@ c=======================================================
       
 
 c     ==== Get the passive rotation matrix ===
-      call wfat_passrot(-0.0d0, -0.0d0, protmat)
+      call wfat_passrot(-bt, -gm, protmat)
       mu = matmul(transpose(protmat), -chmmt)
 
 

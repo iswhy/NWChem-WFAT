@@ -86,10 +86,10 @@ c=======================================================
       subroutine wfat_passrot(bt0, gm0, protmat)
 
       implicit none
-      double precision bt0, gm0
+      double precision bt0, gm0            ! [input], orientation angles in degrees.
       double precision protmat(1:3, 1:3)
-      double precision bt, gm
 
+      double precision bt, gm              ! orientation angles in radians.
       double precision prot_y(3,3), prot_z(3,3), deg2rad
       parameter (deg2rad=0.01745329251994d0)
       

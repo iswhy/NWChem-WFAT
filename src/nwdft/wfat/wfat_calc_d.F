@@ -14,7 +14,7 @@ c=======================================================
       double precision d2          ! [Output], orientation-dependent
 
       integer i, n_, ii
-      double precision kappa, gm, gn, gnn, vv, bt1_1, e1, d0, e1_
+      double precision kappa, beta0, gm, gn, gnn, vv, bt1_1, e1, d0, e1_
       double precision hl1, hl3, hlt1, hlt3, f1, bt1_2, e2, e2_, hl2
       double precision hlt2, f2
       double precision cc(-2:1), c(-2:2)
@@ -22,12 +22,16 @@ c=======================================================
       external factorial
 
 
+      if (m < 0)
+     &     call errquit('WFAT: For the moment, the argument m of '//
+     &     'wfat_calc_d cannot be negative.', 51, UERR)
       if (l < abs(m))
      &     call errquit('WFAT: Argument l and m of wfat_calc_d '//
-     &     'should be such that l >= |m|.', 84, MA_ERR)
+     &     'should be such that l >= |m|.', 84, UERR)
       
 
       kappa = sqrt(2*abs(erg))
+      beta0 = zq - kappa*(n + (abs(m)+1)/2.0d0)
       call wfat_gammaf(1+abs(m)+n-zq/kappa, gm)
       call wfat_gammaf(1+n-zq/kappa, gn)
       call wfat_gammaf(-n+zq/kappa, gnn)
@@ -74,6 +78,7 @@ c     ==== Orientation-independent part ====
      &     - gnn * (bt1_1/kappa*hlt1 + 1.0d0/4/kappa**3*hlt3)
      &     )
       d1 = (e1 + f1) * vv
+      d1 = -2*kappa**(beta0/kappa-1) * d1
 
       
 c     ==== Orientation-dependent part ====
@@ -103,6 +108,7 @@ c     ==== Orientation-dependent part ====
      &     - gnn * (bt1_2/kappa*hlt1 - 1.0d0/2/kappa**2*hlt2)
      &     )
       d2 = (e2 + f2) * vv
+      d2 = -2*kappa**(beta0/kappa-1) * d2
 
       end
 c=======================================================

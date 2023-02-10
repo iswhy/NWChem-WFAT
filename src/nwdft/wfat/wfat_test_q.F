@@ -184,7 +184,7 @@ c     ==== Deallocations ====
       if (.not. ma_free_heap(l_qp1))
      &     call errquit('WFAT: Cannot deallocate q_p1', 49, MA_ERR)
       if (.not. ma_free_heap(l_qp2))
-     &     call errquit('WFAT: Cannot deallocate q_p2', 49, MA_ERR)      
+     &     call errquit('WFAT: Cannot deallocate q_p2', 49, MA_ERR)
       end
 c=======================================================
 
