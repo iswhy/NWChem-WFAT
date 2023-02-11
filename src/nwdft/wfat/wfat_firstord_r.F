@@ -18,7 +18,7 @@ c=======================================================
 
       logical first_notsmalleta
       integer i, j, pmax, l_cr, k_cr
-      double precision protmat(3,3), mu(3), kappa, z, rr
+      double precision b, protmat(3,3), mu(3), kappa, z, rr
       double precision zbound
       parameter (zbound=1.0d0, pmax=40)
       
@@ -30,7 +30,7 @@ c     ==== Get the passive rotation matrix ===
 
       kappa = sqrt(2 * abs(erg))
 cforlater      a = 1 + abs(m) + n - zq/kappa
-cforlater      b = dble(abs(m) + 1)
+      b = dble(abs(m) + 1)
 cforlater      beta0 = zq - kappa*(n + (abs(m)+1)/2.0d0)
 cforlater      beta1 = -mu(3)/2/kappa * (2*n+1+abs(m))
 cforlater     &        -1.0d0/4/kappa**2

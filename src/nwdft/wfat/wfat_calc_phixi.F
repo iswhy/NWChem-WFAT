@@ -24,7 +24,7 @@ c=======================================================
       s = kappa * xi
       call wfat_lagfun_norm(1, n, dble(abs(m)), s, dbl_mb(k_la))
 
-      phi0 = sqrt(kappa) * sqrt( factorial(n)/factorial(n+abs(m)) )
+      phi0 = sqrt(kappa) * sqrt( factorial(n)/factorial(n+abs(m)) ) *
      &       s(1)**(dble(abs(m))/2) * exp(-s(1)/2) * dbl_mb(k_la + n)
 
       if (.not. MA_free_heap(l_la))

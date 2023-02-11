@@ -17,7 +17,7 @@ c=======================================================
       integer i
       double precision kappa, a, b, g, d, eta, r0, xi, phi0, z
       double precision beta0, pi_const, factorial
-      double complex z_, imnum
+      double complex zz, chgm_, imnum
       external factorial
       parameter ( pi_const = 3.14159265359d0 )
       parameter ( imnum = cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
@@ -35,7 +35,7 @@ c     ==== Calculate tau_\nu^{(0)} ====
 c        == R_\nu^{(0)} ===
          eta = r(i) * (1 - cos(th(i)))
          z = kappa * eta
-         z_ = cmplx(z, 0.0d0, kind=kind(1.0d0))
+         zz = cmplx(z, 0.0d0, kind=kind(1.0d0))
          call wfat_cchg(a, b, zz, chgm_)
          r0 = d * z**(b/2) * exp(-z/2) * real(chgm_)         
 
@@ -59,6 +59,7 @@ c=======================================================
      &           lmax, tau0)
 
       implicit none
+#include "stdio.fh"      
 #include "errquit.fh"
 #include "mafdecls.fh"
       integer n                     ! [input],
@@ -98,8 +99,8 @@ c     ==== Allocations ====
 c     ==== Calculate tau_\nu^{(0)} ====
       do i = 1, npt
          call wfat_chgm_1pt(r(i), abs(m), lmax, a, b, lmb, dbl_mb(k_hf))
-         call wfat_radf_1pt(n, m, zq, lmax, kappa, r(i), dbl_mb(k_hf),
-     &        dbl_mb(k_rf))
+         call wfat_radf_1pt(n, m, int(zq), lmax, kappa, r(i), 
+     &        dbl_mb(k_hf), dbl_mb(k_rf))
          call wfat_sphm_1pt(lmax, th(i), ph(i), dcpl_mb(k_sh))
          
          tau0(i) = 0.0d0
@@ -108,6 +109,9 @@ c     ==== Calculate tau_\nu^{(0)} ====
             i_sh = k_sh + (l**2 + l + m + 1) - 1
             xx = dbl_mb(i_rf) * dcpl_mb(i_sh)
             tau0(i) = tau0(i) + xx
+
+            write(luout, '("l, R_l, Y_lm = ", i5, 3es15.6)')
+     &           l, dbl_mb(i_rf), dcpl_mb(i_sh)
          enddo
       enddo
 
@@ -148,7 +152,7 @@ c=======================================================
       integer i, l_r1, k_r1, l_et, k_et
       double precision kappa, a, b, g, d, eta, r0, r1, xi, phi0, phi1, z
       double precision beta0, pi_const, factorial
-      double complex z_, imnum
+      double complex zz, chgm_, imnum
       external factorial
       parameter ( pi_const = 3.14159265359d0 )
       parameter ( imnum = cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
@@ -187,7 +191,7 @@ c     ==== Calculate tau_\nu^{(1)} ====
 c        == R_\nu^{(0)} ===
          eta = dbl_mb(k_et+i-1)
          z = kappa * eta
-         z_ = cmplx(z, 0.0d0, kind=kind(1.0d0))
+         zz = cmplx(z, 0.0d0, kind=kind(1.0d0))
          call wfat_cchg(a, b, zz, chgm_)
          r0 = d * z**(b/2) * exp(-z/2) * real(chgm_)
 
@@ -222,6 +226,7 @@ c=======================================================
      &           bt, gm, chmmt, lmax, tau1)
 
       implicit none
+#include "stdio.fh"
 #include "errquit.fh"
 #include "mafdecls.fh"
       integer n                     ! [input], 
@@ -274,6 +279,9 @@ c     ==== Calculate tau_\nu^{(1)} ====
             i_sh = k_sh + (l**2 + l + m + 1) - 1
             xx = (dbl_mb(i_q1) + mu(3)*dbl_mb(i_q2)) * dcpl_mb(i_sh)
             tau1(i) = tau1(i) + xx
+
+            write(luout, '("l, Q_l, Y_lm = ", i5, 3es15.6)')
+     &           l, (dbl_mb(i_q1) + mu(3)*dbl_mb(i_q2)), dcpl_mb(i_sh)
          enddo
       enddo
       
