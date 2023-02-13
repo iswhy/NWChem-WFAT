@@ -6,7 +6,7 @@ c=======================================================
 #include "errquit.fh"
 #include "mafdecls.fh"
       integer neta
-      double precision eta(neta)
+      double precision eta(neta)    ! [input], increasingly ordered eta.
       integer n
       integer m
       double precision erg

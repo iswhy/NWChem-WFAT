@@ -22,7 +22,7 @@ c=======================================================
       if (.not. MA_alloc_get(MT_DBL, nlag, 'lag', l_la, k_la))
      &     call errquit('WFAT: lag allocation failed', 17, MA_ERR)
       s = kappa * xi
-      call wfat_lagfun_norm(1, n, dble(abs(m)), s, dbl_mb(k_la))
+      call wfat_lagfun(1, n, dble(abs(m)), s, dbl_mb(k_la))
 
       phi0 = sqrt(kappa) * sqrt( factorial(n)/factorial(n+abs(m)) ) *
      &       s(1)**(dble(abs(m))/2) * exp(-s(1)/2) * dbl_mb(k_la + n)
@@ -67,7 +67,7 @@ c     ==== Obtain the required Laguerre functions ====
       if (.not. MA_alloc_get(MT_DBL, nlag, 'lag', l_la, k_la))
      &     call errquit('WFAT: lag allocation failed', 17, MA_ERR)
       s = kappa * xi
-      call wfat_lagfun_norm(1, n+2, dble(abs(m)), s, dbl_mb(k_la))
+      call wfat_lagfun(1, n+2, dble(abs(m)), s, dbl_mb(k_la))
       
 
 c     ==== Calculate the coefficients for phi0 ====
@@ -91,7 +91,7 @@ c     ==== Calculate phi1 ====
       do i = n-2, n+2
          if (i < 0 .or. i == n) cycle
 
-         ii = i - n
+         ii = i - n           ! the values of ii are -2, -1, 0, 1, 2.
          phi0_i = ff * sqrt( factorial(i)/factorial(i+abs(m)) ) *
      &            dbl_mb(k_la + i)
          phi1 = phi1 + c(ii) * phi0_i

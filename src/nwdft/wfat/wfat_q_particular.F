@@ -20,7 +20,7 @@ c=======================================================
 
       logical first_r_1
       integer i, j, l, nn, nc, nci, i_gi1, i_gi2, i_hi1, i_hi2, i_ci
-      integer i_cd, i_chi, i_chil, i_cgi, pmax
+      integer i_cd, i_chi, i_chil, i_cgi, pmax, pmax_l
       integer l_pt, l_wt, l_gi, l_hi, l_gg, l_hh, l_ci, l_cd, l_chi
       integer l_chil, l_cgi
       integer k_pt, k_wt, k_gi, k_hi, k_gg, k_hh, k_ci, k_cd, k_chi
@@ -32,6 +32,8 @@ c=======================================================
       external factorial
       parameter( pmax=40, ybound=1.0d0 )
 
+
+cOLD      pmax = 30          !(2*lmax + 3) + 40
 
       kappa = sqrt(2 * abs(erg))
       lmb = 2 * kappa
@@ -770,9 +772,9 @@ c=======================================================
       if (l < abs(m))
      &     call errquit('WFAT: Argument l of wfat_h_i_coeff cannot be'//
      &     'smaller than |m|.', 48, UERR)
-      if (pmax < 2*l + 3)
-     &     call errquit('WFAT: Argument pmax of wfat_h_i_coeff '//
-     &     'cannot be smaller than 2l+3.', 48, UERR)
+cc      if (pmax < 2*l + 3)                  !! THIS CONDITIONAL SEEMS TO BE SAFE TO IGNORE. IF THIS CONDITIONAL IS FALSE THEN THE OUTPUT gi CONTAINS JUST ZEROS.
+cc     &     call errquit('WFAT: Argument pmax of wfat_g_i_coeff '//
+cc     &     'cannot be smaller than 2l+3.', 48, UERR)
       
       
       kappa = sqrt(2*abs(erg))

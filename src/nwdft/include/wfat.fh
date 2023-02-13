@@ -22,8 +22,8 @@ c     ==== IO ====
       integer
      &     WF_SF_UNIT, WF_RT_UNIT, WF_IY_UNIT, WF_ABTIY_UNIT, 
      &     WF_AGMIY_UNIT, WF_TM_UNIT, WF_TMAR_UNIT, WF_INTGL_UNIT, 
-     &     WF_DENSZ_UNIT, WF_PERTV_UNIT, WF_LAS_UNIT, WF_R1_UNIT,
-     &     WF_DIFR1_UNIT, WF_QTEST_UNIT, WF_TAUTEST_UNIT
+     &     WF_DENSZ_UNIT, WF_PERTV_UNIT, WF_LAS_UNIT, WF_R1TEST_UNIT,
+     &     WF_QTEST_UNIT, WF_TAUTEST_UNIT, WF_PHI1TEST_UNIT
 
       parameter
      &     (WF_ORBGAP='("      ")', WF_QNTGAP='("   ")',
@@ -39,8 +39,8 @@ c     ==== IO ====
      &     WF_TMAR_UNIT=205,
      &     WF_TMAR_TITFMT='(a15)', WF_TMAR_VALFMT='(3es15.6)',
      &     WF_INTGL_UNIT=206, WF_DENSZ_UNIT=207, WF_PERTV_UNIT=208,
-     &     WF_LAS_UNIT=209, WF_R1_UNIT=210, WF_DIFR1_UNIT=211,
-     &     WF_QTEST_UNIT=212, WF_TAUTEST_UNIT=213)
+     &     WF_LAS_UNIT=209, WF_R1TEST_UNIT=210,
+     &     WF_QTEST_UNIT=211, WF_TAUTEST_UNIT=212, WF_PHI1TEST_UNIT=213)
       
 
 c     ==== Calculations ====

@@ -34,9 +34,9 @@ c     ==== Allocate r, theta, and phi ====
      &     call errquit('WFAT: theta allocation failed', 84, MA_ERR)
       if (.not. MA_alloc_get(MT_DBL, npt, 'phi', l_ph, k_ph))
      &     call errquit('WFAT: phi allocation failed', 84, MA_ERR)
-      dbl_mb(k_r) = 0.5d0
-      dbl_mb(k_th) = 0.8d0
-      dbl_mb(k_ph) = 0.0d0
+      dbl_mb(k_r) = 8.0d0
+      dbl_mb(k_th) = 0.4d0
+      dbl_mb(k_ph) = 1.0d0
 
       
 c     ==== Allocate tau's ====
@@ -156,9 +156,11 @@ c     ==== Column number ====
       write(WF_TAUTEST_UNIT, '("#", i14, 2i15)', advance='no') 1, 2, 3     ! r, theta, phi
       write(WF_TAUTEST_UNIT, '(3i15)', advance='no') 4, 5, 6               ! eta, xi, phi
       write(WF_TAUTEST_UNIT, '(2i15)', advance='no') 7, 8                  ! kappa*r, kappa*eta
-      write(WF_TAUTEST_UNIT, '(2(3x, 2i21))', advance='no') 9, 10          ! tau0, tau0_pw
+      write(WF_TAUTEST_UNIT, '(2(3x, 2i21))', advance='no')
+     &     9, 10, 11, 12                                                   ! tau0, tau0_pw
       write(WF_TAUTEST_UNIT, '(6x, " ")', advance='no')
-      write(WF_TAUTEST_UNIT, '(2(3x, 2i21))', advance='no') 11, 12         ! tau1, tau1_pw
+      write(WF_TAUTEST_UNIT, '(2(3x, 2i21))', advance='no')
+     &     13, 14, 15, 16                                                  ! tau1, tau1_pw
       write(WF_TAUTEST_UNIT, '(" ")')
       
 

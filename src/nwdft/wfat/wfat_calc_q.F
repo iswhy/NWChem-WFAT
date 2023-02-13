@@ -7,7 +7,7 @@ c=======================================================
 #include "mafdecls.fh"
 #include "errquit.fh"
       integer nr
-      double precision r(nr)
+      double precision r(nr)    ! [input], increasingly ordered radial points
       integer n
       integer m
       integer lmax

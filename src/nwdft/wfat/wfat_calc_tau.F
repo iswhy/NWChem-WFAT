@@ -248,7 +248,13 @@ c=======================================================
       double precision mu(3), protmat(3,3)
       double complex xx
       parameter(nlgl=8)
-      
+
+
+      if (npt /= 1)
+     &     call errquit('WFAT: For the moment, the argument npt of '//
+     &     'wfat_calc_tau1_lexp must be equal to one', 27, UERR)
+cforlater      call wfat_sort_asc()     resolve here
+
       
 c     ==== Get the passive rotation matrix ===
       call wfat_passrot(-bt, -gm, protmat)
