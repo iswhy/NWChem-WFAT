@@ -19,8 +19,7 @@ c=======================================================
       integer l_r, l_th, l_ph, l_t0, l_t0l, l_t1, l_t1l
       integer k_r, k_th, k_ph, k_t0, k_t0l, k_t1, k_t1l
       double precision kappa, eta, xi, phi, bt, gm
-      parameter(npt=1, bt=0.0d0, gm=0.0d0)
-
+      parameter(npt=4, bt=55.0d0, gm=10.0d0)
 
 
       write(luout, '("TESTING FOR TAU")')
@@ -34,9 +33,22 @@ c     ==== Allocate r, theta, and phi ====
      &     call errquit('WFAT: theta allocation failed', 84, MA_ERR)
       if (.not. MA_alloc_get(MT_DBL, npt, 'phi', l_ph, k_ph))
      &     call errquit('WFAT: phi allocation failed', 84, MA_ERR)
-      dbl_mb(k_r) = 8.0d0
-      dbl_mb(k_th) = 0.4d0
-      dbl_mb(k_ph) = 1.0d0
+
+      dbl_mb(k_r) =    8.0d0
+      dbl_mb(k_r+1) =  2.5d0
+      dbl_mb(k_r+2) =  1.5d1
+      dbl_mb(k_r+3) =  8.0d-2
+
+      dbl_mb(k_th) =   0.4d0
+      dbl_mb(k_th+1) = 0.4d0
+      dbl_mb(k_th+2) = 0.4d0
+      dbl_mb(k_th+3) = 0.4d0
+
+      dbl_mb(k_ph) =   3.2d0
+      dbl_mb(k_ph+1) = 3.2d0
+      dbl_mb(k_ph+2) = 3.2d0
+      dbl_mb(k_ph+3) = 3.2d0
+
 
       
 c     ==== Allocate tau's ====

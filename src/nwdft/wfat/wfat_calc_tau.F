@@ -31,7 +31,7 @@ c=======================================================
       
 
 c     ==== Calculate tau_\nu^{(0)} ====
-      do i = 1,npt
+      do i = 1, npt
 c        == R_\nu^{(0)} ===
          eta = r(i) * (1 - cos(th(i)))
          z = kappa * eta
@@ -43,7 +43,7 @@ c        == phi_\nu^{(0)} ==
          xi = r(i) * (1 + cos(th(i)))         
          call wfat_calc_phi0xi(xi, n, m, erg, phi0)
 
-         tau0 = r0 * phi0 * exp(imnum*m*ph(i)) / sqrt(2*pi_const*eta)
+         tau0(i) = r0 * phi0 * exp(imnum*m*ph(i)) / sqrt(2*pi_const*eta)
       enddo
 
       beta0 = zq - kappa*(n + (abs(m)+1)/2.0d0)
@@ -136,6 +136,8 @@ c=======================================================
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
+#include "stdio.fh"
+#include "global.fh"      
       integer n                     ! [input], 
       integer m                     ! [input], 
       integer npt                   ! [input], 
@@ -149,7 +151,7 @@ c=======================================================
       double precision chmmt(3)     ! [input], 
       double complex tau1(npt)      ! [output], 
 
-      integer i, l_r1, k_r1, l_et, k_et
+      integer i, j, l_r1, k_r1, l_et, k_et, l_es, k_es, l_id, k_id
       double precision kappa, a, b, g, d, eta, r0, r1, xi, phi0, phi1, z
       double precision beta0, pi_const, factorial
       double complex zz, chgm_, imnum
@@ -158,12 +160,9 @@ c=======================================================
       parameter ( imnum = cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
 
 
-      if (npt /= 1)
-     &     call errquit('WFAT: For the moment, the argument npt of '//
-     &     'wfat_calc_tau1 must be equal to one', 27, UERR)
-cforlater      call wfat_sort_asc()     resolve here
-
-
+c      if (npt /= 1)
+c     &     call errquit('WFAT: For the moment, the argument npt of '//
+c     &     'wfat_calc_tau1 must be equal to one', 27, UERR)
       kappa = sqrt(2 * abs(erg))
       a = 1 + abs(m) + n - zq/kappa
       b = dble(abs(m) + 1)
@@ -179,11 +178,36 @@ c     ==== Obtain eta ====
       do i = 1, npt
          dbl_mb(k_et+i-1) = r(i) * (1 - cos(th(i)))
       enddo
+      if (.not. MA_alloc_get(MT_DBL, npt, 'e_sorted', l_es, k_es))
+     &     call errquit('WFAT: e_sorted allocation failed', 29, MA_ERR)
+      if (.not. MA_alloc_get(MT_INT, npt, 'indx', l_id, k_id))
+     &     call errquit('WFAT: indx allocation failed', 29, MA_ERR)
+      dbl_mb(k_es:k_es+npt-1) = dbl_mb(k_et:k_et+npt-1)
+      do i = 1, npt
+         int_mb(k_id+i-1) = i
+      enddo
+      call wfat_dsortx(dbl_mb(k_es), 1, npt, int_mb(k_id))
+cc      if (ga_nodeid()==0)  then
+cc         do i = 1, npt
+cc            write(luout, '("eta, id : ", es21.12, i10)')
+cc     &           dbl_mb(k_es+i-1), int_mb(k_id+i-1)
+cc         enddo
+cc      endif
 
 
 c     ==== Calculate R_\nu^{(1)} ====
-      call wfat_r1(npt, dbl_mb(k_et), n, m, erg, zq, bt, gm, chmmt,
+c      call wfat_r1(npt, dbl_mb(k_et), n, m, erg, zq, bt, gm, chmmt,
+c     &     dbl_mb(k_r1))
+      call wfat_r1(npt, dbl_mb(k_es), n, m, erg, zq, bt, gm, chmmt,
      &     dbl_mb(k_r1))
+c      write(luout, '("sort1")') 
+      dbl_mb(k_es:k_es+npt-1) = dbl_mb(k_r1:k_r1+npt-1)
+c      write(luout, '("sort2")') 
+      do i = 1, npt
+         j = int_mb(k_id+i-1)
+         dbl_mb(k_r1+j-1) = dbl_mb(k_es+i-1)
+      enddo
+c      write(luout, '("sort3")') 
 
 
 c     ==== Calculate tau_\nu^{(1)} ====
@@ -211,6 +235,11 @@ c        == phi_\nu^{(0)} and phi_\nu^{(1)} ==
 
       
 c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_es))
+     &     call errquit('WFAT: e_sorted deallocation failed',
+     &     46, MA_ERR)
+      if (.not. MA_free_heap(l_id))
+     &     call errquit('WFAT: indx deallocation failed', 46, MA_ERR)
       if (.not. MA_free_heap(l_r1))
      &     call errquit('WFAT: r1 deallocation failed', 46, MA_ERR)
       if (.not. MA_free_heap(l_et))
@@ -227,6 +256,7 @@ c=======================================================
 
       implicit none
 #include "stdio.fh"
+#include "global.fh"      
 #include "errquit.fh"
 #include "mafdecls.fh"
       integer n                     ! [input], 
@@ -243,17 +273,32 @@ c=======================================================
       integer lmax                  ! [input], 
       double complex tau1(npt)      ! [output],
 
-      integer nlgl, nsh, nl, i, l, i_q1, i_q2, i_sh
-      integer l_sh, k_sh, l_q1, k_q1, l_q2, k_q2
+      integer nlgl, nsh, nl, i, j, l, i_q1, i_q2, i_sh
+      integer l_rs, l_id, l_sh, l_q1, l_q2
+      integer k_rs, k_id, k_sh, k_q1, k_q2
       double precision mu(3), protmat(3,3)
       double complex xx
       parameter(nlgl=8)
 
 
-      if (npt /= 1)
-     &     call errquit('WFAT: For the moment, the argument npt of '//
-     &     'wfat_calc_tau1_lexp must be equal to one', 27, UERR)
-cforlater      call wfat_sort_asc()     resolve here
+cc      if (npt /= 1)
+cc     &     call errquit('WFAT: For the moment, the argument npt of '//
+cc     &     'wfat_calc_tau1_lexp must be equal to one', 27, UERR)
+      if (.not. MA_alloc_get(MT_DBL, npt, 'r_sorted', l_rs, k_rs))
+     &     call errquit('WFAT: r_sorted allocation failed', 29, MA_ERR)
+      if (.not. MA_alloc_get(MT_INT, npt, 'indx', l_id, k_id))
+     &     call errquit('WFAT: indx allocation failed', 29, MA_ERR)
+      dbl_mb(k_rs:k_rs+npt-1) = r
+      do i = 1, npt
+         int_mb(k_id+i-1) = i
+      enddo
+      call wfat_dsortx(dbl_mb(k_rs), 1, npt, int_mb(k_id))
+cc      if (ga_nodeid()==0)  then
+cc         do i = 1, npt
+cc            write(luout, '("r, id : ", es21.12, i10)')
+cc     &           dbl_mb(k_rs+i-1), int_mb(k_id+i-1)
+cc         enddo
+cc      endif
 
       
 c     ==== Get the passive rotation matrix ===
@@ -270,9 +315,13 @@ c     ==== Calculate Q_l's ====
      &     call errquit('WFAT: q1 allocation failed', 29, MA_ERR)
       if (.not. MA_alloc_get(MT_DBL, nl*npt, 'q2', l_q2, k_q2))
      &     call errquit('WFAT: q2 allocation failed', 29, MA_ERR)
-      call wfat_calc_q(npt, r, n, m, lmax, nlgl, erg, zq,
+c      call wfat_calc_q(npt, r, n, m, lmax, nlgl, erg, zq,
+c     &     dbl_mb(k_q1), dbl_mb(k_q2))
+      call wfat_calc_q(npt, dbl_mb(k_rs), n, m, lmax, nlgl, erg, zq,
      &     dbl_mb(k_q1), dbl_mb(k_q2))
-
+      call wfat_reorder_q(lmax, m, npt, int_mb(k_id),
+     &     dbl_mb(k_q1), dbl_mb(k_q2))
+      
       
 c     ==== Calculate tau_\nu^{(1)} ====
       do i = 1, npt
@@ -293,6 +342,11 @@ c     ==== Calculate tau_\nu^{(1)} ====
       
 
 c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_rs))
+     &     call errquit('WFAT: r_sorted deallocation failed',
+     &     46, MA_ERR)
+      if (.not. MA_free_heap(l_id))
+     &     call errquit('WFAT: indx deallocation failed', 46, MA_ERR)
       if (.not. MA_free_heap(l_sh))
      &     call errquit('WFAT: sphm deallocation failed', 46, MA_ERR)
       if (.not. MA_free_heap(l_q1))
@@ -301,3 +355,62 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: q2 deallocation failed', 46, MA_ERR)
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_reorder_q(lmax, m, nr, indx, q_1, q_2)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer lmax                                ! [input], 
+      integer m                                   ! [input], 
+      integer nr                                  ! [input], 
+      integer indx(nr)                            ! [input], 
+      double precision q_1(abs(m):lmax, nr)       ! [in/output], orientation-independent
+      double precision q_2(abs(m):lmax, nr)       ! [in/output], orientation-dependent
+
+      integer nl, nn, l_tm, k_tm, i, j, i_tm1, i_tm2
+      
+
+      nl = (lmax - abs(m) + 1)
+      nn = nl * nr
+      if (.not. MA_alloc_get(MT_DBL, nn, 'temp', l_tm, k_tm))
+     &     call errquit('WFAT: temp allocation failed', 29, MA_ERR)
+
+
+      do i = 1, nr
+         i_tm1 = k_tm + (i-1)*nl
+         i_tm2 = k_tm + (i-1)*nl + lmax - abs(m)
+         dbl_mb(i_tm1:i_tm2) = q_1(:,i)
+      enddo
+         
+      do i = 1, nr
+         j = indx(i)
+         i_tm1 = k_tm + (i-1)*nl
+         i_tm2 = k_tm + (i-1)*nl + lmax - abs(m)
+         q_1(:,j) = dbl_mb(i_tm1:i_tm2)
+      enddo
+      
+
+      do i = 1, nr
+         i_tm1 = k_tm + (i-1)*nl
+         i_tm2 = k_tm + (i-1)*nl + lmax - abs(m)
+         dbl_mb(i_tm1:i_tm2) = q_2(:,i)
+      enddo
+      
+      do i = 1, nr
+         j = indx(i)
+         i_tm1 = k_tm + (i-1)*nl
+         i_tm2 = k_tm + (i-1)*nl + lmax - abs(m)
+         q_2(:,j) = dbl_mb(i_tm1:i_tm2)
+      enddo
+
+
+      if (.not. MA_free_heap(l_tm))
+     &     call errquit('WFAT: temp deallocation failed', 46, MA_ERR)
+
+      end
+c=======================================================
+      

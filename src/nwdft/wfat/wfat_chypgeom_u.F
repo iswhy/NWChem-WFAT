@@ -67,6 +67,124 @@ c=======================================================
 
 c=======================================================
 c=======================================================
+      subroutine wfat_chgu_decr_a(z, a0, b, u1, u2, aa, u)
+c     Use eq. (13.4.15)
+c     u1 = U(a0, b, z)
+c     u2 = U(a0-1, b, z)
+c     a0 = starting a
+c     aa = target a
+c     u = U(aa, b, z)
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"
+#include "global.fh"
+      double precision z
+      double precision a0
+      double precision b
+      double precision u1
+      double precision u2
+      double precision aa
+      double precision u
+
+      integer i, n
+      double precision dif, u1_, u2_, a
+      
+
+      dif = (a0-2) - aa + 1
+      if (abs(dif - idnint(dif)) < 1.0d-12) then
+         n = idnint(dif)    ! n = the number of recursions to be done.
+         if (n <= 0) then
+            if (ga_nodeid()==0) then
+               write(luout, '(2x, "a0, aa = ", 2es21.12)') a0, aa
+               write(luout, '(2x, "int(a0-aa-1) = ", i3)') n
+            endif
+            call errquit('WFAT: The argument a0 and aa of '//
+     &           'wfat_chgu_decr_a must be such that a0-aa-1>0.',
+     &           83, UERR)
+         endif
+      else
+         if (ga_nodeid()==0)
+     &        write(luout, '(2x, "a0, aa = ", 2es21.12)') a0, aa
+         call errquit('WFAT: The argument a0 and aa of '//
+     &        'wfat_chgu_decr_a must be such that a0-aa-1 is integer.',
+     &        83, UERR)
+      endif
+
+      u1_ = u1
+      u2_ = u2
+      a = a0 - 2
+      do i = 1, n
+         u = -(b-2*(a+1)-z)*u2_ - (a+1)*(a+2-b)*u1_
+         u1_ = u2_
+         u2_ = u
+         a = a - 1
+      enddo
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_chgu_decr_b(z, a, b0, u1, u2, bb, u)
+c     Use eq. (13.4.16)
+c     u1 = U(a, b0, z)
+c     u2 = U(a, b0-1, z)
+c     b0 = starting b
+c     bb = target b
+c     u = U(a, bb, z)
+      implicit none
+#include "errquit.fh"
+#include "global.fh"
+#include "stdio.fh"      
+      double precision z
+      double precision a
+      double precision b0
+      double precision u1
+      double precision u2
+      double precision bb
+      double precision u
+
+      integer i, n
+      double precision dif, u1_, u2_, b
+
+
+      dif = (b0-2) - bb + 1
+      if (abs(dif - idnint(dif)) < 1.0d-12) then
+         n = idnint(dif)    ! n = the number of recursions to be done.
+         if (n <= 0) then
+            if (ga_nodeid()==0) then
+               write(luout, '(2x, "b0, bb = ", 2es21.12)') b0, bb
+               write(luout, '(2x, "int(b0-bb-1) = ", i3)') n
+            endif
+            call errquit('WFAT: The argument b0 and bb of '//
+     &           'wfat_chgu_decr_b must be such that b0-bb-1>0.',
+     &           83, UERR)
+         endif
+      else
+         if (ga_nodeid()==0)
+     &        write(luout, '(2x, "b0, bb = ", 2es21.12)') b0, bb
+         call errquit('WFAT: The argument b0 and bb of '//
+     &        'wfat_chgu_decr_b must be such that b0-bb-1 is integer.',
+     &        83, UERR)
+      endif
+
+      u1_ = u1
+      u2_ = u2
+      b = b0 - 2
+      do i = 1, n
+         u = (-(b+z)*u2_ + z*u1_) / (a - b)
+         u1_ = u2_
+         u2_ = u
+         b = b - 1
+      enddo
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
       subroutine wfat_chgu_1pt_recur(m, ll, a0, b0, z, chgu_1_, chgu_2_,
      &                               chgu_3_, chgu)
 c      !! DESCRIPTION:
@@ -131,6 +249,108 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_chgu(a, b, x, hu, md)
+c     md = 1, when x is less than 1
+c     md = 2, when a-1>=0 and b-a-1<0
+      
+      implicit none
+#include "stdio.fh"
+#include "errquit.fh"
+      double precision a
+      double precision b
+      double precision x
+      double precision hu
+      integer md
+
+      integer m, n
+      double precision f, g, a1, a2, b1, b2, hu1, hu2, hu3, hu4, gb
+      double precision gb1, g1, ga
+      double complex xx, hm1, hm2
+      
+
+      if (x < 1.0d0) then
+         if (abs(idnint(b)-b) <= 1.0d-13) then
+            call wfat_chgubi_smallx(a, b, x, hu, md)
+         else
+            call wfat_gammaf(1-b, gb)
+            call wfat_gammaf(a-b+1, gb1)
+            call wfat_gammaf(b-1, g1)
+            call wfat_gammaf(a, ga)
+            xx = cmplx(x, 0.0d0, kind=kind(1.0d0))
+            call wfat_cchg(a, b, xx, hm1)
+            call wfat_cchg(a-b+1, 2-b, xx, hm2)
+            hu = gb/gb1 * real(hm1) + g1/ga * x**(1-b) * real(hm2)
+         endif
+         md = 1
+      else if (x >= 1.0d0 .and. x < 30.0d0) then
+         
+c        == When a-1>=0 and b-a-1<0 ==
+         if (a-1 >= 0.0d0 .and. b-a-1 < 0.0d0) then
+            g = b - a - 1
+            n = abs(int(g)) + 2
+
+c           == Decrease b at fixed a ==
+            b1 = b + n                              ! b1-a-1 = b+n-a-1 = g+n >= 0
+            call wfat_chguit_isw(a, b1, x, hu1)
+            b2 = b1 - 1                             ! b2-a-1 = b1-1-a-1 = b+n-a-2 = g+n-1 >= 0
+            call wfat_chguit_isw(a, b2, x, hu2)
+            call wfat_chgu_decr_b(x, a, b1, hu1, hu2, b, hu)      ! hu = U(a,b,x)
+            md = 2
+            
+         else if (a-1 < 0.0d0) then
+            f = a - 1
+            m = abs(int(f)) + 2
+            a1 = a + m                              ! a1-1 = a+m-1 = f+m >= 0
+c           == When a-1<0 and b-a1-1<0 ==
+            if (b-a1-1 < 0.0d0) then
+c              == Decrease b at fixed a=a1 ==
+               g = b - a1 - 1
+               n = abs(int(g)) + 2
+               b1 = b + n                           ! b1-a1-1 = b+n-a1-1 = g+n >= 0 
+               call wfat_chguit_isw(a1, b1, x, hu1)
+               b2 = b1 - 1                          ! b2-a1-1 = b1-1-a1-1 = b+n-a1-2 = g+n-1 >= 0
+               call wfat_chguit_isw(a1, b2, x, hu2)
+               call wfat_chgu_decr_b(x, a1, b1, hu1, hu2, b, hu3) ! hu3 = U(a1,b,x)
+
+c              == Decrease b at fixed a=a2 ==
+               a2 = a1 - 1                          ! a2-1 = a1-2 = a+m-2 = f+m-1 >= 0
+               g = b - a2 - 1
+               n = abs(int(g)) + 2
+               b1 = b + n                           ! b1-a2-1 = b+n-a2-1 = g+n >= 0 
+               call wfat_chguit_isw(a2, b1, x, hu1)
+               b2 = b1 - 1                          ! b2-a2-1 = b1-1-a2-1 = b+n-a2-2 = g+n-1 >= 0
+               call wfat_chguit_isw(a2, b2, x, hu2) 
+               call wfat_chgu_decr_b(x, a2, b1, hu1, hu2, b, hu4) ! hu4 = U(a2,b,x)
+
+c              == Decrease a at fixed b ==
+               call wfat_chgu_decr_a(x, a1, b, hu3, hu4, a, hu)   ! hu = U(a,b,x)
+               md = 3
+c           == When a-1<0 and b-a1-1>=0 ==
+            else
+c              == Decrease a at fixed b ==
+               call wfat_chguit_isw(a1, b, x, hu1)
+               a2 = a1 - 1                          ! a2-1 = a1-2 = a+m-2 = f+m-1 >= 0
+               call wfat_chguit_isw(a2, b, x, hu2)
+               call wfat_chgu_decr_a(x, a1, b, hu1, hu2, a, hu)   ! hu = U(a,b,x)
+               md = 4
+            endif
+            
+c        == When a-1>=0 and b-a-1>=0 ==
+         else
+            call wfat_chguit_isw(a, b, x, hu)                     ! hu = U(a,b,x)
+            md = 5
+         endif
+      else
+         call wfat_chgu_largex(a, b, x, hu)
+         md = 6
+      endif
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_chgu_OLD(a, b, x, hu, md)
 
       implicit none
 #include "stdio.fh"
@@ -141,15 +361,7 @@ c=======================================================
       integer md
 
 
-      if (x < 1.0d0 .and. abs(int(b)-b) <= 1.0d-14 ) then
-cOLD         call wfat_chgubi_smallx(a, b, x, hu, md)          ! For some reason, the result of wfat_chgubi_smallx is inaccurate for small a and b.
-         call wfat_chgu_szjj(a, b, x, hu, md)
-cforlater      else if (x >= 1.0d0 .and. x < 30.0d0) then
-cforlater         call wfat_chguit_isw(a, b, x, hu)
-cforlater         md = 0
-      else
-         call wfat_chgu_szjj(a, b, x, hu, md)
-      endif
+      call wfat_chgu_szjj(a, b, x, hu, md)
 
       end
 c=======================================================
@@ -944,10 +1156,10 @@ c=======================================================
       double precision xx_k, factorial, rise_fact
       external factorial, rise_fact
       integer kmax
-      parameter(kmax=400)
+      parameter(kmax=20)
 
 
-      if (abs(int(b)-b) > 1.0d-14)
+      if (abs(idnint(b)-b) > 1.0d-13)
      &     call errquit('WFAT: Argument b of wfat_chgubi_smallx must '//
      &     'be integer (but with double precision type).', 63, UERR)
 
@@ -956,7 +1168,7 @@ c=======================================================
       call wfat_gammaf(a, ga)
 
       hu1 = 0.0d0
-      if (b > 1) then
+      if (b > 1.0d0) then
          do k = 1, n
             hu1 = hu1 + factorial(k-1)*rise_fact(1-a+k, n-k)
      &            /factorial(n-k) * x**(-k)
@@ -969,7 +1181,7 @@ c=======================================================
       call wfat_gammaf(a-n, gn)
       c = (-1)**(n+1) / ga / gn        ! c = the constant pre-factor for hu2 part
       hu2 = 0.0d0
-      do k = 1, kmax
+      do k = 0, kmax
          call wfat_psif(a+k, ps1)
          call wfat_psif(dble(1+k), ps2)
          call wfat_psif(dble(1+k+n), ps3)
@@ -978,11 +1190,12 @@ c=======================================================
          xx_k = c * gk / factorial(k) / factorial(n+k) * p * x**k
          hu2 = hu2 + xx_k
          
-         if (abs(xx_k/(hu1+hu2)) < 1.0d-12) then
-            kk = 100000 + k
-            exit
-         endif
+c         if (abs(xx_k/(hu1+hu2)) < 1.0d-12) then
+c            kk = 100000 + k
+c            exit
+c         endif
       enddo
+
       hu = hu1 + hu2
 
       end
@@ -991,66 +1204,150 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_chguit_isw(a, b, x, hu)
+      subroutine wfat_chgu_largex(a, b, x, hu)
 
       implicit none
-#include "stdio.fh"      
       double precision a
       double precision b
       double precision x
       double precision hu
 
-      integer k
-      double precision u(30), w(30), t, f, ga
+      integer i, imax
+      double precision hu_i, rise_fact, factorial
+      parameter (imax=30)
+      external rise_fact, factorial
 
-
-      u = (/
-     &     4.74071805408049d-02, 2.49923916753160d-01,
-     &     6.14833454392768d-01, 1.14319582566610d+00,
-     &     1.83645455462257d+00, 2.69652187455722d+00,
-     &     3.72581450777951d+00, 4.92729376584988d+00,
-     &     6.30451559096507d+00, 7.86169329337026d+00,
-     &     9.60377598547926d+00, 1.15365465979561d+01,
-     &     1.36667446930642d+01, 1.60022211889811d+01,
-     &     1.85521348401432d+01, 2.13272043217831d+01,
-     &     2.43400357645327d+01, 2.76055547967810d+01,
-     &     3.11415867011112d+01, 3.49696520082491d+01,
-     &     3.91160849490679d+01, 4.36136529084848d+01,
-     &     4.85039861638042d+01, 5.38413854065075d+01,
-     &     5.96991218592355d+01, 6.61806177944385d+01,
-     &     7.34412385955599d+01, 8.17368105067277d+01,
-     &     9.15564665225368d+01, 1.04157524431059d+02
-     &     /)
-
-      w = (/
-     &     1.16044086020393d-01, 2.20851124750696d-01,
-     &     2.41399827587874d-01, 1.94636768446417d-01,
-     &     1.23728415966881d-01, 6.36787803689883d-02,
-     &     2.68604752733805d-02, 9.33807088160423d-03,
-     &     2.68069689133690d-03, 6.35129121940878d-04,
-     &     1.23907459906887d-04, 1.98287884389530d-05,
-     &     2.58935092913148d-06, 2.74094284053609d-07,
-     &     2.33283116502580d-08, 1.58074557477838d-09,
-     &     8.42747912305705d-11, 3.48516123490798d-12,
-     &     1.09901805975347d-13, 2.58831266495924d-15,
-     &     4.43783805984030d-17, 5.36591830821235d-19,
-     &     4.39394689229172d-21, 2.31140979438865d-23,
-     &     7.27458849829254d-26, 1.23914970144827d-28,
-     &     9.83237508310564d-32, 2.84232355340280d-35,
-     &     1.87860803174957d-39, 8.74598044046519d-45
-     &     /)
 
       hu = 0.0d0
-      do k = 1, 30
-         t = u(k) / x
-         f = t**(a-1) * (1+t)**(b-a-1)
-         hu = hu + w(k) * f / x
+      do i = 0, imax
+         hu_i = rise_fact(a,i) * rise_fact(1+a-b,i) / factorial(i) *
+     &        (-x)**(-i)
+         hu = hu + hu_i
+      enddo
+      hu = hu * x**(-a)
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_chguit_isw(a, b, x, hu)
+      
+c     DESCRIPTION:
+C     This subroutine calculates U(a,b,x) using the integral representation
+c     of U(a,b,x). The expression of this integral may be found in eq.
+c     (13.2.5) in Ref. [1]. The integral is evaluated using Gauss-Laguerre
+c     quadrature.
+      implicit none
+#include "global.fh"
+#include "stdio.fh"
+#include "errquit.fh"
+#include "wfat_chgu.fh"      
+      double precision a
+      double precision b
+      double precision x
+      double precision hu
+
+      integer icol, i, k
+      double precision alpha, dif, lgp0(NLGP), lgw0(NLGP), t, f, ga
+
+      
+      if (a-1 < 0.0d0 .or. b-a-1 < 0.0d0) then
+         if (ga_nodeid() == 0) then
+            write(luout, '(2x, "a, b = ", 2f15.8)') a, b
+            call errquit('WFAT: The argument a and b of '//
+     &           'wfat_chgubi_isw must be such that a-1 >= 0 '//
+     &           'and b-a-1 >= 0', 34, UERR)
+         endif
+      endif
+
+      
+      alpha = a - 1
+      if (NQLIB == 0) then
+         call wfat_lf_quadrature_rule(NLGP, alpha, lgp0, lgw0)
+      else
+         icol = -1
+         do i = 1, NQLIB
+            dif = abs(alpha - alplist(i))
+            if (dif < DIFTHR) then
+cfordebug               if (ga_nodeid()==0)
+cfordebug     &              write(luout, '("alplist : ", i4, 2es21.12)')
+cfordebug     &              i, alpha, alplist(i)
+               
+               icol = i
+               lgp0 = lgp(:,icol)
+               lgw0 = lgw(:,icol)
+               exit
+            endif
+         enddo
+         if (icol == -1)
+     &        call wfat_lf_quadrature_rule(NLGP, alpha, lgp0, lgw0)
+      endif
+
+
+      hu = 0.0d0
+      do k = 1, NLGP
+         t = lgp0(k) / x
+         f = (1+t)**(b-a-1) / x**(a-1)
+         hu = hu + lgw0(k) * f / x
       enddo
       call wfat_gammaf(a, ga)
       hu = hu / ga
 
       end
-      
+c     References:
+c        [1] Handbook of Mathematical Functions by Abramowitz and Stegun.
 c=======================================================
       
       
+c=======================================================
+c=======================================================
+      subroutine wfat_update_lfqlib(alpha)
+
+      implicit none
+#include "wfat_chgu.fh"
+#include "errquit.fh"
+#include "global.fh"
+#include "stdio.fh"
+      double precision alpha
+
+      integer icol
+
+
+      if (alpha < 0.0d0)
+     &     call errquit('WFAT: The argument alpha of '//
+     &     'wfat_update_lfqlib must be nonnegative', 17, UERR)
+
+      if (NQLIB == MAXQLIB) then
+         icol = 1
+      else if (NQLIB < MAXQLIB) then
+         icol = NQLIB + 1
+      else
+         if (ga_nodeid()==0) then
+            write(luout, '(2x, "NQLIB = ", i4)') NQLIB
+            write(luout, '(2x, "MAXQLIB = ", i4)') MAXQLIB
+         endif
+         call errquit('WFAT: The value of NQLIB exceeds MAXQLIB. '//
+     &        'There must be an error when updating the Gauss-'//
+     &        'Laguerre library of nodes and weights.', 45, UERR)
+      endif
+
+      alplist(icol) = alpha
+      call wfat_lf_quadrature_rule(NLGP, alpha, lgp(:,icol),
+     &     lgw(:,icol))
+      NQLIB = icol
+
+      end
+c=======================================================
+
+c=======================================================
+c=======================================================
+      subroutine wfat_reset_lfqlib()
+
+      implicit none
+#include "wfat_chgu.fh"
+      
+      NQLIB = 0
+      end
+c=======================================================

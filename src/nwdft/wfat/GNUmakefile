@@ -20,6 +20,7 @@
 	wfat_celf.o \
 	wfat_chypgeom.o \
 	wfat_chypgeom_u.o \
+	wfat_laguerre.o \
 	wfat_density.o \
 	wfat_eval_basis.o \
 	wfat_grid.o \

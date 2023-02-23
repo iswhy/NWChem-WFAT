@@ -203,6 +203,7 @@ c     ==== Miscellaneous ====
       iolgc = .true.
       if (noio.eq.1) iolgc = .false.
       ixcfit = 0
+      call wfat_reset_lfqlib()     ! Reset Gauss-Laguerre nodes and weights for the calculations of the various U(a,b,z).
 
 
 c     ==== Printing important information ====

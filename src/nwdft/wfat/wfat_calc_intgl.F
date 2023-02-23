@@ -51,6 +51,7 @@ c==== Imam ====
       integer l_phi1test(2), l_tautest(2)
       double precision atp(3), znuc, v_c(3), v_m(3), asc(3), rasfac
       double precision r_mas, ras, exc(2), normch, celf, numnel
+      double precision d_chgutest(2)
       double complex czero
       
       parameter (imf = 0)
@@ -93,6 +94,9 @@ c     ==== Some tests ====
       if (rtdb_get(rtdb, 'wfat:test_chg', mt_int, 2, l_chgtest)) then
          if (ndid==0) call wfat_test_chg(l_chgtest(1), l_chgtest(2),
      &        zion, erg(1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_chgu', mt_dbl, 2, d_chgutest)) then
+         if (ndid==0) call wfat_test_chgu(d_chgutest(1), d_chgutest(2))
       endif
       if (rtdb_get(rtdb, 'wfat:test_r1', mt_int, 2, l_r1test)) then
          if (ndid==0) call wfat_test_r1(l_r1test(1), l_r1test(2),

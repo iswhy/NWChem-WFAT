@@ -3,9 +3,11 @@ c=======================================================
       subroutine wfat_calc_q(nr, r, n, m, lmax, nlgl, erg, zq, q_1, q_2)
 
       implicit none
+#include "global.fh"            
 #include "stdio.fh"
 #include "mafdecls.fh"
 #include "errquit.fh"
+#include "wfat_chgu.fh"
       integer nr
       double precision r(nr)    ! [input], increasingly ordered radial points
       integer n
@@ -19,7 +21,7 @@ c=======================================================
 
       integer i, l, i_qp1, i_qp2, i_d1, i_d2, nl
       integer l_qp1, l_qp2, l_d1, l_d2, k_qp1, k_qp2, k_d1, k_d2
-      double precision kappa, lmb, a0, b0, g, d1, d2
+      double precision kappa, lmb, a0, b0, aa, g, d1, d2
       double precision chgm(abs(m):lmax)
       
 
@@ -28,7 +30,18 @@ c=======================================================
       a0 = 1.0d0 - zq/kappa
       b0 = 2.0d0
       nl = lmax - abs(m) + 1
+      call wfat_reset_lfqlib()
+      do l = abs(m), MAXQLIB
+         aa = l - zq/kappa
+         if (aa >= 0.0d0) call wfat_update_lfqlib(aa)
+      enddo
 
+      if (ga_nodeid()==0)  then
+         do i = 1, nr
+            write(luout, '("r__ : ", es21.12)') r(i)
+         enddo
+      endif
+      
       
 c     ==== Calculate the particular part of Q_l ====
       if (.not. MA_alloc_get(MT_DBL, nl*nr, 'q_p1', l_qp1, k_qp1))

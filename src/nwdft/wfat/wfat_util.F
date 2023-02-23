@@ -1252,5 +1252,110 @@ c=======================================================
 c=======================================================
       
       
+c=======================================================
+c=======================================================
+      subroutine wfat_dsortx(dx, inc, n, indx)
+c     Experimental code to sort a double precision array and store its
+c     original index. This algorithm is based on the subroutine isortx.
+      Implicit NONE
+      Integer Inc, N
+      double precision dx(*)
+      Integer indx(*)
+c -- sort array ix in ascending/decending order and set up index
+c    array indx, such that indx(i)=original position of i
+c      do 100 i=1,n
+c      indx(i)=i
+c 100   continue
+C
+      Integer I, L, Irra, J, IncX, Ir
+      double precision dxrra
+C
+      if (n==1) return
+      
+      if (inc.eq.0)then
+        write(6,105)inc,n
+ 105       format(' error isortx: inc, n ',2i10)
+        stop 20
+      else if(inc.lt.0)then
+        incx=-inc
+        do 110 i=0,n-1
+        dx(i*incx+1)=-dx(i*incx+1)
+ 110       continue
+      else
+        incx=inc
+      endif
+c
+      l=n/2+1
+      ir=n
+ 10     continue
+        if(l.gt.1) then
+          l=l-1
+          dxrra=dx((l-1)*incx+1)
+          irra=indx(l)
+        else
+          dxrra=dx((ir-1)*incx+1)
+          irra=indx(ir)
+          dx((ir-1)*incx+1)=dx(1)
+          indx(ir)=indx(1)
+          ir=ir-1
+          if(ir.eq.1) then
+            dx(1)=dxrra
+            indx(1)=irra
+            goto 999
+          end if
+        end if
+        i=l
+        j=2*l
+ 20         if(j.le.ir) then
+          if(j.lt.ir) then
+            if(dx((j-1)*incx+1).lt.dx(j*incx+1)) j=j+1
+          end if
+          if(dxrra.lt.dx((j-1)*incx+1)) then
+            dx((i-1)*incx+1)=dx((j-1)*incx+1)
+            indx(i)=indx(j)
+            i=j
+            j=2*j
+          else
+            j=ir+1
+          end if
+        goto 20
+        end if
+        dx((i-1)*incx+1)=dxrra
+        indx(i)=irra
+      goto 10
+c
+ 999   continue
+      if(inc.lt.0)then
+        do 210 i=0,n-1
+        dx(i*incx+1)=-dx(i*incx+1)
+ 210       continue
+      endif
+      return
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_dsortx_simple()
+
+      implicit none
+
+
+c
+c      do i = 1, n
+c         do j = 1, n
+c            if (j /= k .and. d0 < d(j)) d0 = d(j)
+c         enddo
+c         d(i) = d0
+c
+c
+c      enddo
+c      
+
+
+      end
+c=======================================================
+      
       
       
