@@ -128,9 +128,7 @@ c     ==== Loop over the increasingly-ordered radial points ====
                q_p1(l, i) = q_p1(l, i) * f
                q_p2(l, i) = q_p2(l, i) * f
             enddo
-
          else
-
             call wfat_chgm_1pt(r(i), abs(m), lmax, a, b, lmb, chgm)
             call wfat_chgu_1pt(r(i), abs(m), lmax, a, b, lmb, chgu)
             
@@ -144,10 +142,6 @@ c           ====   g and h within r(i-1) and r(i)  ====
                call wfat_calc_gh_i_smallr(rbound, erg, m, lmax, pmax, 
      &              dbl_mb(k_chi), dbl_mb(k_chil), dbl_mb(k_cgi), 
      &              dbl_mb(k_gi), dbl_mb(k_hi))
-
-cOLD               r_ = 0.0d0
-cOLD               dbl_mb(k_gi:k_gi+nn-1) = 0.0d0
-cOLD               dbl_mb(k_hi:k_hi+nn-1) = 0.0d0
             endif
             
             
@@ -290,8 +284,8 @@ c     dfem = the finite element interval
          id = 3
       endif
 
-      if (ga_nodeid()==0)
-     &     write(luout, '("nfem, ngr, id : ", 3i4)') nfem, ngr, id
+cc      if (ga_nodeid()==0)
+cc     &     write(luout, '("nfem, ngr, id : ", 3i4)') nfem, ngr, id
       
       
       kappa = sqrt(2 * abs(erg))
@@ -597,10 +591,10 @@ c=======================================================
       double precision erg            ! [input],
       double precision zq             ! [input],
       integer pmax                    ! [input],
-      double precision hi(pmax, 2)      ! 1st row: orientation-independent
-                                        ! 2nd row: orientation-dependent
-      double precision hil(pmax, 2)     ! 1st row: ln-multiplied orientation-independent
-                                        ! 2nd row: ln-multiplied orientation-dependent
+      double precision hi(pmax, 2)    ! 1st row: orientation-independent
+                                      ! 2nd row: orientation-dependent
+      double precision hil(pmax, 2)   ! 1st row: ln-multiplied orientation-independent
+                                      ! 2nd row: ln-multiplied orientation-dependent
 
       logical lg_m, lg_p, lg_e
       integer i, j, k, ii, jj, kk, ubound

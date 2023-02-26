@@ -267,6 +267,383 @@ c     ==== Deallocations ====
       end
 c=======================================================
 
+
+c=======================================================
+c=======================================================
+      subroutine wfat_o0_i_coeff(n, m, erg, zq, mu, pmax, o0i, o0il)
+
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"
+      integer n                      ! [input]
+      integer m                      ! [input]
+      double precision erg           ! [input]
+      double precision zq            ! [input]
+      double precision mu            ! [input]
+      integer pmax                   ! [input]
+      double precision o0i(1:pmax)   ! [output]
+      double precision o0il(1:pmax)  ! [output]
+
+      logical l_i, l_j, l_k
+      integer ubound, i, j, k, ii, jj, kk, s1, s2
+      double precision kappa, a, b, beta1, v1, v2, ga, gm, w_, t_, u_
+      double precision v_, w, ps1, ps2, ps3, dk, mk, t, u, v
+      double precision factorial, rise_fact
+      external factorial, rise_fact
+
+
+      if (pmax < 1)
+     &     call errquit('WFAT: Argument pmax of wfat_o0_i_coeff '//
+     &     'cannot be smaller than 1.', 48, UERR)
+      if (n < 0) call errquit('Argument n of '//
+     &     'wfat_o0_i_coeff must be zero or positive.', 28, UERR)
+
+
+      kappa = sqrt(2*abs(erg))
+      a = 1 + abs(m) + n - zq/kappa
+      b = dble(abs(m) + 1)
+      beta1 = -mu/2/kappa * (2*n+1+abs(m))
+     &        -1.0d0/4/kappa**2
+     &        * (6*n*(n+abs(m)+1) + m**2 + 3*abs(m) + 2)
+
+      v1 = 1.0d0 / kappa**2 / factorial(abs(m))
+      call wfat_gammaf(a, ga)
+      call wfat_gammaf(a-abs(m), gm)
+      v2 = (-1)**(abs(m)+1) * ga / (kappa*factorial(m))**2 / gm
+
+      
+c     ==== Finite k part ====
+      o0i = 0.0d0
+      if (abs(m) > 0) then
+         ubound = pmax - 1
+         do i = 0, ubound
+            do j = 0, ubound
+               do k = abs(m), 1, -1
+                  s2 = i + j - k
+                  ii = abs(m) + s2 + 1
+                  jj = abs(m) + s2 + 2
+                  kk = abs(m) + s2 + 3
+                  l_i = (ii >= 1 .and. ii <= pmax)
+                  l_j = (jj >= 2 .and. jj <= pmax)
+                  l_k = (kk >= 3 .and. kk <= pmax)
+
+                  if (l_i .or. l_j .or. l_k) then
+                     w_ = v1 * (-1)**i/factorial(i)
+     &                    *( rise_fact(a,j)/factorial(j)
+     &                    /rise_fact(b,j) )
+     &                    *( factorial(k-1)*rise_fact(1-a+k,abs(m)-k)
+     &                    /factorial(abs(m)-k) )
+                  endif
+
+                  if (l_i) then
+                     t_ = w_ * beta1 * kappa / ii
+                     o0i(ii) = o0i(ii) + t_
+                  endif
+
+                  if (l_j) then
+                     u_ = -w_ * mu/2 / jj
+                     o0i(jj) = o0i(jj) + u_
+                  endif
+
+                  if (l_k) then
+                     v_ = w_ / (4*kappa) / kk
+                     o0i(kk) = o0i(kk) + v_
+                  endif
+               enddo
+            enddo
+         enddo
+      endif      
+
+
+c     ==== Infinite k part ====
+      ubound = pmax - abs(m) - 1
+      do i = 0, ubound
+         do j = 0, ubound
+            do k = 0, ubound
+               s1 = i + j + k
+               ii = abs(m) + s1 + 1
+               jj = abs(m) + s1 + 2
+               kk = abs(m) + s1 + 3
+               l_i = (ii >= abs(m)+1 .and. ii <= pmax)
+               l_j = (jj >= abs(m)+2 .and. jj <= pmax)
+               l_k = (kk >= abs(m)+3 .and. kk <= pmax)
+
+               if (l_i .or. l_j .or. l_k) then
+                  w = v2 * (-1)**i/factorial(i)
+     &                *( rise_fact(a,j)/rise_fact(b,j)
+     &                /factorial(j) )
+     &                *( rise_fact(a,k)/rise_fact(b,k)
+     &                /factorial(k) )
+                  call wfat_psif(k+a, ps1)
+                  call wfat_psif(dble(k+1), ps2)
+                  call wfat_psif(dble(k+1+abs(m)), ps3)
+                  dk = ps1 - ps2 - ps3
+               endif
+               
+               if (l_i) then
+                  mk = dk/ii - 1.0d0/ii**2
+                  t = w * beta1 * kappa * mk
+                  o0i(ii) = o0i(ii) + t
+
+                  t = w * beta1 * kappa / ii
+                  o0il(ii) = o0il(ii) + t
+               endif
+               
+               if (l_j) then
+                  mk = dk/jj - 1.0d0/jj**2
+                  u = -w * mu/2 * mk
+                  o0i(jj) = o0i(jj) + u
+
+                  u = -w * mu/2 * / jj
+                  o0il(jj) = o0il(jj) + u
+               endif
+
+               if (l_k) then
+                  mk = dk/kk - 1.0d0/kk**2
+                  v = w / (4*kappa) * mk
+                  o0i(kk) = o0i(kk) + v
+
+                  v = w / (4*kappa) / kk
+                  o0il(kk) = o0il(kk) + v
+               endif
+            enddo
+         enddo
+      enddo
+            
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_r0_i_coeff(n, m, erg, zq, mu, pmax, r0i)
+
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"
+      integer n                      ! [input]
+      integer m                      ! [input]
+      double precision erg           ! [input]
+      double precision zq            ! [input]
+      double precision mu            ! [input]
+      integer pmax                   ! [input]
+      double precision r0i(1:pmax)
+
+      logical l_i, l_j, l_k
+      integer i, j, k_, s1, ii, jj, kk, ubound
+      double precision kappa, a, beta1, ga, v, w, t, u, v
+      double precision factorial, rise_fact
+      external factorial, rise_fact
+
+
+      if (n < 0) call errquit('Argument n of '//
+     &     'wfat_r0_i_coeff must be zero or positive.', 28, UERR)
+      
+
+      kappa = sqrt(2*abs(erg))
+      a = 1 + abs(m) + n - zq/kappa
+      beta1 = -mu/2/kappa * (2*n+1+abs(m))
+     &        -1.0d0/4/kappa**2
+     &        * (6*n*(n+abs(m)+1) + m**2 + 3*abs(m) + 2)
+      call wfat_gammaf(a, ga)
+      v = ( ga / kappa / factorial(abs(m)) )**2
+
+
+c     ==== Infinite k part ====
+      r0i = 0.0d0
+      ubound = pmax - abs(m) - 1
+      do i = 0, ubound
+         do j = 0, ubound
+            do k_ = 0, ubound
+               s1 = i + j + k_
+               ii = abs(m) + s1 + 1
+               jj = abs(m) + s1 + 2
+               kk = abs(m) + s1 + 3
+               l_i = (ii >= abs(m)+1 .and. ii <= pmax)
+               l_j = (jj >= abs(m)+2 .and. jj <= pmax)
+               l_k = (kk >= abs(m)+3 .and. kk <= pmax)
+
+               if (l_i .or. l_j .or. l_k) then
+                  w = v * (-1)**i/factorial(i)
+     &                *( rise_fact(a,j)/rise_fact(b,j)
+     &                /factorial(j) )
+     &                *( rise_fact(a,k_)/rise_fact(b,k_)
+     &                /factorial(k_) )
+               endif
+               
+               if (l_i) then
+                  t = w * beta1 * kappa / ii
+                  r0i(ii) = r0i(ii) + t
+               endif
+               
+               if (l_j) then
+                  u = -w * mu/2 / jj
+                  r0i(jj) = r0i(jj) + u
+               endif
+
+               if (l_k) then
+                  v = w / (4*kappa) / kk
+                  r0i(kk) = r0i(kk) + v
+               endif
+            enddo
+         enddo
+      enddo      
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_calc_r0o0_i(eta1, eta2, n, m, erg, zq, mu, nlgl,
+     &           pt, wt, rr, oo)
+
+c     RR = \frac{1}{\kappa} \int_{\eta_1}^{\eta2} d\eta' (R_\nu^{(0)}(\eta'))^2
+c          (\beta_\nu^{(1)}/\eta' - \mu_z/2 + \eta'/4)
+c     OO = \frac{1}{\kappa} \int_{\eta_1}^{\eta2} d\eta' O_\nu^{(0)}(\eta')
+c          (\beta_\nu^{(1)}/\eta' - \mu_z/2 + \eta'/4) R_\nu^{(0)}(\eta')
+      
+      implicit none
+#include "stdio.fh"
+      double precision eta1
+      double precision eta2
+      integer n                      ! [input]
+      integer m                      ! [input]
+      double precision erg           ! [input]
+      double precision zq            ! [input]
+      double precision mu            ! [input]
+      integer nlgl
+      double precision pt(nlgl)
+      double precision wt(nlgl)
+      double precision rr
+      double precision oo
+
+      integer nfem, ngr, id, i, j, md
+      double precision pt_4(4), wt_4(4), pt_6(6), wt_6(6)
+      double precision kappa, a, b, beta1, g, d, de, dfem, eta1_, eta2_
+      double precision eta, wt_, ee, z, r0, o0, ind, min_dfem
+      double complex zz, chgm_
+      parameter( min_dfem=2.0d0 )
+      
+
+      pt_4 = (/ -1.0d0,
+     &          -0.44721359549996d0,
+     &           0.44721359549996d0,
+     &           1.0d0 /)
+      wt_4 = (/ 0.16666666666667d0,
+     &          0.83333333333333d0,
+     &          0.83333333333333d0,
+     &          0.16666666666667d0 /)
+      pt_6 = (/ -1.0d0,
+     &          -0.76505532392947d0,
+     &          -0.28523151648065d0,
+     &           0.28523151648065d0,
+     &           0.76505532392947d0,
+     &           1.0d0 /)
+      wt_6 = (/ 0.06666666666667d0,
+     &          0.37847495629785d0,
+     &          0.55485837703549d0,
+     &          0.55485837703549d0,
+     &          0.37847495629785d0,
+     &          0.06666666666667d0 /)
+
+
+      kappa = sqrt(2 * abs(erg))
+      a = 1 + abs(m) + n - zq/kappa
+      b = dble(abs(m) + 1)
+      beta1 = -mu/2/kappa * (2*n+1+abs(m))
+     &        -1.0d0/4/kappa**2
+     &        * (6*n*(n+abs(m)+1) + m**2 + 3*abs(m) + 2)
+      call wfat_gammaf(a, g)
+      d = g / factorial(abs(m))
+      
+
+c     ==== Determine the no. of finite elements and grids ====
+c     de = the total interval of r to be integrated
+c     dfem = the finite element interval
+      de = eta2 - eta1
+      if (de < 1.0d-12) then
+         nfem = 1
+         dfem = de
+         ngr = 2
+         id = 0
+      else if (de >= 1.0d-12 .and. de < 1.0d-3) then
+         nfem = 1
+         dfem = de
+         ngr = 4
+         id = 1
+      else if (de >= 1.0d-3 .and. de < 1.0d-1) then
+         nfem = 1
+         dfem = de
+         ngr = 6
+         id = 2
+      else
+         nfem = int(max(de,min_dfem+1.0d-13) / min_dfem)
+         dfem = de / nfem
+         ngr = nlgl
+         id = 3
+      endif
+
+
+      rr = 0.0d0
+      oo = 0.0d0
+c     ==== Loop over finite elements ====
+c     eta1_ = lower bound of a FEM
+c     eta2_ = upper bound of a FEM
+c     eta = shifted quadrature grid
+c     wt_ = shifted quadrature weight
+      do i = 1, nfem
+         eta1_ = eta1 + (i-1)*dfem
+         eta2_ = eta1_ + dfem
+
+c        ==== Loop over quadrature grids ====
+         do j = 1, ngr
+c           ==== Determine the shifted grids and weights ====
+            if (id == 0) then
+               eta = eta1_ + (j-1)*dfem
+               wt_ = (eta2_ - eta1_)/2
+            else if (id == 1) then
+               eta = 0.5d0*((eta2_-eta1_)*pt_4(j) + eta2_ + eta1_)
+               wt_ = (eta2_ - eta1_)/2 * wt_4(j)
+            else if (id == 2) then
+               eta = 0.5d0*((eta2_-eta1_)*pt_6(j) + eta2_ + eta1_)
+               wt_ = (eta2_ - eta1_)/2 * wt_6(j)
+            else if (id == 3) then
+               eta = 0.5d0*((eta2_-eta1_)*pt(j) + eta2_ + eta1_)
+               wt_ = (eta2_ - eta1_)/2 * wt(j)
+            endif
+            if (eta < 1.0d-13) cycle           ! When eta is zero, the integrands are equal to zero.
+            ee = (beta1/eta - mu/2 + eta/4)
+            
+
+c           ==== Calculate the necessary Hypergeometric functions ====
+            z = kappa * eta
+            zz = cmplx(z, 0.0d0, kind=kind(1.0d0))
+            call wfat_cchg(a, b, zz, chgm_)
+            r0 = d * z**(b/2) * exp(-z/2) * real(chgm_)
+            call wfat_chgu(a, b, z, chgu, md)
+            o0 = z**(b/2) * exp(-z/2) * chgu
+            
+
+c           ==== The R^{(0)} part ====
+            ind = r0 * r0 * ee
+            rr = rr + wt_*ind
+
+c           ==== The O^{(0)} part ====
+            ind = o0 * r0 * ee
+            oo = oo + wt_*ind
+         enddo
+      enddo
+
+      rr = rr / kappa
+      oo = oo / kappa
+      
+
+      end
+c=======================================================
+      
+      
       
 cOLDc=======================================================
 cOLDc=======================================================
