@@ -20,7 +20,7 @@ c=======================================================
       integer i_q1_2h, i_q1_1h, i_q1_0h, i_q1_1h_, i_q1_2h_
       integer i_q2_2h, i_q2_1h, i_q2_0h, i_q2_1h_, i_q2_2h_
       double precision r_first, r_last, kappa, lmb, a, b, dr, r, epsi
-      double precision f2h, f1h, f0h, f1h_, f2h_, dif1, dif2
+      double precision f2h, f1h, f0h, f1h_, f2h_, dif1, dif2, bt, gm
       double precision k_m, k_p, c_m, c_p, c, r0_m, r0_p, r0, lhs, rhs
       double precision protmat(3,3), mu(3), chgm(abs(m):lmax+1)
       integer nrr, k
@@ -36,21 +36,19 @@ c=======================================================
       r_first = 0.0d0
       r_last = 100.0d0
 
+      bt = 0.0d0
+      gm = 0.0d0
+
       kappa = sqrt(2 * abs(erg))
       lmb = 2 * kappa
       a = 1.0d0 - zq/kappa
       b = 2.0d0
 
       write(luout, '("TESTING FOR Q_l")')
-      write(luout, '("nr = ", i4)') nr
-      write(luout, '("nlgl = ", i4)') nlgl
-      write(luout, '("(n,m) = ", 2i4)') n, m
-      write(luout, '("kappa = ", es15.6)') kappa
-      write(luout, '("lmax = ", i5)') lmax
 
       
 c     ==== Get the passive rotation matrix ===
-      call wfat_passrot(-0.0d0, -0.0d0, protmat)
+      call wfat_passrot(-bt, -gm, protmat)
       mu = matmul(transpose(protmat), -chmmt)      
       
 
@@ -77,6 +75,18 @@ c     ==== Calculate Q_l ====
 c     ==== Open the test result file and print the header ====
       call util_file_name('test.wq', .false., .false., fname)
       open(WF_QTEST_UNIT, file=fname, action='write')
+      write(WF_QTEST_UNIT, '("# nr = ", i4)') nr
+      write(WF_QTEST_UNIT, '("# nlgl = ", i4)') nlgl
+      write(WF_QTEST_UNIT, '("# n = ", i5)') n
+      write(WF_QTEST_UNIT, '("# m = ", i5)') m
+      write(WF_QTEST_UNIT, '("# energy = ", es15.6)') erg
+      write(WF_QTEST_UNIT, '("# kappa = ", es15.6)') kappa
+      write(WF_QTEST_UNIT, '("# ion charge = ", es15.6)') zq
+      write(WF_QTEST_UNIT, '("# lmax = ", i5)') lmax
+      write(WF_QTEST_UNIT, '("# orbital moment (x y z) = ", 3es15.6)')
+     &     chmmt
+      write(WF_QTEST_UNIT, '("# beta, gamma (deg) = ", 2es15.6)') bt, gm
+
       call wfat_test_q_header(m, lmax)      
       
 
@@ -163,7 +173,7 @@ c           ==== Calculate the LHS and RHS ====
       call wfat_q_particular(nrr, rr, n, m, lmax, erg, zq,
      &     nlgl, q_p1_, q_p2_)
       do i = 1, nrr
-         write(WF_QTEST_UNIT, '(2x, i7, es15.6)', advance='no')
+         write(WF_QTEST_UNIT, '("#", 2x, i7, es15.6)', advance='no')
      &        ii(i), lmb*rr(i)
          do l = abs(m), lmax
             i_q1_0h = k_qp1 + ((ii(i)+0)-1)*nl + l - abs(m)
@@ -214,7 +224,7 @@ c     ==== Column number ====
       write(WF_QTEST_UNIT, '("#", i5, i15)', advance='no') 1, 2
       do i = 1, lmax-abs(m)+1
          j = 5*i - 2
-         write(WF_QTEST_UNIT, '(6x, 5i15)', advance='no')
+         write(WF_QTEST_UNIT, '(6x, 5i21)', advance='no')
      &        j, j+1, j+2, j+3, j+4
       enddo
       write(WF_QTEST_UNIT, '(" ")')
@@ -223,7 +233,7 @@ c     ==== Column number ====
 c     ==== Angular momenta ====
       write(WF_QTEST_UNIT, '("#", a20)', advance='no') " "
       do l = abs(m), lmax
-         write(WF_QTEST_UNIT, '(6x, a70, i5)', advance='no')
+         write(WF_QTEST_UNIT, '(6x, a100, i5)', advance='no')
      &        "l = ", l
       enddo
       write(WF_QTEST_UNIT, '(" ")')
@@ -232,7 +242,7 @@ c     ==== Angular momenta ====
 c     ==== Column title ====
       write(WF_QTEST_UNIT, '("#", a5, a15)', advance='no') 'No.', 'y'
       do l = abs(m), lmax
-         write(WF_QTEST_UNIT, '(6x, 5a15)', advance='no')
+         write(WF_QTEST_UNIT, '(6x, 5a21)', advance='no')
      &        'LHS', 'RHS', 'epsilon', 'Q_l', 'R_l'
       enddo
       write(WF_QTEST_UNIT, '(" ")')

@@ -109,9 +109,6 @@ c     ==== Calculate tau_\nu^{(0)} ====
             i_sh = k_sh + (l**2 + l + m + 1) - 1
             xx = dbl_mb(i_rf) * dcpl_mb(i_sh)
             tau0(i) = tau0(i) + xx
-
-            write(luout, '("l, R_l, Y_lm = ", i5, 3es15.6)')
-     &           l, dbl_mb(i_rf), dcpl_mb(i_sh)
          enddo
       enddo
 
@@ -151,13 +148,13 @@ c=======================================================
       double precision chmmt(3)     ! [input], 
       double complex tau1(npt)      ! [output], 
 
-      integer i, j, l_r1, k_r1, l_et, k_et, l_es, k_es, l_id, k_id
+      integer i, j, nlgl, l_r1, k_r1, l_et, k_et, l_es, k_es, l_id, k_id
       double precision kappa, a, b, g, d, eta, r0, r1, xi, phi0, phi1, z
       double precision beta0, pi_const, factorial
       double complex zz, chgm_, imnum
       external factorial
-      parameter ( pi_const = 3.14159265359d0 )
-      parameter ( imnum = cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
+      parameter ( pi_const=3.14159265359d0, nlgl=8 )
+      parameter ( imnum=cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
 
 
 c      if (npt /= 1)
@@ -199,7 +196,7 @@ c     ==== Calculate R_\nu^{(1)} ====
 c      call wfat_r1(npt, dbl_mb(k_et), n, m, erg, zq, bt, gm, chmmt,
 c     &     dbl_mb(k_r1))
       call wfat_r1(npt, dbl_mb(k_es), n, m, erg, zq, bt, gm, chmmt,
-     &     dbl_mb(k_r1))
+     &     nlgl, dbl_mb(k_r1))
 c      write(luout, '("sort1")') 
       dbl_mb(k_es:k_es+npt-1) = dbl_mb(k_r1:k_r1+npt-1)
 c      write(luout, '("sort2")') 
@@ -334,9 +331,6 @@ c     ==== Calculate tau_\nu^{(1)} ====
             i_sh = k_sh + (l**2 + l + m + 1) - 1
             xx = (dbl_mb(i_q1) + mu(3)*dbl_mb(i_q2)) * dcpl_mb(i_sh)
             tau1(i) = tau1(i) + xx
-
-            write(luout, '("l, Q_l, Y_lm = ", i5, 3es15.6)')
-     &           l, (dbl_mb(i_q1) + mu(3)*dbl_mb(i_q2)), dcpl_mb(i_sh)
          enddo
       enddo
       

@@ -35,12 +35,6 @@ c=======================================================
          aa = l - zq/kappa
          if (aa >= 0.0d0) call wfat_update_lfqlib(aa)
       enddo
-
-      if (ga_nodeid()==0)  then
-         do i = 1, nr
-            write(luout, '("r__ : ", es21.12)') r(i)
-         enddo
-      endif
       
       
 c     ==== Calculate the particular part of Q_l ====

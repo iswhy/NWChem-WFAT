@@ -114,6 +114,10 @@ c     ==== Some tests ====
          if (ndid==0) call wfat_test_tau(l_tautest(1), l_tautest(2),
      &        erg(1), zion, lmax_, chmmt(:,1))
       endif
+      if (rtdb_get(rtdb, 'wfat:test2_tau', mt_int, 2, l_tautest)) then
+         if (ndid==0) call wfat_test2_tau(l_tautest(1), l_tautest(2),
+     &        erg(1), zion, lmax_, chmmt(:,1))
+      endif
       call ga_sync()
       
 

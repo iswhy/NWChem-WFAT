@@ -15,7 +15,7 @@ c=======================================================
 
       character*255 fname
       integer l_et, k_et, l_r1, k_r1
-      integer neta, i, j
+      integer nlgl, neta, i, j
       double precision kappa, a, b, et_first, et_last, de, et, z
       double precision bt, gm, chgm, mu(3), f, o0_1, r0, r1
       double precision protmat(3,3), beta0, beta1, d, g
@@ -30,7 +30,8 @@ c=======================================================
 c     ==== Get the passive rotation matrix ===
       call wfat_passrot(-0.0d0, -0.0d0, protmat)
       mu = matmul(transpose(protmat), -chmmt)
-      
+
+      nlgl = 10
       
       kappa = sqrt(2 * abs(erg))
       a = 1 + abs(m) + n - zq/kappa
@@ -42,11 +43,11 @@ c     ==== Get the passive rotation matrix ===
       call wfat_gammaf(a, g)
       d = g / factorial(abs(m))
 
-      neta = 51
+      neta = 301
       if (.not. MA_alloc_get(MT_DBL, neta, 'eta', l_et, k_et))
      &     call errquit('WFAT: eta allocation failed', 84, MA_ERR)
       et_first = 0.0d0
-      et_last = 1.0d0
+      et_last = 15.0d0
       de = (et_last-et_first) / (neta-1)
       do i = 1, neta
          dbl_mb(k_et+i-1) = et_first + (i-1)*de
@@ -68,7 +69,7 @@ c     ==== Get the passive rotation matrix ===
       if (.not. MA_alloc_get(MT_DBL, neta, 'r1', l_r1, k_r1))
      &     call errquit('WFAT: r1 allocation failed', 86, MA_ERR)      
       call wfat_r1(neta, dbl_mb(k_et), n, m, erg, zq, bt, gm, chmmt,
-     &     dbl_mb(k_r1))
+     &     nlgl, dbl_mb(k_r1))
             
 cfordebug      cr_1_ref = -g/kappa/factorial(abs(m)+1) * beta1
 
