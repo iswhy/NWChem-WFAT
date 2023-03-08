@@ -314,7 +314,9 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_o0_i_coeff(n, m, erg, zq, mu, pmax, o0i, o0il)
-
+c     Calculate the power series coefficients of 
+c        A2(\eta) = \frac{1}{\kappa} \int_0^\eta d\eta' O_\nu^{(0)}(\eta')
+c                   (\beta_\nu^{(1)}/\eta' - \mu_z/2 + \eta'/4) R_\nu^{(0)}(\eta')
       implicit none
 #include "errquit.fh"
 #include "stdio.fh"
@@ -461,7 +463,9 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_r0_i_coeff(n, m, erg, zq, mu, pmax, r0i)
-
+c     Calculate the power series coefficients of
+c        A1(\eta) = \frac{1}{\kappa} \int_0^\eta d\eta' (R_\nu^{(0)}(\eta'))^2
+c                   (\beta_\nu^{(1)}/\eta' - \mu_z/2 + \eta'/4)
       implicit none
 #include "errquit.fh"
 #include "stdio.fh"
@@ -721,3 +725,154 @@ c=======================================================
 
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_o0_i_coeff_nomu(n, m, erg, zq, pmax, o0i, o0il)
+
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"
+      integer n                      ! [input]
+      integer m                      ! [input]
+      double precision erg           ! [input]
+      double precision zq            ! [input]
+      integer pmax                   ! [input]
+      double precision o0i(pmax,2)   ! [output]
+      double precision o0il(pmax,2)  ! [output]
+
+      logical l_i, l_j, l_k
+      integer ubound, i, j, k, ii, jj, kk, s1, s2
+      double precision kappa, a, b, bt1_1, bt1_2, v1, v2, ga, gm, w_, t_
+      double precision u_, v_, w, ps1, ps2, ps3, dk, mk, t, u, v
+      double precision factorial, rise_fact
+      external factorial, rise_fact
+      
+      
+      if (pmax < 1)
+     &     call errquit('WFAT: Argument pmax of wfat_o0_i_coeff_nomu '//
+     &     'cannot be smaller than 1.', 48, UERR)
+      if (n < 0) call errquit('Argument n of '//
+     &     'wfat_o0_i_coeff_nomu must be zero or positive.', 28, UERR)
+
+
+      kappa = sqrt(2*abs(erg))
+      a = 1 + abs(m) + n - zq/kappa
+      b = dble(abs(m) + 1)
+      bt1_1 = -1.0d0/4/kappa**2
+     &        * (6*n*(n+abs(m)+1) + m**2 + 3*abs(m) + 2)
+      bt1_2 = -1.0d0/2/kappa * (2*n+1+abs(m))
+      v1 = 1.0d0 / kappa**2 / factorial(abs(m))
+      call wfat_gammaf(a, ga)
+      call wfat_gammaf(a-abs(m), gm)
+      v2 = (-1)**(abs(m)+1) * ga / (kappa*factorial(m))**2 / gm
+
+            
+c     ==== Finite k part ====
+      o0i = 0.0d0
+      if (abs(m) > 0) then
+         ubound = pmax - 1
+         do i = 0, ubound
+            do j = 0, ubound
+               do k = abs(m), 1, -1
+                  s2 = i + j - k
+                  ii = abs(m) + s2 + 1
+                  jj = abs(m) + s2 + 2
+                  kk = abs(m) + s2 + 3
+                  l_i = (ii >= 1 .and. ii <= pmax)
+                  l_j = (jj >= 2 .and. jj <= pmax)
+                  l_k = (kk >= 3 .and. kk <= pmax)
+
+                  if (l_i .or. l_j .or. l_k) then
+                     w_ = v1 * (-1)**i/factorial(i)
+     &                    *( rise_fact(a,j)/factorial(j)
+     &                    /rise_fact(b,j) )
+     &                    *( factorial(k-1)*rise_fact(1-a+k,abs(m)-k)
+     &                    /factorial(abs(m)-k) )
+                  endif
+
+                  if (l_i) then
+                     t_ = w_ * bt1_1 * kappa / ii
+                     o0i(ii,1) = o0i(ii,1) + t_
+                     t_ = w_ * bt1_2 * kappa / ii
+                     o0i(ii,2) = o0i(ii,2) + t_
+                  endif
+
+                  if (l_j) then
+                     u_ = -w_ * (1.0d0/2) / jj
+                     o0i(jj,2) = o0i(jj,2) + u_
+                  endif
+
+                  if (l_k) then
+                     v_ = w_ / (4*kappa) / kk
+                     o0i(kk,1) = o0i(kk,1) + v_
+                  endif
+               enddo
+            enddo
+         enddo
+      endif      
+
+
+c     ==== Infinite k part ====
+      ubound = pmax - abs(m) - 1
+      do i = 0, ubound
+         do j = 0, ubound
+            do k = 0, ubound
+               s1 = i + j + k
+               ii = abs(m) + s1 + 1
+               jj = abs(m) + s1 + 2
+               kk = abs(m) + s1 + 3
+               l_i = (ii >= abs(m)+1 .and. ii <= pmax)
+               l_j = (jj >= abs(m)+2 .and. jj <= pmax)
+               l_k = (kk >= abs(m)+3 .and. kk <= pmax)
+
+               if (l_i .or. l_j .or. l_k) then
+                  w = v2 * (-1)**i/factorial(i)
+     &                *( rise_fact(a,j)/rise_fact(b,j)
+     &                /factorial(j) )
+     &                *( rise_fact(a,k)/rise_fact(b,k)
+     &                /factorial(k) )
+                  call wfat_psif(k+a, ps1)
+                  call wfat_psif(dble(k+1), ps2)
+                  call wfat_psif(dble(k+1+abs(m)), ps3)
+                  dk = ps1 - ps2 - ps3
+               endif
+               
+               if (l_i) then
+                  mk = dk/ii - 1.0d0/ii**2
+                  t = w * bt1_1 * kappa * mk
+                  o0i(ii,1) = o0i(ii,1) + t
+                  t = w * bt1_2 * kappa * mk
+                  o0i(ii,2) = o0i(ii,2) + t
+
+                  t = w * bt1_1 * kappa / ii
+                  o0il(ii,1) = o0il(ii,1) + t
+                  t = w * bt1_2 * kappa / ii
+                  o0il(ii,2) = o0il(ii,2) + t
+               endif
+               
+               if (l_j) then
+                  mk = dk/jj - 1.0d0/jj**2
+                  u = -w * 1.0d0/2 * mk
+                  o0i(jj,2) = o0i(jj,2) + u
+
+                  u = -w * (1.0d0/2) / jj
+                  o0il(jj,2) = o0il(jj,2) + u
+               endif
+
+               if (l_k) then
+                  mk = dk/kk - 1.0d0/kk**2
+                  v = w / (4*kappa) * mk
+                  o0i(kk,1) = o0i(kk,1) + v
+
+                  v = w / (4*kappa) / kk
+                  o0il(kk,1) = o0il(kk,1) + v
+               endif
+            enddo
+         enddo
+      enddo      
+
+      end
+c=======================================================
+      
