@@ -61,6 +61,7 @@
 	wfat_q_particular.o \
 	wfat_calc_d.o \
 	wfat_calc_q.o \
+	wfat_calc_o.o \
 	wfat_firstord_r.o \
 	wfat_calc_tau.o \
 	wfat_calc_phixi.o \
