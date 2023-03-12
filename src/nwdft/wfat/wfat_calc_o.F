@@ -58,8 +58,8 @@ c=======================================================
          call wfat_calc_o_intl_part2(n, m, erg, zq, eb, ngr(k),
      &        oi0(:,k))
          if (k > 1) then
-            l1 = abs(oi0(1,k)-oi0(1,k-1)) < THR
-            l2 = abs(oi0(2,k)-oi0(2,k-1)) < THR
+            l1 = (abs(oi0(1,k) - oi0(1,k-1)) < THR)
+            l2 = (abs(oi0(2,k) - oi0(2,k-1)) < THR)
             if (l1 .and. l2) then
                oi_p2 = oi0(:,k)
                exit
@@ -144,29 +144,46 @@ c=======================================================
       double precision oi(2)
 
       integer i
-      double precision kp, eta, e1, e2, pt(ngr), wt(ngr)
+      double precision kp, a, aa, eta, ee(2), pt(ngr), wt(ngr)
 
-
+      
+c     ==== Update the library of Gauss-Laguerre grid and ====
+c     ====   nodes used in the call of wfat_chgu later   ====
       kp = sqrt(2*abs(erg))
-      call wfat_lf_quadrature_rule(ngr, 0.0d0, pt, wt)
+      a = 1 + abs(m) + n - zq/kp
+      if (a-1 < 0.0d0) then
+         aa = (a + abs(int(a-1)) + 2) - 1
+         call wfat_update_lfqlib(aa)
+         call wfat_update_lfqlib(aa-1)
+      else
+         aa = a - 1
+         call wfat_update_lfqlib(aa)
+      endif
 
+      
+c     ==== Calculate the integral using Gauss-Laguerre ====
+c     ====  quadrature (whose purpose is unrelated to  ====
+c     ====           the one mentioned above)          ====
+      call wfat_lf_quadrature_rule(ngr, 0.0d0, pt, wt)
       oi = 0.0d0
       do i = 1, ngr
          eta = pt(i)/kp + eb
-         call wfat_calc_o_intd(eta, n, m, erg, zq, e1, e2)
+         call wfat_calc_o_intd(eta, n, m, erg, zq, ee)     ! 1)
 
-         oi(1) = oi(1) + wt(i) * e1
-         oi(2) = oi(2) + wt(i) * e2
+         oi = oi + wt(i) * ee
       enddo
       oi = oi * exp(-kp*eb)/kp**2
-      
+
       end
+c     NOTES:
+c     1) Inside wfat_calc_o_intd is where the grids and nodes updated in
+c        the two sections above matters.
 c=======================================================
 
 
 c=======================================================
 c=======================================================
-      subroutine wfat_calc_o_intd(eta, n, m, erg, zq, e1, e2)
+      subroutine wfat_calc_o_intd(eta, n, m, erg, zq, ee)
 
       implicit none
 #include "errquit.fh"
@@ -175,8 +192,7 @@ c=======================================================
       integer m
       double precision erg
       double precision zq
-      double precision e1
-      double precision e2
+      double precision ee(2)
 
       integer j, pmax, md
       double precision kp, a, b, g, d, bt0, bt1_1, bt1_2, gmm, chgu, gm
@@ -240,12 +256,12 @@ c     u = (kp*eta)^|m| * U(a,b,kp*eta)
       call wfat_cchg(a, b, zz, chgm)
       chg_mu = real(chgm) * chgu
 
-      e1 = d * (bt1_1*kp + kp*eta**2/4) * chg_mu
-     &     - exp(kp*eta) * (eta/4 + bt0/2/kp**2 + (bt1_1 
-     &     + gmm/2/kp**2 + (3*bt0**2)/(2*kp**4)) / (eta+1))
+      ee(1) = d * (bt1_1*kp + kp*eta**2/4) * chg_mu
+     &        - exp(kp*eta) * (eta/4 + bt0/2/kp**2 + (bt1_1 
+     &        + gmm/2/kp**2 + (3*bt0**2)/(2*kp**4)) / (eta+1))
 
-      e2 = d * (bt1_2*kp - kp*eta/2) * chg_mu
-     &     + exp(kp*eta) * (1.0d0/2 - (bt1_2 - bt0/kp**2) / (eta+1))
+      ee(2) = d * (bt1_2*kp - kp*eta/2) * chg_mu
+     &        + exp(kp*eta) * (1.0d0/2 - (bt1_2 - bt0/kp**2) / (eta+1))
 
       end
 c=======================================================
