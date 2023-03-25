@@ -919,8 +919,7 @@ c=======================================================
       integer i
       double precision f
 
-      
-      
+
       if (n == 0) then
          rise_fact = 1.0d0
       else
@@ -931,6 +930,36 @@ c=======================================================
          rise_fact = f
       endif
       
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
+      double precision function binom_cf(p, n)
+
+      implicit none
+#include "errquit.fh"
+      double precision p
+      integer n
+
+      integer i
+      double precision f
+
+
+      if (n == 0) then
+         binom_cf = 1.0d0
+      else if (n > 0) then
+         f = 1.0d0
+         do i = 1, n
+            f = f * (p-i+1)/dble(i)
+         enddo
+         binom_cf = f
+      else
+         call errquit('ERROR: The argument n of bnom_cf cannot '//
+     &        'be negative' , 90, UERR)
+      endif
+
       end
 c=======================================================
 

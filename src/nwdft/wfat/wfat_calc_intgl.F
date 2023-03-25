@@ -48,7 +48,7 @@ c==== Imam ====
       integer k_mo, k_rda
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
       integer g_rd(2), i_mo, l_chgtest(2), l_r1test(2), l_qtest(2)
-      integer l_phi1test(2), l_tautest(2)
+      integer l_phi1test(2), l_tautest(2), l_otest(2)
       double precision atp(3), znuc, v_c(3), v_m(3), asc(3), rasfac
       double precision r_mas, ras, exc(2), normch, celf, numnel
       double precision d_chgutest(2)
@@ -117,6 +117,10 @@ c     ==== Some tests ====
       if (rtdb_get(rtdb, 'wfat:test2_tau', mt_int, 2, l_tautest)) then
          if (ndid==0) call wfat_test2_tau(l_tautest(1), l_tautest(2),
      &        erg(1), zion, lmax_, chmmt(:,1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_o', mt_int, 2, l_otest)) then
+         if (ndid==0) call wfat_test_o(l_otest(1), l_otest(2),
+     &        erg(1), zion)
       endif
       call ga_sync()
       

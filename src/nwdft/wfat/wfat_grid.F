@@ -592,9 +592,12 @@ c========================================================
       double precision q      ! [input]
       double precision r      ! [output]
     
-      r = alpha * q**m * (1-q)**(-m)
+      r = alpha * q**m * (1-q)**(-m)          ! See eq. (6) in Ref. [1].
       
       end
+c     References:
+c     [1] "Quadrature schemes for integrals of density functional theory",
+c         MOLECULAR PHYSICS, 1993, VOL. 78, No. 4, 997-1014.
 c========================================================
 
 
@@ -609,9 +612,12 @@ c=================================================
       double precision q       ! [input]
       double precision w       ! [output]
       
-      w = m * alpha**3 * q**(3*m-1) / (nr-1) / (1-q)**(3*m+1)
+      w = m * alpha**3 * q**(3*m-1) / (nr-1) / (1-q)**(3*m+1)        ! See eq. (6) in Ref. [1].
       
       end
+c     References:
+c     [1] "A standard grid for density functional calculations", Chem. Phys. Lett.,
+c         vol. 209, No. 5
 c=================================================
 
 

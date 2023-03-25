@@ -354,7 +354,7 @@ c                   (\beta_\nu^{(1)}/\eta' - \mu_z/2 + \eta'/4) R_\nu^{(0)}(\eta
       v1 = 1.0d0 / kappa**2 / factorial(abs(m))
       call wfat_gammaf(a, ga)
       call wfat_gammaf(a-abs(m), gm)
-      v2 = (-1)**(abs(m)+1) * ga / (kappa*factorial(m))**2 / gm
+      v2 = (-1)**(abs(m)+1) * ga / (kappa*factorial(abs(m)))**2 / gm
 
       
 c     ==== Finite k part ====
@@ -730,7 +730,8 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_o0_i_coeff_nomu(n, m, erg, zq, pmax, o0i, o0il)
-
+c     A big portion of this subroutine was copied from wfat_o0_i_coeff because
+c     the underlying algebraic structure is identical
       implicit none
 #include "errquit.fh"
 #include "stdio.fh"
@@ -766,7 +767,7 @@ c=======================================================
       v1 = 1.0d0 / kappa**2 / factorial(abs(m))
       call wfat_gammaf(a, ga)
       call wfat_gammaf(a-abs(m), gm)
-      v2 = (-1)**(abs(m)+1) * ga / (kappa*factorial(m))**2 / gm
+      v2 = (-1)**(abs(m)+1) * ga / (kappa*factorial(abs(m)))**2 / gm
 
             
 c     ==== Finite k part ====
@@ -875,4 +876,69 @@ c     ==== Infinite k part ====
 
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_calc_r0o0(eta, n, m, erg, zq, ro)
+
+      implicit none
+#include "errquit.fh"
+      double precision eta
+      integer n
+      integer m
+      double precision erg
+      double precision zq
+      double precision ro
+
+      integer i, j, imax, jmax, pmax, md
+      double precision kp, a, b, g, d, z, chgu, rnu, onu, x
+      double precision factorial, rise_fact
+      double complex zz, chgm
+      parameter (imax=20, jmax=20, pmax=40)
+      external factorial, rise_fact
+
+
+      kp = sqrt(2*abs(erg))
+      z = kp * eta
+      if (z <= 0.0d0)
+     &     call errquit('WFAT: The argument eta of wfat_calc_r0o0 '//
+     &     'must be such that sqrt(2*|erg|)*eta is positive', 36, UERR)
+      
+      
+      a = 1 + abs(m) + n - zq/kp
+      b = dble(abs(m) + 1)
+      call wfat_gammaf(a, g)
+      d = g / factorial(abs(m))
+
+      
+      if (z < 30.0d0) then
+         zz = cmplx(z, 0.0d0, kind=kind(1.0d0))
+         call wfat_cchg(a, b, zz, chgm)
+         rnu = d * z**(b/2) * exp(-z/2) * real(chgm)
+         call wfat_chgu(a, b, z, chgu, md)
+         onu = z**(b/2) * exp(-z/2) * chgu
+
+         ro = rnu * onu
+      else
+
+         ro = 0.0d0
+         do i = 0, imax
+            do j = 0, jmax
+               if (i+j <= pmax) then
+                  x = (rise_fact(b-a,i) * rise_fact(1-a,i) /
+     &                factorial(i)) *
+     &                (rise_fact(a,j) * rise_fact(1+a-b,j) /
+     &                factorial(j)) * (-1)**j * 
+     &                z**(-i-j)
+                  ro = ro + x
+               endif
+            enddo
+         enddo
+
+      endif
+
+      end
+c=======================================================
+      
       
