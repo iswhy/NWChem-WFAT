@@ -37,14 +37,16 @@ c==== Imam ====
       logical t1, exasym
       integer natom, nbas, ncf, nrd, max_npt, nvc, nsh, nom, ni0, ni_
       integer npt, natomp, nptp, ncpos, nscr, nil, nmo, nrda
-      integer nnu, nhf, nxc, nvs
+c      integer nnu, nhf, nxc, nvs
       integer i, j, ic, icent, ipt, ipt_i, ipt_f
       integer jpt, ich, iqn, ish, i_vc, ndid
       integer l_cf, l_cf1, l_rd, l_pt, l_wt, l_vc, l_om, l_i0
-      integer l_i_, l_sc, l_il, l_icp, l_ipp, l_nu, l_hf, l_xc, l_vs
+      integer l_i_, l_sc, l_il, l_icp, l_ipp
+c      integer l_nu, l_hf, l_xc, l_vs
       integer l_mo, l_rda
       integer k_cf, k_cf1, k_rd, k_pt, k_wt, k_vc, k_om, k_i0
-      integer k_i_, k_sc, k_il, k_icp, k_ipp, k_nu, k_hf, k_xc, k_vs
+      integer k_i_, k_sc, k_il, k_icp, k_ipp
+c      integer k_nu, k_hf, k_xc, k_vs
       integer k_mo, k_rda
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
       integer g_rd(2), i_mo, l_chgtest(2), l_r1test(2), l_qtest(2)
@@ -131,18 +133,18 @@ c     ==== Some tests ====
 
       
 c     ==== Calculate v_c|orb> ====
-      nnu = nbas * nch
-      if (.not. ma_alloc_get(mt_dbl, nnu, 'vnucvin', l_nu, k_nu))
-     &     call errquit('WFAT: Cannot allocate vnucvin.', 1, MA_ERR)
-      nhf = nbas * nch
-      if (.not. ma_alloc_get(mt_dbl, nhf, 'vhfvin', l_hf, k_hf))
-     &     call errquit('WFAT: Cannot allocate vhfvin.', 1, MA_ERR)
-      nxc = nbas * nch
-      if (.not. ma_alloc_get(mt_dbl, nxc, 'vxcvin', l_xc, k_xc))
-     &     call errquit('WFAT: Cannot allocate vxcvin.', 1, MA_ERR)
-      nvs = nbas * nch
-      if (.not. ma_alloc_get(mt_dbl, nvs, 'vsvin', l_vs, k_vs))
-     &     call errquit('WFAT: Cannot allocate vsvin.', 1, MA_ERR)
+c      nnu = nbas * nch
+c      if (.not. ma_alloc_get(mt_dbl, nnu, 'vnucvin', l_nu, k_nu))
+c     &     call errquit('WFAT: Cannot allocate vnucvin.', 1, MA_ERR)
+c      nhf = nbas * nch
+c      if (.not. ma_alloc_get(mt_dbl, nhf, 'vhfvin', l_hf, k_hf))
+c     &     call errquit('WFAT: Cannot allocate vhfvin.', 1, MA_ERR)
+c      nxc = nbas * nch
+c      if (.not. ma_alloc_get(mt_dbl, nxc, 'vxcvin', l_xc, k_xc))
+c     &     call errquit('WFAT: Cannot allocate vxcvin.', 1, MA_ERR)
+c      nvs = nbas * nch
+c      if (.not. ma_alloc_get(mt_dbl, nvs, 'vsvin', l_vs, k_vs))
+c     &     call errquit('WFAT: Cannot allocate vsvin.', 1, MA_ERR)
 c      call wfat_dft_vcpsi_getcoef(dbl_mb(k_nu),
 c     &                   dbl_mb(k_hf),
 c     &                   dbl_mb(k_xc),
@@ -291,7 +293,6 @@ csee               if (abs(dbl_mb(i_vc)) > 1.0d-12) then
 csee               else
 csee                  dcpl_mb(i0l:i0r) = 0.0d0
 csee               endif
-                              
             enddo
 
 c           ==== Quadrature summation ====

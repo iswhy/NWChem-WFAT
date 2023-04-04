@@ -174,7 +174,6 @@ c           ==== Calculate q_p1 and q_p2 at r(i) ====
          endif
       enddo
 
-           
       
 
 c     ==== Deallocations ====
@@ -371,7 +370,8 @@ c=======================================================
 c=======================================================
       subroutine wfat_q_particular_coeff(l, m, km, kp, om_m, om_p, om_e,
      &           erg, zq, pmax, c_oi, c_od)
-
+c
+c     Evaluate the expansion coefficients of eq. (306).
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
@@ -441,7 +441,7 @@ c     ==== Finite k part ====
                   lg_e = (kk >= 2 .and. kk <= pmax)
 
                   if (lg_m .or. lg_p .or. lg_e) then
-                     w_ = ( (-1)**i/factorial(i) )
+                     w_ = ( (-1)**i/factorial(i) )                ! eq. (307d)
      &                    *( 1.0d0/factorial(j) )
      &                    *( factorial(k-1)*rise_fact(1-a+k,2*l+1-k)
      &                    /factorial(2*l+1-k) )
@@ -453,7 +453,7 @@ c     ==== Finite k part ====
                      sg = 2*l + 3 + i + j
                      mk = rise_fact(a-1,j) / rise_fact(b-2,j) /
      &                    (sg-k) / (sg+k_)
-                     tm_ = km * om_m / 2**(2*l-1) * mk
+                     tm_ = km * om_m / 2**(2*l-1) * mk            ! eq. (307e)
                      k3 = k_t_ + ii - 1
                      dbl_mb(k3) = dbl_mb(k3) + w_ * tm_
                   endif
@@ -462,7 +462,7 @@ c     ==== Finite k part ====
                      sg = 2*l + 5 + i + j
                      mk = rise_fact(a+1,j) / rise_fact(b+2,j) /
      &                    (sg-k) / (sg+k_)
-                     tp_ = kp * om_p / 2**(2*l+1) * mk
+                     tp_ = kp * om_p / 2**(2*l+1) * mk            ! eq. (307e)
                      k3 = k_t_ + jj - 1
                      dbl_mb(k3) = dbl_mb(k3) + w_ * tp_
                   endif
@@ -471,7 +471,7 @@ c     ==== Finite k part ====
                      sg = 2*l + 3 + i + j
                      mk = rise_fact(a,j) / rise_fact(b,j) /
      &                    (sg-k) / (sg+k_)
-                     u_ = 2*kappa * om_e / 2**(2*l) * mk
+                     u_ = 2*kappa * om_e / 2**(2*l) * mk          ! eq. (307f)
                      k3 = k_e_ + kk - 1
                      dbl_mb(k3) = dbl_mb(k3) + w_ * u_
                   endif
@@ -501,7 +501,7 @@ c     ==== Infinite k part ====
                   lg_e = (kk >= 2*l+3 .and. kk <= pmax)
 
                   if (lg_m .or. lg_p .or. lg_e) then
-                     w = ( (-1)**i/factorial(i) )
+                     w = ( (-1)**i/factorial(i) )                ! eq. (307a)
      &                   *( 1.0d0/factorial(j) )
      &                   *( rise_fact(a,k)/rise_fact(b,k)/factorial(k) )
      &                   *( rise_fact(a,k_)/rise_fact(b,k_)
@@ -517,7 +517,7 @@ c     ==== Infinite k part ====
                      mk = rise_fact(a-1,j)/rise_fact(b-2,j)
      &                    *(dk*dble(k_-k)/(sg+k)/(sg+k_) -
      &                    1.0d0/(sg+k)**2)
-                     tm = km * om_m / 2**(2*l-1) * mk
+                     tm = km * om_m / 2**(2*l-1) * mk            ! eq. (307b)
                      k3 = k_t + ii - 1
                      dbl_mb(k3) = dbl_mb(k3) + w * tm
                   endif
@@ -527,7 +527,7 @@ c     ==== Infinite k part ====
                      mk = rise_fact(a+1,j)/rise_fact(b+2,j)
      &                    *(dk*dble(k_-k)/(sg+k)/(sg+k_) -
      &                    1.0d0/(sg+k)**2)
-                     tp = kp * om_p / 2**(2*l+1) * mk
+                     tp = kp * om_p / 2**(2*l+1) * mk            ! eq. (307b)
                      k3 = k_t + jj - 1
                      dbl_mb(k3) = dbl_mb(k3) + w * tp
                   endif
@@ -537,7 +537,7 @@ c     ==== Infinite k part ====
                      mk = rise_fact(a,j)/rise_fact(b,j)
      &                    *(dk*dble(k_-k)/(sg+k)/(sg+k_) -
      &                    1.0d0/(sg+k)**2)
-                     u = 2*kappa * om_e / 2**(2*l) * mk
+                     u = 2*kappa * om_e / 2**(2*l) * mk          ! eq. (307c)
                      k3 = k_e + kk - 1
                      dbl_mb(k3) = dbl_mb(k3) + w * u
                   endif
