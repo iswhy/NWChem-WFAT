@@ -1,15 +1,33 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_perturbnew_cwfn()
+      subroutine wfat_perturbnew_cwfn(nch, spinid, orbid, vch1)
 
       implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"      
+#include "wfat_qm_param.fh"
+#include "global.fh"
       integer nch
       integer spinid(nch)
       integer orbid(nch)
       double precision vch1(nbas0, 3, nch)
 
-      double precision tmp1(nbas0)
+      character*9 dpnm(3), dpmonm(nspin0,3)
+      integer i, is, imo, io, k, j, m, id0, idm, ieg0, iegm
+      integer g_dp(3), g_dpmo(nspin0, 3), l_mo, k_mo
+      double precision derg, tmp1(nbas0)
 
+      integer ga_create_atom_blocked
+      external ga_create_atom_blocked
+
+
+      dpnm = (/ 'dipole_x', 'dipole_y', 'dipole_z' /)
+      dpmonm = reshape(
+     &         (/ 'dipole_xa', 'dipole_xb',
+     &            'dipole_ya', 'dipole_yb',
+     &            'dipole_za', 'dipole_zb' /),
+     &         (/nspin0, 3/))
+      
       
 c     ==== Calculate dipole matrix in the GTO basis ====
       do i = 1, 3
@@ -51,11 +69,13 @@ c     ==== the first order correction terms  ====
             do j = 1, nbas0     ! Loop over GTO bases
                vch1(j,k,i) = 0.0d0
                do m = 1, nbas0  ! Sum over MO's
-                  ieg0 = k_moerg + (is-1)*nbas0 + io - 1
-                  iegm = k_moerg + (is-1)*nbas0 +  m - 1
-                  derg = dbl_mb(ieg0) - dbl_mb(iegm)
-               
-                  if (abs(derg) > dgnthr) then
+                  id0 = int_mb(k_dgid + (is-1)*nbas0 + (io-1))
+                  idm = int_mb(k_dgid + (is-1)*nbas0 + (m-1))
+                  if (id0 /= idm) then
+                     ieg0 = k_moerg + (is-1)*nbas0 + (io-1)
+                     iegm = k_moerg + (is-1)*nbas0 + (m-1)
+                     derg = dbl_mb(ieg0) - dbl_mb(iegm)
+                  
                      imo = k_mo + (is-1)*nbas0*nbas0 + (m-1)*nbas0 +
      &                     (j-1)
                      vch1(j,k,i) = vch1(j,k,i) +

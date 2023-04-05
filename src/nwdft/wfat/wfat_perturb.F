@@ -91,7 +91,7 @@ c===============================================================
       ndid = ga_nodeid()
       
       
-      dipname = (/ 'dipole_x', 'dipole_y', 'dipole_z' /)      
+      dipname = (/ 'dipole_x', 'dipole_y', 'dipole_z' /)
 
       
 c     ==== Calculate e. field vector in molecular frame ====
