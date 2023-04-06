@@ -147,7 +147,7 @@ c        ==== Calculate WFAT integrals on 'start' startup mode ====
      &                        nqn, int_mb(k_npa), int_mb(k_mpa),
      &                        lmax, gqual, smh, res_mode, dbl_mb(k_eg), 
      &                        dbl_mb(k_ps), dbl_mb(k_cmm),
-     &                        dbl_mb(k_idp), g_il)
+     &                        dbl_mb(k_idp), g_il, g_j, g_k)
 c        ==== Binary-print the integrals freshly calculated ====
          if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,
      &        int_nosave))

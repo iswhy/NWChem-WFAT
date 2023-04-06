@@ -30,30 +30,30 @@ c==== Imam ====
       double precision chpos(3, nch)  ! [output]
       double precision chmmt(3, nch)  ! [output]
       double precision iondip(3, nch) ! [output]
-      integer g_il                    ! [output], global array handle for intgl.
-
+      integer g_il                    ! [output], global array handle for intgl. For structure factors.
+      integer g_j                     ! [output]
+      integer g_k(2)                  ! [output]
+      
       character*16 tag
       character*9 rdm_name(2)
-      logical t1, exasym
+      logical t1, wfat1
       integer natom, nbas, ncf, nrd, max_npt, nvc, nsh, nom, ni0, ni_
-      integer npt, natomp, nptp, ncpos, nscr, nil, nmo, nrda
-c      integer nnu, nhf, nxc, nvs
+      integer npt, natomp, nptp, ncpos, nscr, nil, nmo, nrda, nintj0
+      integer nintj_, nintj
       integer i, j, ic, icent, ipt, ipt_i, ipt_f
       integer jpt, ich, iqn, ish, i_vc, ndid
-      integer l_cf, l_cf1, l_rd, l_pt, l_wt, l_vc, l_om, l_i0
+      integer l_cf, l_rd, l_pt, l_wt, l_vc, l_om, l_i0
       integer l_i_, l_sc, l_il, l_icp, l_ipp
-c      integer l_nu, l_hf, l_xc, l_vs
       integer l_mo, l_rda
-      integer k_cf, k_cf1, k_rd, k_pt, k_wt, k_vc, k_om, k_i0
+      integer k_cf, k_rd, k_pt, k_wt, k_vc, k_om, k_i0
       integer k_i_, k_sc, k_il, k_icp, k_ipp
-c      integer k_nu, k_hf, k_xc, k_vs
       integer k_mo, k_rda
+      integer l_intj0, l_intj_, l_intj
+      integer k_intj0, k_intj_, k_intj
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
-      integer g_rd(2), i_mo, l_chgtest(2), l_r1test(2), l_qtest(2)
-      integer l_phi1test(2), l_tautest(2), l_otest(2)
-      double precision atp(3), znuc, v_c(3), v_m(3), asc(3), rasfac
-      double precision r_mas, ras, exc(2), normch, celf, numnel
-      double precision d_chgutest(2)
+      integer g_rd(2), i_mo
+      double precision atp(3), znuc, v_c(3), v_m(3)
+      double precision normch, celf, wtcelf, numnel
       double complex czero
       
       parameter (imf = 0)
@@ -65,8 +65,6 @@ c      integer k_nu, k_hf, k_xc, k_vs
       ndid = ga_nodeid()
 
       
-
-      
 c     ==== Get number of atoms ====
       if (.not. geom_ncent(geom_hd, natom))
      &     call errquit('WFAT: Getting natom failed', 51, GEOM_ERR)
@@ -75,15 +73,28 @@ c     ==== Get number of bases ====
      &     call errquit('WFAT: Getting nbas failed in ', 53, UERR)
 
       
-      !!==== Obtain properties of each channel ====!!
-      ncf = nbas * nch
+c     ==== Obtain properties of each channel ====
+      if (.not. rtdb_get(rtdb, 'wfat:wfat1', mt_log, 1, wfat1))
+     &     call errquit('WFAT: Cannot read wfat1 from RTDB', 27,
+     &     RTDB_ERR)
+c     nch = the number of the ionized channels.
+c     nch1 = the number of channels that contains the correction terms (needed for WFAT(1)),
+c            it is equal to 3*nch because each ionized channel has three correction terms 
+c            associated to the three cartesian components of the dipole operator.
+      if (wfat1) then
+         nch1 = 3*nch
+      else
+         nch1 = 0
+      endif
+      ncf = nbas * (nch + nch1)
       if (.not. MA_alloc_get(MT_DBL, ncf, 'vch', l_cf, k_cf))
      &     call errquit('WFAT: vch allocation failed', 59, MA_ERR)
-      if (.not. MA_alloc_get(MT_DBL, ncf, 'v.vch', l_cf1, k_cf1))
-     &     call errquit('WFAT: veff.vch allocation failed', 59, MA_ERR)
       call wfat_orb_property(rtdb, nch, orbid, spinid, dbl_mb(k_cf), 
      &                       erg, chpos, chmmt, iondip)
-
+      if (wfat1)
+     &     call wfat_perturbnew_cwfn(nch, spinid, orbid,
+     &     dbl_mb(k_cf+nbas*nch))
+      
 
 c     ==== Get the reduced density matrix ====
       nrd = nbas * nbas * nspin0
@@ -92,122 +103,31 @@ c     ==== Get the reduced density matrix ====
       call wfat_get_rdm(dbl_mb(k_rd:k_rd+nrd-1))
 
       
-c     ==== Some tests ====
-      if (rtdb_get(rtdb, 'wfat:test_chg', mt_int, 2, l_chgtest)) then
-         if (ndid==0) call wfat_test_chg(l_chgtest(1), l_chgtest(2),
-     &        zion, erg(1))
-      endif
-      if (rtdb_get(rtdb, 'wfat:test_chgu', mt_dbl, 2, d_chgutest)) then
-         if (ndid==0) call wfat_test_chgu(d_chgutest(1), d_chgutest(2))
-      endif
-      if (rtdb_get(rtdb, 'wfat:test_r1', mt_int, 2, l_r1test)) then
-         if (ndid==0) call wfat_test_r1(l_r1test(1), l_r1test(2),
-     &        erg(1), zion, chmmt(:,1))
-      endif
-      if (rtdb_get(rtdb, 'wfat:test_q', mt_int, 2, l_qtest)) then
-         if (ndid==0) call wfat_test_q(l_qtest(1), l_qtest(2),
-     &        erg(1), zion, lmax_, chmmt(:,1))
-      endif
-      if (rtdb_get(rtdb, 'wfat:test_phi1', mt_int, 2, l_phi1test)) then
-         if (ndid==0) call wfat_test_phi1xi(l_phi1test(1), 
-     &        l_phi1test(2), erg(1), zion, chmmt(:,1))
-      endif
-      if (rtdb_get(rtdb, 'wfat:test_tau', mt_int, 2, l_tautest)) then
-         if (ndid==0) call wfat_test_tau(l_tautest(1), l_tautest(2),
-     &        erg(1), zion, lmax_, chmmt(:,1))
-      endif
-      if (rtdb_get(rtdb, 'wfat:test2_tau', mt_int, 2, l_tautest)) then
-         if (ndid==0) call wfat_test2_tau(l_tautest(1), l_tautest(2),
-     &        erg(1), zion, lmax_, chmmt(:,1))
-      endif
-      if (rtdb_get(rtdb, 'wfat:test_o', mt_int, 2, l_otest)) then
-         if (ndid==0) call wfat_test_o(l_otest(1), l_otest(2),
-     &        erg(1), zion)
-      endif
-      call ga_sync()
-      
-
-
-
-      
-
-      
-c     ==== Calculate v_c|orb> ====
-c      nnu = nbas * nch
-c      if (.not. ma_alloc_get(mt_dbl, nnu, 'vnucvin', l_nu, k_nu))
-c     &     call errquit('WFAT: Cannot allocate vnucvin.', 1, MA_ERR)
-c      nhf = nbas * nch
-c      if (.not. ma_alloc_get(mt_dbl, nhf, 'vhfvin', l_hf, k_hf))
-c     &     call errquit('WFAT: Cannot allocate vhfvin.', 1, MA_ERR)
-c      nxc = nbas * nch
-c      if (.not. ma_alloc_get(mt_dbl, nxc, 'vxcvin', l_xc, k_xc))
-c     &     call errquit('WFAT: Cannot allocate vxcvin.', 1, MA_ERR)
-c      nvs = nbas * nch
-c      if (.not. ma_alloc_get(mt_dbl, nvs, 'vsvin', l_vs, k_vs))
-c     &     call errquit('WFAT: Cannot allocate vsvin.', 1, MA_ERR)
-c      call wfat_dft_vcpsi_getcoef(dbl_mb(k_nu),
-c     &                   dbl_mb(k_hf),
-c     &                   dbl_mb(k_xc),
-c     &                   dbl_mb(k_vs))
-
-
-
+c     ==== Some analyses and tests (optional) ====
+      call wfat_sometests(zion, nch, erg, lmax_, chmmt)
 
       call wfat_mulliken(rtdb, geom_hd, bas_hd, nbas, nspin0,
      &                   dbl_mb(k_rd), nch, dbl_mb(k_cf), spinid, 
      &                   chpos)
-      
-      
-            
 
 
-
-
-
-      
 c     ==== Allocate grid-related arrays ====
       call wfat_alloc_quadgrid(gqual, max_npt, l_pt, k_pt, l_wt, k_wt)
 
 
 c     ==== Allocate WFAT integral, its integrands, and some other ====
-      if (.not. rtdb_get(rtdb, 'wfat:exasym', mt_log, 1, exasym))
-     &     exasym = .false.
-      if (exasym) then
-         nscr = 20*nbas + 4*nspin0 + nbas * (3*nbas+1+nspin0) + 4*nch +
-     &          nbas + nbas*nch
-      else
-         nscr = 20*nbas + 4*nspin0 + nbas * (3*nbas+1+nspin0) + 4*nch
-      endif
+      nscr = 20*nbas + 4*nspin0 + nbas * (3*nbas+1+nspin0) +
+     &       4*(nch+nch1)
+      nvc = nch + nch1
       if (.not. MA_alloc_get(MT_DBL, nscr, 'vscr', l_sc, k_sc))
      &     call errquit('WFAT: vscr allocation failed', 59, MA_ERR)
-      nvc = nch
       if (.not. MA_alloc_get(MT_DBL, nvc, 'vcpsi', l_vc, k_vc))
      &     call errquit('WFAT: vcpsi allocation failed', 59, MA_ERR)
-
       call wfat_alloc_intgl(lmax_, nqn, nch, natom, nsh, nom, ni0, ni_,
      &     nil, l_om, k_om, l_i0, k_i0, l_i_, k_i_, l_il, k_il)
-      
-      if (.not. rtdb_get(rtdb, 'wfat:rasfac', mt_dbl, 1, rasfac))
-     &     rasfac = 9.0d0
-      call wfat_calc_asysphere(geom_hd, rasfac, asc, ras)
-      if (exasym) then
-         nmo = nbas*nbas*nspin0
-         if (.not. MA_alloc_get(mt_dbl, nmo, 'MO', l_mo, k_mo))
-     &        call errquit('WFAT: Cannot allocate MO', 1, MA_ERR)
-         do is = 1, nspin0
-            i_mo = k_mo + (is-1)*nbas**2
-            call ga_get(g_mov(is), 1, nbas, 1, nbas, dbl_mb(i_mo),
-     &           nbas)
-         enddo
-         nrda = nbas*nbas*nspin0
-         if (.not. MA_alloc_get(mt_dbl, nrda, 'RDMas', l_rda, k_rda))
-     &        call errquit('WFAT: Cannot allocate RDMas', 1, MA_ERR)
-         if (ndid == 0) then
-            write(luout, '(" Coordinate of asymp. center : ", 3es14.5)')
-     &           asc
-            write(luout, '(" Radius of asymp. sphere : ", es14.5)') ras
-         endif
-      endif
+      if (wfat1) call wfat_alloc_intgl_wfat1(lmax_, nqn, nch1, nat, nsh,
+     &     nintj0, nintj_, nintj, l_intj0, k_intj0, l_intj_, k_intj_,
+     &     l_intj, k_intj)              add K integrals here
       
 
 c     ==== Obtaining grid ranges for the current process ====
@@ -250,88 +170,51 @@ c        ==== Loop over all quadrature points around the current atom ====
             call geom_cent2cent(geom_hd, icent, v_c, imf, v_m, t1)
 cc            write(luout, '("        v_m = ", 3e14.5)') v_m
 
+            
 c           ==== Calculate vc|psi> ====
-            r_mas = sqrt(sum((v_m - asc)**2))
-            if (exasym .and. r_mas > ras) then
-               call wfat_calc_rdmas(nbas, nspin0, 
-     &              dbl_mb(k_mo:k_mo+nmo-1), v_m, asc, ras,
-     &              dbl_mb(k_rda:k_rda+nrda-1))
-               call wfat_dft_vcasy_1pt(geom_hd, bas_hd, nbas, nspin0,
-     &              nch, dbl_mb(k_cf:k_cf+ncf-1), erg, spinid, chpos,
-     &              v_m, asc, ras, dbl_mb(k_rd:k_rd+nrd-1),
-     &              dbl_mb(k_rda:k_rda+nrda-1), zion, smh,
-     &              dbl_mb(k_sc:k_sc+nscr-1), dbl_mb(k_vc:k_vc+nvc-1))
-            else
-               call wfat_dft_vcpsi_1pt(geom_hd, bas_hd, nbas, nspin0, 
-     &              nch, dbl_mb(k_cf:k_cf+ncf-1), spinid, chpos, v_m, 
-     &              dbl_mb(k_rd:k_rd+nrd-1), zion, smh,
-     &              dbl_mb(k_sc:k_sc+nscr-1),
-     &              dbl_mb(k_vc:k_vc+nvc-1))
-            endif
-            
+            call wfat_dft_vcpsi_1pt(geom_hd, bas_hd, nbas, nspin0, 
+     &           nch+nch1, dbl_mb(k_cf:k_cf+ncf-1), spinid, chpos, v_m, 
+     &           dbl_mb(k_rd:k_rd+nrd-1), zion, smh,
+     &           dbl_mb(k_sc:k_sc+nscr-1),
+     &           dbl_mb(k_vc:k_vc+nvc-1))
 
-c            call wfat_dft_vcpsi_fromcoef(geom_hd, bas_hd, nbas, nch,
-c     &           dbl_mb(k_nu), dbl_mb(k_hf), dbl_mb(k_xc), dbl_mb(k_vs),
-c     &           v_m, dbl_mb(k_sc), dbl_mb(k_vc))
-            
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
             call wfat_omega_1pt(geom_hd, v_m, nch, erg,
      &           chpos, nqn, nid, mid, lmax_, int(zion),
      &           dcpl_mb(k_om:k_om+nom-1))
             
-c           ==== Calculate the integrand of I^(n,m)_(l,m') ====
-            do i = 1, nch
-               i0l = k_i0 + (i-1)*nsh*nqn
-               i0r = i0l + nsh*nqn - 1
-               oml = k_om + (i-1)*nsh*nqn
-               omr = oml + nsh*nqn - 1
-               i_vc = k_vc + i - 1
-csee               if (abs(dbl_mb(i_vc)) > 1.0d-12) then
-                  dcpl_mb(i0l:i0r) = conjg(dcpl_mb(oml:omr)) *
-     &                               dbl_mb(i_vc)
-csee               else
-csee                  dcpl_mb(i0l:i0r) = 0.0d0
-csee               endif
-            enddo
+c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
+            call wfat_integrand(nch, nqn, nsh, dcpl_mb(k_om),
+     &           dbl_mb(k_vc), dcpl_mb(k_i0))
 
+            if (wfat1) then
+c              ==== Calculate the integrand of J^{(n,m)x_i}_{l,m'} ====
+c              =====             K^{(n,m)}_{l,m'}                  ====
+               call wfat_integrand_wfat1(nch, nqn, nsh, dcpl_mb(k_om),
+     &              dbl_mb(k_vc+nch), dcpl_mb(k_intj0))       add k integrals here
+            endif
+            
+            
 c           ==== Quadrature summation ====
             call wfat_celf_1pt(geom_hd, icent, v_c, wf_msm, celf)
+            wtcelf = celf * dbl_mb(k_wt+ipt-1)
+
             i_l = k_i_ + (icent-1) * nsh*nqn*nch
             i_r = i_l + nsh*nqn*nch - 1
-csee            if (abs(celf) > 1.0d-12) then               
             dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
-     &                            dcpl_mb(k_i0:k_i0+ni0-1) *
-     &                            celf *
-     &                            dbl_mb(k_wt+ipt-1)     !! 1)
-csee            endif
+     &                         dcpl_mb(k_i0:k_i0+ni0-1) *
+     &                         wtcelf                        !! 1)
 
+            if (wfat1) then
+               i_l = k_intj_ + (icent-1) * nsh*nqn*nch1
+               i_r = i_l + nsh*nqn*nch1 - 1
+               dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
+     &                            dcpl_mb(k_intj0:k_intj0+nintj0-1) *
+     &                            wtcelf
+            endif
 
-
-cc            if (ndid==0)
-cc     &           write(luout, '("(id, icent,ipt) = ", 3i7, '//
-cc     &           '" | v_m = ", 3es14.6, '//
-cc     &           '" | (vcpsi,omg) = ", 2es14.6, '//
-cc     &           '" | sum intgl = ", 2es14.6)')
-cc     &           ndid, icent, ipt, v_m, dbl_mb(k_vc),
-cc     &           maxval(abs(dcpl_mb(k_om:k_om+nsh*nqn-1))),
-cc     &           sum(dcpl_mb(i_l:i_r))
-            
-            
-            
-            jpt = jpt + 1
-cc            write(luout, '("        sum vcpsi = ", e14.5)')
-cc     &           sum(dbl_mb(k_vc:k_vc+nvc-1))
-cc            write(luout, '("        sum intgl0 = ", 2e14.5)')
-cc     &           sum(dcpl_mb(k_i0:k_i0+ni0-1))
-cc            write(luout, '("        sum intgl_ = ", 2e14.5)')
-cc     &           sum(dcpl_mb(i_l:i_r))
-cc            write(luout, '(i3, i7, i3, i7, " sum omega = ", 2e14.5)')
-cc     &           ndid, jpt, icent, ipt, sum(dcpl_mb(k_om:k_om+nom-1))
-cc            if (abs(imag(sum(dcpl_mb(k_i0:k_i0+ni0-1)))) > 1.0d-8) then
-ccc               call errquit('WFAT: Big imaginary part.', 2, UERR)
-cc            endif
-            
+            jpt = jpt + 1            
          enddo
       enddo
       
@@ -339,7 +222,11 @@ cc            endif
 c     ==== Reorder elements of intgl ====      
       call wfat_reorder_intgl(nsh, natom, nqn, nch,
      &     dcpl_mb(k_i_ : k_i_+ni_-1), dcpl_mb(k_il : k_il+nil-1))
-
+      if (wfat1)
+     &     call wfat_reorder_intgl_wfat1(nsh, natom, nqn, nch,
+     &     dcpl_mb(k_intj_ : k_intj_+nintj_-1),
+     &     dcpl_mb(k_intj : k_intj+nintj-1))     add K integrals here
+      
       
 
 cforcheck      write(luout, '("sum CHAN_INT = ", 2e14.5)')
@@ -349,22 +236,30 @@ cforcheck     &     maxval(abs(real(dcpl_mb(k_il : k_il+nil-1))))
 cforcheck      write(luout, '("max of imag part = ", e14.5)')
 cforcheck     &     maxval(abs(imag(dcpl_mb(k_il : k_il+nil-1))))
 
-
       
 c     ==== Accumulate to global intgl (g_il) ====
       call ga_acc(g_il, 1, nil, 1, 1, dcpl_mb(k_il), nil, 1.0d0)
       call ga_sync()
 
-
-
-      
       call ga_norm1(g_il, normch)
       if (ndid==0) write(luout, '("intgl norm = ", es14.6)') normch
 
+      if (wfat1) then
+         call ga_acc(g_j, 1, nintj, 1, 1, dcpl_mb(k_intj), nintj, 1.0d0)
+         call ga_sync()
 
+         call ga_norm1(g_j, normch)
+         if (ndid==0) write(luout, '("intgl_j norm = ", es14.6)') normch
 
-      
-      
+         do i = 1, 2
+            call ga_acc(g_k(i))   resolve here
+            call ga_sync()
+
+            call ga_norm1(g_k(i), normch)
+            if (ndid==0) write(luout, '("intgl_k norm = ", es14.6)')
+     &           normch
+         enddo
+      endif
 
       
 c     ==== Deallocations ====
@@ -388,6 +283,8 @@ c     ==== Deallocations ====
       if (.not. MA_free_heap(l_vc))
      &     call errquit('WFAT: vc|psi> deallocation failed', 61, MA_ERR)
       call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il)
+      if (wfat1)
+     &     call wfat_dealloc_intgl_wfat1(l_intj0, l_intj_, l_intj) add K integrals here
       call wfat_dealloc_gridrange(l_icp, l_ipp)
       if (exasym) then
          if(.not. MA_free_heap(l_mo))
@@ -402,12 +299,58 @@ c     ==== Deallocations ====
 !! 1) The quadrature summation is performed simultaneously for all channels (orbitals),
 !!    each of which is given by 3rd index of wf_intgl. It's possible to do this because
 !!    the cell function, the quadrature points and weights are the same for all channels.
-!!    Note that it may not be possible to perform this simultaneous summation if the
-!!    channels may or may not be assigned its own quadrature points. In the current
-!!    implementation, all channels don't have quadrature points, so that the quadrature
-!!    points (and weights) solely come from the atoms.
+!!    Note that it may not be possible to perform this simultaneous summation if each of
+!!    the channels is assigned their own set of quadrature points. In the current
+!!    implementation, all channels share the same set of quadrature points because these
+!!    points (and weights) are atom-specific, not channel-specific.
 c=======================================================
 
+
+c=======================================================
+c=======================================================
+      subroutine wfat_integrand(nch, nqn, nsh, omg, vc_psi, intgl0)
+
+      implicit none
+      integer nch
+      integer nqn
+      integer nsh
+      double complex omg(nsh, nqn, nch)
+      double precision vc_psi(nch)
+      double complex intgl0(nsh, nqn, nch)
+
+      integer i
+
+      do i = 1, nch
+         intgl0(:,:,i) = conjg(omg(:,:,i)) * vc_psi(i)
+      enddo
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_integrand_wfat1(nch, nqn, nsh, omg, vxi, int_j)
+
+      implicit none
+      integer nch
+      integer nqn
+      integer nsh
+      double complex omg(nsh, nqn, nch)
+      double precision vxi(3, nch)
+      double complex int_j(nsh, nqn, 3, nch)
+
+      integer i, j
+
+      do i = 1, nch
+         do j = 1, 3
+            int_j(:,:,j,i) = conjg(omg(:,:,i)) * vxi(j,i)
+         enddo
+      enddo
+
+      end
+c=======================================================
+      
 
 c=======================================================
 c=======================================================
@@ -430,6 +373,39 @@ c=======================================================
                do i_lm = 1, nsh
                   intgl(i_lm, icent, iqn, ich) =
      &                     intgl_(i_lm, iqn, ich, icent)
+               enddo
+            enddo
+         enddo
+      enddo
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_reorder_intgl_wfat1(nsh, ncent, nqn, nch,
+     &           intj_, intj)
+
+      implicit none
+      integer nsh
+      integer ncent
+      integer nqn
+      integer nch
+      double complex intj_(nsh, nqn, 3, nch, ncent)
+      double complex intj(nsh, ncent, nqn, 3, nch)
+
+      integer ich, i, iqn, icent, i_lm
+      
+      
+      do ich = 1, nch
+         do i = 1, 3
+            do iqn = 1, nqn
+               do icent = 1, ncent
+                  do i_lm = 1, nsh
+                     intj(i_lm, icent, iqn, i, ich) =
+     &                    intj_(i_lm, iqn, i, ich, icent)
+                  enddo
                enddo
             enddo
          enddo
@@ -836,6 +812,45 @@ c=======================================================
 
 c=======================================================
 c=======================================================
+      subroutine wfat_alloc_intgl_wfat1(lmax_, nqn, nch1, nat, nsh,
+     &     nintj0, nintj_, nintj, l_intj0, k_intj0, l_intj_, k_intj_,
+     &     l_intj, k_intj)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer lmax_                         ! [input],
+      integer nqn                           ! [input],
+      integer nch1                          ! [input],
+      integer nat                           ! [input],
+      integer nsh, nintj0, nintj_, nintj    ! [output],
+      integer l_intj0, k_intj0              ! [output],
+      integer l_intj_, k_intj_              ! [output],
+      integer l_intj, k_intj                ! [output],
+
+
+      nsh = (1 + lmax_)**2
+
+      nintj0 = nsh * nqn * nch1
+      if (.not. MA_alloc_get(MT_DCPL, nintj0, 'int_j0',
+     &     l_intj0, k_intj0))
+     &     call errquit('WFAT: int_j0 allocation failed', 59, MA_ERR)
+
+      nintj_ = nsh * nqn * nch1 * nat
+      if (.not. MA_alloc_get(MT_DCPL, nintj_, 'int_j_',
+     &     l_intj_, k_intj_))
+     &     call errquit('WFAT: int_j_ allocation failed', 59, MA_ERR)
+
+      nintj = nsh * nqn * nch1 * nat
+      if (.not. MA_alloc_get(MT_DCPL, nintj, 'int_j', l_intj, k_intj))
+     &     call errquit('WFAT: int_j allocation failed', 59, MA_ERR)
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
       subroutine wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il)
 
       implicit none
@@ -855,6 +870,89 @@ c=======================================================
 
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_dealloc_intgl_wfat1(l_intj0, l_intj_, l_intj)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer l_intj0, l_intj_, l_intj     ! [input]
+
+
+      if (.not. MA_free_heap(l_intj0))
+     &     call errquit('WFAT: int_j0 deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_intj_))
+     &     call errquit('WFAT: int_j_ deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_intj))
+     &     call errquit('WFAT: intj deallocation failed', 61, MA_ERR)
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_sometests(zi, nch, erg, lmax_, chmmt)
+
+      implicit none
+#include "rtdb.fh"      
+#include "global.fh"
+#include "mafdecls.fh"
+      double precision zi
+      integer nch
+      double precision erg(nch)
+      integer lmax_
+      double precision chmmt(3, nch)
+
+      integer ndid
+      integer l_chgtest(2), l_r1test(2), l_qtest(2)
+      integer l_phi1test(2), l_tautest(2), l_otest(2)
+      double precision d_chgutest(2)
+
+
+      ndid = ga_nodeid()
+
+      if (rtdb_get(rtdb, 'wfat:test_chg', mt_int, 2, l_chgtest)) then
+         if (ndid==0) call wfat_test_chg(l_chgtest(1), l_chgtest(2),
+     &        zi, erg(1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_chgu', mt_dbl, 2, d_chgutest)) then
+         if (ndid==0) call wfat_test_chgu(d_chgutest(1), d_chgutest(2))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_r1', mt_int, 2, l_r1test)) then
+         if (ndid==0) call wfat_test_r1(l_r1test(1), l_r1test(2),
+     &        erg(1), zi, chmmt(:,1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_q', mt_int, 2, l_qtest)) then
+         if (ndid==0) call wfat_test_q(l_qtest(1), l_qtest(2),
+     &        erg(1), zi, lmax_, chmmt(:,1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_phi1', mt_int, 2, l_phi1test)) then
+         if (ndid==0) call wfat_test_phi1xi(l_phi1test(1), 
+     &        l_phi1test(2), erg(1), zi, chmmt(:,1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_tau', mt_int, 2, l_tautest)) then
+         if (ndid==0) call wfat_test_tau(l_tautest(1), l_tautest(2),
+     &        erg(1), zi, lmax_, chmmt(:,1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test2_tau', mt_int, 2, l_tautest)) then
+         if (ndid==0) call wfat_test2_tau(l_tautest(1), l_tautest(2),
+     &        erg(1), zi, lmax_, chmmt(:,1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_o', mt_int, 2, l_otest)) then
+         if (ndid==0) call wfat_test_o(l_otest(1), l_otest(2),
+     &        erg(1), zi)
+      endif
+
+
+      call ga_sync()
+      
+      end
+c=======================================================
+      
       
       
       

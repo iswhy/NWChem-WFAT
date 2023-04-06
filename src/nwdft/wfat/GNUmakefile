@@ -57,6 +57,7 @@
 	wfat_perturb_rs.o \
 	wfat_perturb_analyse.o \
 	wfat_perturb_print.o \
+	wfat_perturbnew_wfn.o \
 	wfat_partial_integ.o \
 	wfat_q_particular.o \
 	wfat_calc_d.o \
