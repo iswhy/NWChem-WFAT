@@ -771,6 +771,62 @@ c           ==== Increment node id and reset grid id ====
 c=================================================
 
 
+c=================================================
+c=================================================
+      subroutine wfat_get_gridpt_cents(geom, nat, centid, ptlim, vcent, 
+     &                                 gq, r, t, p)
+
+      implicit none
+#include "mafdecls.fh"
+#include "errquit.fh"
+#include "geom.fh"
+      integer geom
+      integer nat
+      integer centid(nat)
+      integer ptlim(2, nat)
+      double precision vcent(3)
+      integer gq
+      double precision r(1:*)
+      double precision t(1:*)
+      double precision p(1:*)
+
+      character*16 tag
+      logical t1
+      integer max_npt, j, ic, icent, i, l_pt, k_pt, l_wt, k_wt, i_pt
+      integer npt
+      double precision atp(3), znuc, v_c(3), v_f(3)
+
+
+      call wfat_alloc_quadgrid(gq, max_npt, l_pt, k_pt, l_wt, k_wt)
+
+      j = 0
+      do ic = 1, nat
+         icent = centid(ic)
+         if (.not. geom_cent_get(geom, icent, tag, atp, znuc))
+     &        call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
+         call wfat_get_gridpt(int(znuc), gq, max_npt, npt,
+     &                        dbl_mb(k_pt : k_pt+3*max_npt-1),
+     &                        dbl_mb(k_wt : k_wt+max_npt-1))
+
+         do i = ptlim(1,ic), ptlim(2,ic)
+            i_pt = k_pt + 3*(i-1)
+            v_c(1:3) = dbl_mb(i_pt : i_pt+2)
+            call geom_cent2arb(geom, icent, v_c, vcent, v_f, t1)
+
+            j = j + 1
+            r(j) = sqrt(sum(v_f*v_f))
+            t(j) = acos(v_f(3)/r(j))
+            p(j) = atan(v_f(2), v_f(1))
+         enddo
+      enddo
+
+      call wfat_dealloc_quadgrid(l_pt, l_wt)
+
+      end
+c=================================================
+      
+
+
 cOLDc=================================================
 cOLDc=================================================
 cOLD      subroutine wfat_get_gridrange(geomhan, id, gq, ic1, ipt1,

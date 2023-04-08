@@ -26,6 +26,7 @@
 	wfat_grid.o \
 	wfat_lebedev.o \
 	wfat_omega.o \
+	wfat_omega_wfat1.o \
 	wfat_potential_calc.o \
 	wfat_potential_calc_asy.o \
 	wfat_potential.o \

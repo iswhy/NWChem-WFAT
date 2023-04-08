@@ -152,6 +152,7 @@ c     ==== Loop over atoms ====
       call ga_sync()
       jpt = 0
       dcpl_mb(k_i_ : k_i_+ni_-1) = czero
+      if (wfat1) dcpl_mb(k_intj_ : k_intj_+nintj_-1) = czero
       do ic = 1, natomp
          icent = int_mb(k_icp + ic - 1)
          if (.not. geom_cent_get(geom_hd, icent, tag, atp, znuc))
