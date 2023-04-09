@@ -233,6 +233,29 @@ c=================================================
 
 c=================================================
 c=================================================
+      subroutine wfat_prep_wfat1(rtdb, wfat1, nlgl)
+
+      implicit none
+#include "errquit.fh"
+#include "rtdb.fh"
+#include "mafdecls.fh"
+      integer rtdb
+      integer wfat1
+      integer nlgl
+
+      if (.not. rtdb_get(rtdb, 'wfat:wfat1', mt_log, 1, wfat1))
+     &     call errquit('WFAT: Cannot read wfat1 from RTDB', 27,
+     &     RTDB_ERR)
+      if (.not. rtdb_get(rtdb, 'wfat:nlgl', mt_int, 1, nlgl))
+     &     call errquit('WFAT: Cannot read nlgl from RTDB', 27,
+     &     RTDB_ERR)
+      
+      end
+c=================================================
+
+
+c=================================================
+c=================================================
       subroutine wfat_prep_resmode(rtdb, rmode)
 
       implicit none

@@ -4,49 +4,75 @@ c=======================================================
      &     lmax, nat, nptp, centid, ptlim, gq, nlgl, zq, omg1, omg2)
 
       implicit none
-      integer geom
-      integer nch
-      integer nqn
-      double precision erg(nch)
-      double precision chpos(3,nch)
-      integer nid(nqn)
-      integer mid(nqn)
-      integer lmax
-      integer nat
-      integer nptp
-      integer centid(nat)
-      integer ptlim(2,nat)
-      integer gq
-      integer nlgl
-      double precision zq
-      double complex omg1((1+lmax)**2, nqn, nch, nptp)
-      double complex omg2((1+lmax)**2, nqn, nch, nptp)
+#include "stdio.fh"      
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer geom                                         ! [input],
+      integer nch                                          ! [input],
+      integer nqn                                          ! [input],
+      double precision erg(nch)                            ! [input],
+      double precision chpos(3,nch)                        ! [input],
+      integer nid(nqn)                                     ! [input],
+      integer mid(nqn)                                     ! [input],
+      integer lmax                                         ! [input],
+      integer nat                                          ! [input],
+      integer nptp                                         ! [input],
+      integer centid(nat)                                  ! [input],
+      integer ptlim(2,nat)                                 ! [input],
+      integer gq                                           ! [input],
+      integer nlgl                                         ! [input],
+      double precision zq                                  ! [input],
+      double complex omg1((1+lmax)**2, nqn, nch, nptp)     ! [output],
+      double complex omg2((1+lmax)**2, nqn, nch, nptp)     ! [output],
 
-      integer i
+      integer l_r, l_t, l_p, l_sp, l_id, l_q1, l_q2
+      integer k_r, k_t, k_p, k_sp, k_id, k_q1, k_q2
+      integer nsh, i, ii, j, n, m, nl, i_sp
 
-         
+
+      if (.not. MA_alloc_get(MT_DBL, nptp, 'r', l_r, k_r))
+     &     call errquit('WFAT: r allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nptp, 't', l_t, k_t))
+     &     call errquit('WFAT: t allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nptp, 'p', l_p, k_p))
+     &     call errquit('WFAT: p allocation failed', 59, MA_ERR)
+      nsh = (lmax + 1)**2 * nptp
+      if (.not. MA_alloc_get(MT_DCPL, nsh, 'sphm', l_sp, k_sp))
+     &     call errquit('WFAT: sphm allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_INT, nptp, 'indx', l_id, k_id))
+     &     call errquit('WFAT: indx allocation failed', 59, MA_ERR)
+      
 
       do i = 1, nch
 c        ==== Get the grid points with the current channel center ====
          call wfat_get_gridpt_cents(geom, nat, centid, ptlim, 
      &        chpos(:,i), gq, dbl_mb(k_r), dbl_mb(k_t), dbl_mb(k_p))
+         write(luout, '("Sorting for channel : ", i4, " .....")',
+     &        advance='no') i
          call wfat_dsortx(dbl_mb(k_r), 1, nptp, int_mb(k_id))
+         write(luout, '(" [Finished]")')
          
 c        ==== Calculate the spherical harmonics for all (l,m) ====
 c        ====   where l=[0,lmax] and m=[-l,l] at each point   ====
          do ii = 1, nptp
             i_sp = k_sp + (ii-1)*(1+lmax)**2
             call wfat_sphm_1pt(lmax, dbl_mb(k_t+ii-1), dbl_mb(k_p+ii-1),
-     &           dcpl_mb(i_sp))        check here
+     &           dcpl_mb(i_sp))
          enddo
 
          do j = 1, nqn
             n = nid(j)
             m = mid(j)
+            nl = lmax - abs(m) + 1
+            if (.not. MA_alloc_get(MT_DBL, nl*nptp, 'q1', l_q1, k_q1))
+     &           call errquit('WFAT: q1 allocation failed', 94, MA_ERR)
+            if (.not. MA_alloc_get(MT_DBL, nl*nptp, 'q2', l_q2, k_q2))
+     &           call errquit('WFAT: q2 allocation failed', 94, MA_ERR)
 
+            
 c           ==== Calculate Q_{(l,m)}^\nu at all points above ====
             call wfat_calc_q(nptp, dbl_mb(k_r), n, m, lmax, nlgl, 
-     &           erg(i), zq, dbl_mb(k_q1), dbl_mb(k_q2))       check here
+     &           erg(i), zq, dbl_mb(k_q1), dbl_mb(k_q2))
             call wfat_reorder_q(lmax, m, nptp, int_mb(k_id),
      &           dbl_mb(k_q1), dbl_mb(k_q2))
 
@@ -54,9 +80,27 @@ c           ==== Calculate WFAT(1) Omega for all (l,m) and ====
 c           ====             all points above              ====
             call wfat_omega_wfat1_nm(dbl_mb(k_q1), dbl_mb(k_q2),
      &           dcpl_mb(k_sp), omg1(:,j,i,:), omg2(:,j,i,:))
+
+            
+            if (.not. MA_free_heap(l_q1)) call errquit('WFAT: q1 '//
+     &           'deallocation failed', 32, MA_ERR)
+            if (.not. MA_free_heap(l_q2)) call errquit('WFAT: q2 '//
+     &           'deallocation failed', 32, MA_ERR)
          enddo
       enddo
 
+      
+c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_r))
+     &     call errquit('WFAT: r deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_t))
+     &     call errquit('WFAT: t deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_p))
+     &     call errquit('WFAT: p deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_sp))
+     &     call errquit('WFAT: sphm deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_id))
+     &     call errquit('WFAT: indx deallocation failed', 61, MA_ERR)
       end
 c=======================================================
 
@@ -88,8 +132,8 @@ c     and parabolic quantum number.
          do l = abs(m), lmax
             do m_ = -l, l
                i_sh = l**2 + l + m + 1
-               omg1(ish, ii) = q_1(l, ii) * sphm(ish, ii)
-               omg2(ish, ii) = q_2(l, ii) * sphm(ish, ii)
+               omg1(i_sh, ii) = q_1(l, ii) * sphm(i_sh, ii)
+               omg2(i_sh, ii) = q_2(l, ii) * sphm(i_sh, ii)
             enddo
          enddo
       enddo

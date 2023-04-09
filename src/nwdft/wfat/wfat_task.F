@@ -16,19 +16,20 @@ c===============================================================
       character(len=FLD_TP_LEN) las_env(max_nfield)
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
-      logical rtdb_stat, res_mode, os, oc, or, int_nosave
+      logical rtdb_stat, wfat1, res_mode, os, oc, or, int_nosave
       logical dd, td, extf
       character*32 theory
       character*2 prtb_type
-      integer ndid, gqual, i, lmax, is
+      integer ndid, gqual, i, lmax, nlgl, is
       integer l_nd, l_or0, l_sp, l_or, l_npa, l_mpa, l_eg
       integer l_ps, l_cmm, l_idp, l_in, l_ftl, l_al, l_wl, l_pl, l_tl
       integer l_dl
       integer k_nd, k_or0, k_sp, k_or, k_npa, k_mpa, k_eg
       integer k_ps, k_cmm, k_idp, k_in, k_ftl, k_al, k_wl, k_pl, k_tl
       integer k_dl
-      integer g_il, nlas, ntime
-      integer nch, nqn, nerg, ncpos, ncmm, niond, nsh, nintg, prtb_ord
+      integer g_il, g_j, g_k(2), nlas, ntime
+      integer nch, nqn, nerg, ncpos, ncmm, niond, nsh, nintg, nintj
+      integer nintk, prtb_ord
       double precision fieldmag, smh, prtb_bt, prtb_gm
       double precision tmax
 
@@ -95,6 +96,10 @@ c     ==== Obtaining parabolic quantum numbers ====
       call wfat_prep_paraqn(rtdb, nqn, l_npa, k_npa, l_mpa, k_mpa)
       
 
+c     ==== Obtaining WFAT(1) information ====
+      call wfat_prep_wfat1(rtdb, wfat1, nlgl)
+
+      
 c     ==== Check if research mode is enabled ====
       call wfat_prep_resmode(rtdb, res_mode)
 
@@ -138,6 +143,24 @@ c     ==== Calculate (or load) WFAT integrals ====
      &     call errquit('WFAT: Cannot create intgl global array.',
      &     1, GA_ERR)
       call ga_zero(g_il)
+
+      if (wfat1) then
+         nintj = nsh * natm * nqn * 3 * nch
+         if (.not. ga_create(mt_dcpl, nintj, 1, 'intl_j', 0, 0, g_j))
+     &        call errquit('WFAT: Cannot create intl_j global array.',
+     &        1, GA_ERR)
+         call ga_zero(g_j)
+
+         nintk = nsh * natm * nqn * nch
+         do i = 1, 2
+            if (.not. ga_create(mt_dcpl, nintk, 1, 'intl_k', 0, 0,
+     &           g_k(i)))
+     &           call errquit('WFAT: Cannot create intl_k global '//
+     &           'array.', 1, GA_ERR)
+            call ga_zero(g_k(i))
+         enddo
+      endif
+      
       
       smh = 0.0d0
       call util_get_rtdb_state(rtdb, os, oc, or)
@@ -145,8 +168,8 @@ c     ==== Calculate (or load) WFAT integrals ====
 c        ==== Calculate WFAT integrals on 'start' startup mode ====
          call wfat_calc_intgl(rtdb, nch, int_mb(k_or), int_mb(k_sp),
      &                        nqn, int_mb(k_npa), int_mb(k_mpa),
-     &                        lmax, gqual, smh, res_mode, dbl_mb(k_eg), 
-     &                        dbl_mb(k_ps), dbl_mb(k_cmm),
+     &                        lmax, gqual, smh, res_mode, wfat1, nlgl,
+     &                        dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
      &                        dbl_mb(k_idp), g_il, g_j, g_k)
 c        ==== Binary-print the integrals freshly calculated ====
          if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,

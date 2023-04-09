@@ -55,7 +55,7 @@ c     ==== Calculate dipole matrix in the MO basis ====
       do is = 1, nspin0
          imo = k_mo + (is-1)*nbas0*nbas0
          call ga_get(g_mov(is), 1, nbas0, 1, nbas0, dbl_mb(imo), nbas0)
-      endif
+      enddo
       
          
 c     ==== Calculate the GTO coefficients of ====

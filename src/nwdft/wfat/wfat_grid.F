@@ -780,15 +780,15 @@ c=================================================
 #include "mafdecls.fh"
 #include "errquit.fh"
 #include "geom.fh"
-      integer geom
-      integer nat
-      integer centid(nat)
-      integer ptlim(2, nat)
-      double precision vcent(3)
-      integer gq
-      double precision r(1:*)
-      double precision t(1:*)
-      double precision p(1:*)
+      integer geom                 ! [input], geometry handle.
+      integer nat                  ! [input], the number of atoms contained in centid.
+      integer centid(nat)          ! [input], the ID of atoms containing the points of interest.
+      integer ptlim(2, nat)        ! [input], the range of the ID of points in each atom contained in centid.
+      double precision vcent(3)    ! [input], the reference point (or frame of reference) to which the returned points are expressed.
+      integer gq                   ! [input], the grid quality.
+      double precision r(1:*)      ! [output], the r coordinate. The size of this array should be at least equal to the total number of points of interest.   1)
+      double precision t(1:*)      ! [output], the theta coordinate. The size requirement is the same as that for r above.
+      double precision p(1:*)      ! [output], the phi coordinate. The size requirement is the same as that for r above.
 
       character*16 tag
       logical t1
@@ -823,6 +823,16 @@ c=================================================
       call wfat_dealloc_quadgrid(l_pt, l_wt)
 
       end
+c     Notes:
+c     1) Using the definition of r, t, and p as given in the
+c        declaration comments above, the minimum number of elements of
+c        these vectors can therefore be expressed as
+c             \sum_i [ ptlim((2),i) - ptlim((1),i) + 1 ]
+c        where i runs from 1 to nat, i.e. all atoms of interest.
+c        If this subroutine is used to obtain all grid points for the
+c        current process in a parallel execution, the output argument
+c        nptp of the subroutine wfat_get_gridrange can be used to 
+c        compute the above minimum number of elements of r, t, and p.
 c=================================================
       
 
