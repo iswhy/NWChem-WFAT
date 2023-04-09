@@ -22,11 +22,15 @@ c=======================================================
 
 
       dpnm = (/ 'dipole_x', 'dipole_y', 'dipole_z' /)
-      dpmonm = reshape(
+      if (nspin0 == 2) then
+         dpmonm = reshape(
      &         (/ 'dipole_xa', 'dipole_xb',
      &            'dipole_ya', 'dipole_yb',
      &            'dipole_za', 'dipole_zb' /),
-     &         (/nspin0, 3/))
+     &         (/2, 3/))
+      else if (nspin0 == 1) then
+         dpmonm(1,:) = (/ 'dipole_xa', 'dipole_ya', 'dipole_za' /)
+      endif
       
       
 c     ==== Calculate dipole matrix in the GTO basis ====
