@@ -219,9 +219,9 @@ c=======================================================
       integer nb
       integer ns
       double precision erg(nb, ns)
-      integer dgid(nb, ns)
-      integer dgn(nb, ns)
-      integer norb_dg(ns)
+      integer dgid(nb, ns)           ! [output], degenerate ID.
+      integer dgn(nb, ns)            ! [output], the number of degenerate MO's in each manifold.
+      integer norb_dg(ns)            ! [output], the number of MO's taking degeneracy into account.
 
       logical isdtct(nb)
       integer is, id, i, j

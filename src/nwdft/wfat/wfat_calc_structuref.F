@@ -1,6 +1,6 @@
 c=======================================================
 c=======================================================
-c==== Imam ====      
+c==== Imam ====
       subroutine wfat_calc_structuref(geom, bt, gm, nch, erg, nqn, mid, 
      &                                lmax_, chmmt, intgl, srfc)
       
@@ -97,7 +97,7 @@ c=======================================================
       bt = bt0 * deg2rad
       gm = gm0 * deg2rad
       
-      prot_y(1:3, 1) = (/  cos(bt),   0.0d0, -sin(bt) /)
+      prot_y(1:3, 1) = (/  cos(bt),   0.0d0, -sin(bt) /)    ! See eq. (1) in Ref. [1] and the discussion around it.
       prot_y(1:3, 2) = (/    0.0d0,   1.0d0,    0.0d0 /)
       prot_y(1:3, 3) = (/  sin(bt),   0.0d0,  cos(bt) /)
       
@@ -108,6 +108,8 @@ c=======================================================
       protmat = matmul(prot_z, prot_y)
 
       end
+c     References:
+c     [1] "Structure factors for tunneling ionization rates of diatomic molecules", http://dx.doi.org/10.1016/j.adt.2015.02.001
 c=======================================================
 
 

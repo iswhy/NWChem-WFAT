@@ -98,11 +98,16 @@ c     ==== Calculate and print structure factor and ion yield ====
 c              ==== Calculate structure factor ====
                call wfat_calc_structuref(geom, bt, gm, nch, erg,
      &              nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_sf))
+
+               if (wfat1) call wfat_calc_an()     resolve here
                
 c              ==== Print structure factor ====
                if (ndid == 0 .and. pr_srfc)
      &              call wfat_print_structuref(nat, bt, gm, nch, nqn,
      &              dcpl_mb(k_sf), gap)
+
+               if (wfat1) call wfat_print_an() resolve here
+                  
             endif
 
             if (pr_rate) then

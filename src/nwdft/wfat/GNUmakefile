@@ -12,6 +12,7 @@
 	wfat_init_test.o \
 	wfat_calc_intgl.o \
 	wfat_calc_structuref.o \
+	wfat_calc_an.o \
 	wfat_calc_ionyield.o \
 	wfat_calc_tmd.o \
 	wfat_calc_ti.o \

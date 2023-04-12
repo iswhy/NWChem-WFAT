@@ -1078,3 +1078,53 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: Cannot deallocate node', 49, MA_ERR)
       end
 c=======================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_submatrix(mm, nn, a, m, n, irow, icol, b)
+
+      implicit none
+      integer mm
+      integer nn
+      double precision a(mm,nn)
+      integer m
+      integer n
+      integer irow(m)
+      integer icol(n)
+      double precision b(m,n)
+
+      do j = 1, n
+         do i = 1, m
+            b(i,j) = a( irow(i), icol(j) )
+         enddo
+      enddo
+
+      end
+c============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_isdiag(n, a, thr, isdiag)
+
+      implicit none
+      integer n
+      double precision a(n,n)
+      double precision thr
+      logical isdiag
+
+      integer i, j
+
+      isdiag = .true.
+      do j = 1, n
+         do i = 1, n
+            if (i /= j .and. abs(a(i,j)) > thr) then
+               isdiag = .false.
+               return
+            endif
+         enddo
+      enddo
+
+      end
+c============================================================

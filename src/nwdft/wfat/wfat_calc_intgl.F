@@ -425,9 +425,9 @@ c=======================================================
       double complex intl_j_(nsh, nqn, 3, nch, ncent)
       double complex intl_j(nsh, ncent, nqn, 3, nch)
       double complex intl_k1_(nsh, nqn, nch, ncent)
-      double complex intl_k1(nsh, nqn, nch, ncent)
+      double complex intl_k1(nsh, ncent, nqn, nch)
       double complex intl_k2_(nsh, nqn, nch, ncent)
-      double complex intl_k2(nsh, nqn, nch, ncent)
+      double complex intl_k2(nsh, ncent, nqn, nch)
 
       integer ich, i, iqn, icent, i_lm
       
