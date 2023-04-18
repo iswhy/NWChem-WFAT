@@ -3,8 +3,9 @@ c=======================================================
 c==== Imam ====
       subroutine wfat_calc_intgl(rtdb, nch, orbid, spinid, nqn, nid, 
      &                           mid, lmax_, gqual, smh, res_mode, 
-     &                           erg, chpos, chmmt, iondip, g_il)
-
+     &                           wfat1, nlgl, erg, chpos, chmmt, iondip,
+     &                           pb, g_il, g_j, g_k)
+      
       implicit none
 #include "rtdb.fh"
 #include "stdio.fh"      
@@ -32,9 +33,10 @@ c==== Imam ====
       double precision chpos(3, nch)  ! [output]
       double precision chmmt(3, nch)  ! [output]
       double precision iondip(3, nch) ! [output]
+      double precision pb(1:*)        ! [output], only calculated when wfat1=.true.. When wfat1=.true., pb should have the size of at least 9*nch.
       integer g_il                    ! [output], global array handle for intgl. For structure factors.
-      integer g_j                     ! [output]
-      integer g_k(2)                  ! [output]
+      integer g_j                     ! [output], only calculated when wfat1=.true.
+      integer g_k(2)                  ! [output], only calculated when wfat1=.true.
       
       character*16 tag
       character*9 rdm_name(2)
@@ -94,7 +96,7 @@ c            associated to the three cartesian components of the dipole operator
      &                       erg, chpos, chmmt, iondip)
       if (wfat1)
      &     call wfat_perturbnew_cwfn(nch, spinid, orbid,
-     &     dbl_mb(k_cf+nbas*nch))
+     &     dbl_mb(k_cf+nbas*nch), pb)
       
 
 c     ==== Get the reduced density matrix ====

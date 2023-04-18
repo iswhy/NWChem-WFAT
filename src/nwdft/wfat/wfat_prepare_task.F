@@ -256,6 +256,83 @@ c=================================================
 
 c=================================================
 c=================================================
+      subroutine wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, g_j,
+     &     g_k, l_pb, k_pb)
+
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"
+#include "global.fh"
+#include "mafdecls.fh"
+      logical wfat1        ! [input], 
+      integer lmax         ! [input], 
+      integer natm         ! [input], 
+      integer nqn          ! [input], 
+      integer nch          ! [input], 
+      integer g_j          ! [output], 
+      integer g_k(2)       ! [output], 
+      integer l_pb, k_pb   ! [output], 
+
+      integer nsh, nintj, nintk, npb, i
+
+
+      nsh = (1 + lmax)**2
+      if (wfat1) then
+         nintj = nsh * natm * nqn * 3 * nch
+         if (.not. ga_create(mt_dcpl, nintj, 1, 'intl_j', 0, 0, g_j))
+     &        call errquit('WFAT: Cannot create intl_j global array.',
+     &        1, GA_ERR)
+         call ga_zero(g_j)
+
+         nintk = nsh * natm * nqn * nch
+         do i = 1, 2
+            if (.not. ga_create(mt_dcpl, nintk, 1, 'intl_k', 0, 0,
+     &           g_k(i)))
+     &           call errquit('WFAT: Cannot create intl_k global '//
+     &           'array.', 1, GA_ERR)
+            call ga_zero(g_k(i))
+         enddo
+
+         npb = 3 * 3 * nch
+      else
+         npb = 1          ! polb (static polarizabilities) needs to be allocated anyway because it will be fed into a subroutine below.
+      endif
+      if (.not. MA_alloc_get(MT_DBL, npb, 'polb', l_pb, k_pb))
+     &     call errquit('WFAT: polb allocation failed', 59, MA_ERR)
+
+      end
+c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_erase_wfat1_intgl(g_j, g_k, l_pb)
+
+      implicit none
+#include "errquit.fh"
+#include "global.fh"
+#include "mafdecls.fh"
+      integer g_j
+      integer g_k(2)
+      integer l_pb
+
+      integer i
+
+      if (.not. ga_destroy(g_j))
+     &     call errquit('WFAT: Cannot destroy intl_j.', 1, GA_ERR)
+      do i = 1, 2
+         if (.not. ga_destroy(g_k(i)))
+     &        call errquit('WFAT: Cannot destroy intl_k.', 1, GA_ERR)
+      enddo
+      if (.not. MA_free_heap(l_pb))
+     &     call errquit('WFAT: polb deallocation failed', 3, MA_ERR)
+
+      end
+c=================================================
+      
+      
+c=================================================
+c=================================================
       subroutine wfat_prep_resmode(rtdb, rmode)
 
       implicit none

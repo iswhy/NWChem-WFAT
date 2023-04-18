@@ -268,6 +268,7 @@ c     ==== Orb. center and orb. moments relative to orb. center ====
          io = orbid(i)
          is = spinid(i)
          do id = 1, 3
+c           ==== Compute the orb. center ====
             iom0 = k_om0 + nbas0*nspin0*(id-1) + nbas0*(is-1) + io - 1
             if (autopos) then
                orbcent(id,i) = (totdip0(id) + dbl_mb(iom0)) /
@@ -275,6 +276,8 @@ c     ==== Orb. center and orb. moments relative to orb. center ====
             else
                orbcent(id,i) = omgpos(id)
             endif
+
+c           ==== Compute orb. moments relative to the orb. center ====
             orbmmt(id,i) = dbl_mb(iom0) - orbcent(id,i)
          enddo
 c        ==== Ion dip. moment (better be vanishing) ====

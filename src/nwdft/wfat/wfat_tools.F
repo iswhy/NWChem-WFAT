@@ -339,7 +339,7 @@ c=======================================================
       implicit none
       integer nb
       double precision vcf(nb)
-      double precision opr(nb, nb)
+      double precision opr(nb, nb)     ! [input], opr must be a symmetric matrix.
       double precision val1e
 
       integer i, j, f
@@ -366,7 +366,8 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_mat_element(n, u, v, o, val)
-c   val = <u|o|v>
+c     val = <u|o|v>
+c     o must be a symmetric matrix.
       implicit none
 #include "mafdecls.fh"
 #include "errquit.fh"
@@ -1090,8 +1091,8 @@ c============================================================
       double precision a(mm,nn)
       integer m
       integer n
-      integer irow(m)
-      integer icol(n)
+      integer irow(m)           ! [input], 1 <= irow(i) <= mm
+      integer icol(n)           ! [input], 1 <= icol(i) <= nn
       double precision b(m,n)
 
       do j = 1, n

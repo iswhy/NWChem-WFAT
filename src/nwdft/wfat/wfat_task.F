@@ -20,13 +20,13 @@ c===============================================================
       logical dd, td, extf
       character*32 theory
       character*2 prtb_type
-      integer ndid, gqual, i, lmax, nlgl, is
+      integer ndid, gqual, i, lmax, nlgl, is, nhp
       integer l_nd, l_or0, l_sp, l_or, l_npa, l_mpa, l_eg
       integer l_ps, l_cmm, l_idp, l_in, l_ftl, l_al, l_wl, l_pl, l_tl
-      integer l_dl
+      integer l_dl, l_pb
       integer k_nd, k_or0, k_sp, k_or, k_npa, k_mpa, k_eg
       integer k_ps, k_cmm, k_idp, k_in, k_ftl, k_al, k_wl, k_pl, k_tl
-      integer k_dl
+      integer k_dl, k_pb
       integer g_il, g_j, g_k(2), nlas, ntime
       integer nch, nqn, nerg, ncpos, ncmm, niond, nsh, nintg, nintj
       integer nintk, prtb_ord
@@ -144,22 +144,10 @@ c     ==== Calculate (or load) WFAT integrals ====
      &     1, GA_ERR)
       call ga_zero(g_il)
 
-      if (wfat1) then
-         nintj = nsh * natm * nqn * 3 * nch
-         if (.not. ga_create(mt_dcpl, nintj, 1, 'intl_j', 0, 0, g_j))
-     &        call errquit('WFAT: Cannot create intl_j global array.',
-     &        1, GA_ERR)
-         call ga_zero(g_j)
-
-         nintk = nsh * natm * nqn * nch
-         do i = 1, 2
-            if (.not. ga_create(mt_dcpl, nintk, 1, 'intl_k', 0, 0,
-     &           g_k(i)))
-     &           call errquit('WFAT: Cannot create intl_k global '//
-     &           'array.', 1, GA_ERR)
-            call ga_zero(g_k(i))
-         enddo
-      endif
+      
+c     ==== Preparing WFAT(1) integrals ====
+      call wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, g_j, g_k,
+     &     l_pb, k_pb)
       
       
       smh = 0.0d0
@@ -170,7 +158,9 @@ c        ==== Calculate WFAT integrals on 'start' startup mode ====
      &                        nqn, int_mb(k_npa), int_mb(k_mpa),
      &                        lmax, gqual, smh, res_mode, wfat1, nlgl,
      &                        dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
-     &                        dbl_mb(k_idp), g_il, g_j, g_k)
+     &                        dbl_mb(k_idp), dbl_mb(k_pb), 
+     &                        g_il, g_j, g_k)
+         
 c        ==== Binary-print the integrals freshly calculated ====
          if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,
      &        int_nosave))
@@ -260,7 +250,7 @@ c     ==== Deallocations ====
       call wfat_erase_channelprop(l_eg, l_ps, l_cmm, l_idp)
       if (.not. ga_destroy(g_il))
      &     call errquit('WFAT: Cannot destroy intgl.', 1, GA_ERR)
-
+      call wfat_erase_wfat1_intgl(g_j, g_k, l_pb)
 
 
       call wfat_terminate(rtdb)
