@@ -1,8 +1,8 @@
 c============================================================
 c============================================================
       subroutine wfat_calc_an(bt, gm, nat, nb, ns, nch, nqn, lmax,
-     &     orbid, spinid, dpmo, chmmt, pb, intl_j, intl_k1, intl_k2,
-     &     scr, lfpb, srfc, an)
+     &     orbid, spinid, dgid0, dgn0, dpmo, chmmt, pb, intl_j, 
+     &     intl_k1, intl_k2, scr, chmmtd, lfpb, srfc, an)
 
       implicit none
 #include "errquit.fh"
@@ -16,22 +16,25 @@ c============================================================
       integer lmax
       integer orbid(nch)
       integer spinid(nch)
+      integer dgid0(nch)                                    ! [input],
+      integer dgn0(nch)                                     ! [input],
       double precision dpmo(nb,nb,ns,3)                     ! [input],
       double precision chmmt(3,nch)                         ! [input],
       double precision pb(3,3,nch)                          ! [input],
       double complex intl_j((1+lmax)**2, nat, nqn, 3, nch)  ! [input],
       double complex intl_k1((1+lmax)**2, nat, nqn, nch)    ! [input],
       double complex intl_k2((1+lmax)**2, nat, nqn, nch)    ! [input],
-      double precision scr(1:*)                             ! [input], minimum size is 2*nb**2
+      double precision scr(1:*)                             ! [input], minimum size is 2*nb**2+nb
+      double precision chmmtd(3,nch)                        ! [output],
       double precision lfpb(nch)                            ! [output],
       double complex srfc(nat, nqn, nch)                    ! [in/output],
       double complex an(nat, nqn, nch)                      ! [output],
 
       logical iscalc(nch), isdiag, dgtest
       integer nht, ndp, nev, p_ht0, p_htn, p_dp0, p_dpn, p_ev0, p_evn, i
-      integer is, nn, k, j, j_, dgid0(nch), dgn0(nch), mfid(nch)
+      integer is, nn, k, j, j_, mfid(nch)
       integer orbid0(nch)
-      double precision protmat(3,3), cu(3), diagthr, chmmtd(3,nch)
+      double precision protmat(3,3), cu(3), diagthr
 
       parameter(diagthr=1.0d-12)
 
@@ -56,7 +59,6 @@ c     ==== Get the passive rotation matrix ===
 c     Diagonalize the dipole interaction Hamiltonian within any
 c     degenerate manifolds that are ionized.
       chmmtd = chmmt
-      call wfat_detect_degen0(nch, orbid, spinid, dgid0, dgn0)
 
       iscalc = .false.
       mfid = 0      
@@ -193,33 +195,6 @@ c     which are a linear combination of the original degenerate states.
             enddo
             
          enddo
-      enddo
-
-      end
-c============================================================
-
-
-c============================================================
-c============================================================
-      subroutine wfat_detect_degen0(nch, orbid, spinid, dgid0, dgn0)
-
-      implicit none
-#include "wfat_qm_param.fh"
-      integer nch          ! [input],
-      integer orbid(nch)   ! [input],
-      integer spinid(nch)  ! [input],
-      integer dgid0(nch)   ! [output], the ID of the degenerate MO's whose MO ID and spin ID are specified in orbid and spinid, respectively.
-      integer dgn0(nch)    ! [output], the degree of degeneracy of the above MO's.
-
-      integer i, io, is
-
-c     dgid0 is a subset of int_mb(k_dgid:k_dgid+nbas0*nspin0-1)
-c     dgn0 is a subset of int_mb(k_dgn:k_dgn+nbas0*nspin0-1)
-      do i = 1, nch
-         io = orbid(i)
-         is = spinid(i)
-         dgid0(i) = int_mb(k_dgid + (is-1)*nbas0 + (io-1))
-         dgn0(i) = int_mb(k_dgn + (is-1)*nbas0 + (io-1))
       enddo
 
       end

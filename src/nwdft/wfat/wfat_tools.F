@@ -192,8 +192,8 @@ c     c = alpha*a*b + beta*c
       integer m                   ! [input], size of a and no. of rows of b
       integer n                   ! [input], no. of columns of b
       double precision alpha      ! [input], 
-      double precision a(m,m)     ! [input], 
-      double precision b(m,n)     ! [input], 
+      double precision a(m,m)     ! [input], symmetric matrix
+      double precision b(m,n)     ! [input], any matrix
       double precision beta       ! [input], 
       double precision c(m,n)     ! [output],   
 
@@ -553,8 +553,39 @@ c   g_b = g_v^T . g_a . g_v
      &     1, GA_ERR)
 
       end
-c===============================================================      
+c===============================================================
+      
 
+c===============================================================
+c===============================================================
+      subroutine wfat_represent_sym(m, n, v, a, b)
+c     b = v^T . a . v
+c     where a is a symmetric matrix
+      implicit none
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer m
+      integer n
+      double precision v(m,n)
+      double precision a(m,m)       ! a is symmetric
+      double precision b(n,n)
+
+      integer l_tmp, k_tmp
+      
+
+      if (.not. ma_alloc_get(MT_DBL, m*n, 'tmp', l_tm, k_tm))
+     &     call errquit('WFAT: Cannot allocate tmp', 1, MA_ERR)
+      
+      call wfat_dsymm_wrap(m, n, 1.0d0, a, v, 0.0d0, dbl_mb(k_tm))
+      call wfat_dgemm_wrap('t', 'n', m, n, m, n, 1.0d0, v, dbl_mb(k_tm),
+     &     0.0d0, b)
+
+      if (.not. ma_free_heap(l_tmp))
+     &     call errquit('WFAT: Cannot deallocate tmp', 1, MA_ERR)
+
+      end
+c===============================================================
+      
             
 c=======================================================
 c=======================================================

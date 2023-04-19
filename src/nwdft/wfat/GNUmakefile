@@ -39,6 +39,7 @@
 	wfat_test2.o \
 	wfat_numdens.o \
 	wfat_orb_property.o \
+	wfat_calc_dpmo.o \
 	wfat_eval_mo.o \
 	wfat_eval_laser.o \
 	wfat_print.o \

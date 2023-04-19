@@ -11,7 +11,7 @@ c======== Imam =======
       integer ibas                 ! [input]
       integer nbas                 ! [input]
       integer lmax
-      double precision center(1:3) ! [Input] coordinate of potential center
+      double precision center(1:3) ! [Input] coordinate of the origin for the multipole.
       double precision mpmat(nbas, nbas, 1:*)   ! [output]
 
       integer l_s, l_mp

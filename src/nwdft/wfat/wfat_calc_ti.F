@@ -70,15 +70,22 @@ c     ==== Allocation of structure factors and ion yields ====
       nrt = nqn * nch
       if (.not. MA_alloc_get(MT_DBL, nrt, 'p_rate', l_rt, k_rt))
      &     call errquit('WFAT: p_rate allocation failed', 2, MA_ERR)
+
+
+c     ==== When WFAT1 is active ====
+      if (wfat1) then
+         call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
+     &        int_mb(k_dgn))
+         call wfat_calc_dpmo()   move this call to wfat_task.F outside the serial part
+      enddo
       
       
 c     ==== Initializing the printings ====
       if (ndid == 0 .and. pr_srfc)
-     &     call wfat_initprint_structuref(nch, orbid0,
-     &          spinid, nqn, nid, mid) 
+     &     call wfat_initprint_structuref(nch, orbid0, spinid, nqn,
+     &          nid, mid) 
       if (ndid == 0 .and. pr_rate)
-     &     call wfat_initprint_rate(nch, orbid0, 
-     &          spinid, nqn, nid, mid)
+     &     call wfat_initprint_rate(nch, orbid0, spinid, nqn, nid, mid)
       
       
 c     ==== Calculate and print structure factor and ion yield ====
@@ -99,14 +106,20 @@ c              ==== Calculate structure factor ====
                call wfat_calc_structuref(geom, bt, gm, nch, erg,
      &              nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_sf))
 
-               if (wfat1) call wfat_calc_an()     resolve here
+               if (wfat1) call wfat_calc_an(bt, gm, nat, nb, ns, nch,
+     &              nqn, lmax, orbid, spinid, int_mb(k_dgi), 
+     &              int_mb(k_dgn), dpmo, chmmt, pb, intgl_j, 
+     &              intgl_k1, intgl_k2, dbl_mb(k_sc), dbl_mb(k_mmd), 
+     &              dbl_mb(k_lpb), dcpl_mb(k_sf), dcpl_mb(k_an))
+
+               add nb, ns, orbid-not orbid0, pb, intgl_j, intgl_k1, intgl_k2 to input
                
 c              ==== Print structure factor ====
                if (ndid == 0 .and. pr_srfc)
      &              call wfat_print_structuref(nat, bt, gm, nch, nqn,
      &              dcpl_mb(k_sf), gap)
 
-               if (wfat1) call wfat_print_an() resolve here
+cforlater               if (wfat1) call wfat_print_an() resolve here
                   
             endif
 
@@ -144,6 +157,33 @@ c     ==== Deallocations ====
 
       end
 c===============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_detect_degen0(nch, orbid, spinid, dgid0, dgn0)
+
+      implicit none
+#include "wfat_qm_param.fh"
+      integer nch          ! [input],
+      integer orbid(nch)   ! [input],
+      integer spinid(nch)  ! [input],
+      integer dgid0(nch)   ! [output], the degenerate-ID of the ionized channels whose MO ID and spin ID are specified in orbid and spinid, respectively.
+      integer dgn0(nch)    ! [output], the degree of degeneracy of the ionized channels.
+
+      integer i, io, is
+
+c     dgid0 is a subset of int_mb(k_dgid:k_dgid+nbas0*nspin0-1)
+c     dgn0 is a subset of int_mb(k_dgn:k_dgn+nbas0*nspin0-1)
+      do i = 1, nch
+         io = orbid(i)
+         is = spinid(i)
+         dgid0(i) = int_mb(k_dgid + (is-1)*nbas0 + (io-1))
+         dgn0(i) = int_mb(k_dgn + (is-1)*nbas0 + (io-1))
+      enddo
+
+      end
+c============================================================
 
 
 c===============================================================
