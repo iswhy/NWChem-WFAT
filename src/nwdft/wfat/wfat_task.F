@@ -20,23 +20,21 @@ c===============================================================
       logical dd, td, extf
       character*32 theory
       character*2 prtb_type
-      integer ndid, gqual, i, lmax, nlgl, is, nhp
+      integer ndid, gqual, i, lmax, nlgl, is, npb, ndpo
       integer l_nd, l_or0, l_sp, l_or, l_npa, l_mpa, l_eg
       integer l_ps, l_cmm, l_idp, l_in, l_ftl, l_al, l_wl, l_pl, l_tl
-      integer l_dl, l_pb
+      integer l_dl, l_pb, l_dpo, l_inj, l_ink1, l_ink2
       integer k_nd, k_or0, k_sp, k_or, k_npa, k_mpa, k_eg
       integer k_ps, k_cmm, k_idp, k_in, k_ftl, k_al, k_wl, k_pl, k_tl
-      integer k_dl, k_pb
+      integer k_dl, k_pb, k_dpo, k_inj, k_ink1, k_ink2
       integer g_il, g_j, g_k(2), nlas, ntime
       integer nch, nqn, nerg, ncpos, ncmm, niond, nsh, nintg, nintj
       integer nintk, prtb_ord
-      double precision fieldmag, smh, prtb_bt, prtb_gm
+      double precision fieldmag, smh, prtb_bt, prtb_gm, ctr(3)
       double precision tmax
 
       logical task_mewfat
       external task_mewfat
-
-      
 
       
       ndid = ga_nodeid()
@@ -146,8 +144,8 @@ c     ==== Calculate (or load) WFAT integrals ====
 
       
 c     ==== Preparing WFAT(1) integrals ====
-      call wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, g_j, g_k,
-     &     l_pb, k_pb)
+      call wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, nintj, 
+     &     g_j, nintk, g_k, npb, l_pb, k_pb)
       
       
       smh = 0.0d0
@@ -204,6 +202,15 @@ c     ==== Printings ====
      &        call errquit('WFAT: Cannot allocate intgl.', 2, MA_ERR)
          call ga_get(g_il, 1, nintg, 1, 1, dcpl_mb(k_in), nintg)
 
+c        ==== When WFAT(1) is in use ====
+         call wfat_prep_wfat1_ti(wfat1, nbas0, nspin0, nintj, nintk,
+     &        ndpo, l_dpo, k_dpo, l_inj, k_inj, l_ink1, k_ink1,
+     &        l_ink2, k_ink2)
+         if (wfat1) then
+            ctr = 0.0d0
+            call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
+         endif
+
 
 c        ============================================
 c        ==== Calculate and print key quantities ====
@@ -222,7 +229,9 @@ c        ============================================
      &           call wfat_calc_ti(rtdb, geom_hd, pr_srfc, pr_rate,
      &           fieldmag, nch, int_mb(k_or0), int_mb(k_sp), 
      &           dbl_mb(k_eg), dbl_mb(k_cmm), nqn, int_mb(k_npa),
-     &           int_mb(k_mpa), lmax, zion, dcpl_mb(k_in))
+     &           int_mb(k_mpa), lmax, zion, dcpl_mb(k_in), wfat1, nbas0,
+     &           nspin0, int_mb(k_or), dbl_mb(k_dpo), dbl_mb(k_pb),
+     &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
 
             if (pr_tmd .or. pr_tmd_atom) 
      &           call wfat_calcprint_tmd(rtdb, geom_hd, pr_tmd, 
@@ -235,8 +244,10 @@ c        ============================================
          
          if (.not. MA_free_heap(l_in))
      &        call errquit('WFAT: intgl deallocation failed', 3, MA_ERR)
+         call wfat_erase_wfat1_ti(l_dpo, l_inj, l_ink1, l_ink2)
          rtdb_stat = rtdb_parallel(.true.)
       endif
+      call ga_sync()
       
 
 c     ==== Deallocations ====
@@ -251,6 +262,7 @@ c     ==== Deallocations ====
       if (.not. ga_destroy(g_il))
      &     call errquit('WFAT: Cannot destroy intgl.', 1, GA_ERR)
       call wfat_erase_wfat1_intgl(g_j, g_k, l_pb)
+      
 
 
       call wfat_terminate(rtdb)

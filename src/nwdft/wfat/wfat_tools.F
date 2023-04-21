@@ -570,7 +570,7 @@ c     where a is a symmetric matrix
       double precision a(m,m)       ! a is symmetric
       double precision b(n,n)
 
-      integer l_tmp, k_tmp
+      integer l_tm, k_tm
       
 
       if (.not. ma_alloc_get(MT_DBL, m*n, 'tmp', l_tm, k_tm))
@@ -580,7 +580,7 @@ c     where a is a symmetric matrix
       call wfat_dgemm_wrap('t', 'n', m, n, m, n, 1.0d0, v, dbl_mb(k_tm),
      &     0.0d0, b)
 
-      if (.not. ma_free_heap(l_tmp))
+      if (.not. ma_free_heap(l_tm))
      &     call errquit('WFAT: Cannot deallocate tmp', 1, MA_ERR)
 
       end
@@ -1125,6 +1125,8 @@ c============================================================
       integer irow(m)           ! [input], 1 <= irow(i) <= mm
       integer icol(n)           ! [input], 1 <= icol(i) <= nn
       double precision b(m,n)
+
+      integer j, i
 
       do j = 1, n
          do i = 1, m

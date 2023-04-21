@@ -1,8 +1,8 @@
 c============================================================
 c============================================================
       subroutine wfat_calc_an(bt, gm, nat, nb, ns, nch, nqn, lmax,
-     &     orbid, spinid, dgid0, dgn0, dpmo, chmmt, pb, intl_j, 
-     &     intl_k1, intl_k2, scr, chmmtd, lfpb, srfc, an)
+     &     orbid, spinid, dgid0, dgn0, mid, dpmo, chmmt, pb, intl_j, 
+     &     intl_k1, intl_k2, scr, scrx, chmmtd, lfpb, srfc, an)
 
       implicit none
 #include "errquit.fh"
@@ -18,27 +18,29 @@ c============================================================
       integer spinid(nch)
       integer dgid0(nch)                                    ! [input],
       integer dgn0(nch)                                     ! [input],
+      integer mid(nqn)                                      ! [input],
       double precision dpmo(nb,nb,ns,3)                     ! [input],
       double precision chmmt(3,nch)                         ! [input],
       double precision pb(3,3,nch)                          ! [input],
       double complex intl_j((1+lmax)**2, nat, nqn, 3, nch)  ! [input],
       double complex intl_k1((1+lmax)**2, nat, nqn, nch)    ! [input],
       double complex intl_k2((1+lmax)**2, nat, nqn, nch)    ! [input],
-      double precision scr(1:*)                             ! [input], minimum size is 2*nb**2+nb
+      double precision scr(1:*)                             ! [output], minimum size is 2*nb**2 + nb
+      double complex scrx(1:*)                              ! [output], minimum size is nat*nqn*nch
       double precision chmmtd(3,nch)                        ! [output],
       double precision lfpb(nch)                            ! [output],
       double complex srfc(nat, nqn, nch)                    ! [in/output],
       double complex an(nat, nqn, nch)                      ! [output],
 
       logical iscalc(nch), isdiag, dgtest
-      integer nht, ndp, nev, p_ht0, p_htn, p_dp0, p_dpn, p_ev0, p_evn, i
-      integer is, nn, k, j, j_, mfid(nch)
+      integer nht, ndp, nev, nlc, p_ht0, p_htn, p_dp0, p_dpn, p_ev0
+      integer p_evn, p_lc0, p_lcn, i, is, nn, k, j, j_, mfid(nch)
       integer orbid0(nch)
       double precision protmat(3,3), cu(3), diagthr
 
       parameter(diagthr=1.0d-12)
 
-
+c     ==== Double precision scratch ====
       nht = nb**2
       ndp = nb**2
       nev = nb
@@ -49,6 +51,12 @@ c============================================================
       p_dpn = p_dp0 + ndp - 1
       p_ev0 = p_dpn + 1         ! p_ev0 = pointer to the (dynamic) eigenvalue of the submatrix of H_int
       p_evn = p_ev0 + nev - 1
+
+c     Double complex scratch ====
+      nlc = nat * nqn * nch
+      
+      p_lc0 = 1
+      p_lcn = p_lc0 + nlc - 1
 
       
 c     ==== Get the passive rotation matrix ===
@@ -95,7 +103,7 @@ c                 ==== Diagonalize H_int in this manifold ====
          
 c                 ==== Construct the new structure factors ====
                   call wfat_lincomb_srfc(nat, nch, nqn, nn,
-     &                 scr(p_ht0), mfid, dcpl_mb(k_sc), srfc)
+     &                 scr(p_ht0), mfid, scrx(p_lc0), srfc)
          
 c                 ==== Update first moments of ionized orbitals ====
 cforlater                  call wfat_update_orbmmt(chmmtd)
@@ -115,7 +123,7 @@ c           ==== Update a_\nu and polarizabilities ====
             if (dgtest) then
                if (.not. isdiag) then
                   call wfat_lincomb_srfc(nat, nch, nqn, nn,
-     &                 scr(p_ht0), mfid, dcpl_mb(k_sc), an)
+     &                 scr(p_ht0), mfid, scrx(p_lc0), an)
 cforlater                  call wfat_update_polb()
                endif
             endif
@@ -268,10 +276,12 @@ c============================================================
       integer n
       double precision cf(n,n)
       integer cid(n)                   ! [input], 1 <= cid(i) <= nch
-      double complex scr(nat, nqn, n)
-      double complex s(nat, nqn, nch)
+      double complex scr(nat, nqn, n)  ! [output],
+      double complex s(nat, nqn, nch)  ! [in/output],
 
       integer j, j_, i, i_
+      double complex czero
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
 
       
 c     ==== Construct the linear combinations ====
@@ -298,8 +308,8 @@ c============================================================
       subroutine wfat_update_orbmmt()
 
       implicit none
-      double precision scr(n,n)
-      double precision mmtd()      ! [output], New orbital moments in molecular frame and relative to the corresponding orbital center.
+cforlater      double precision scr(n,n)
+cforlater      double precision mmtd()      ! [output], New orbital moments in molecular frame and relative to the corresponding orbital center.
 
 
 

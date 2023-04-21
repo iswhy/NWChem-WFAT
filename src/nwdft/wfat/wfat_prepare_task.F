@@ -256,51 +256,60 @@ c=================================================
 
 c=================================================
 c=================================================
-      subroutine wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, g_j,
-     &     g_k, l_pb, k_pb)
+      subroutine wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, 
+     &           nintj, g_j, nintk, g_k, npb, l_pb, k_pb)
 
       implicit none
 #include "errquit.fh"
 #include "stdio.fh"
 #include "global.fh"
 #include "mafdecls.fh"
-      logical wfat1        ! [input], 
-      integer lmax         ! [input], 
-      integer natm         ! [input], 
-      integer nqn          ! [input], 
-      integer nch          ! [input], 
-      integer g_j          ! [output], 
-      integer g_k(2)       ! [output], 
+      logical wfat1        ! [input],
+      integer lmax         ! [input],
+      integer natm         ! [input],
+      integer nqn          ! [input],
+      integer nch          ! [input],
+      integer nintj        ! [output],
+      integer g_j          ! [output],
+      integer nintk        ! [output],
+      integer g_k(2)       ! [output],
+      integer npb          ! [output], 
       integer l_pb, k_pb   ! [output], 
 
-      integer nsh, nintj, nintk, npb, i
-
+      integer nsh, i
 
       nsh = (1 + lmax)**2
       if (wfat1) then
          nintj = nsh * natm * nqn * 3 * nch
-         if (.not. ga_create(mt_dcpl, nintj, 1, 'intl_j', 0, 0, g_j))
-     &        call errquit('WFAT: Cannot create intl_j global array.',
-     &        1, GA_ERR)
-         call ga_zero(g_j)
-
          nintk = nsh * natm * nqn * nch
-         do i = 1, 2
-            if (.not. ga_create(mt_dcpl, nintk, 1, 'intl_k', 0, 0,
-     &           g_k(i)))
-     &           call errquit('WFAT: Cannot create intl_k global '//
-     &           'array.', 1, GA_ERR)
-            call ga_zero(g_k(i))
-         enddo
-
          npb = 3 * 3 * nch
       else
-         npb = 1          ! polb (static polarizabilities) needs to be allocated anyway because it will be fed into a subroutine below.
+         nintj = 1     !! 1)
+         nintk = 1     !! 2)
+         npb = 1       !! 3)
       endif
+
+
+      if (.not. ga_create(mt_dcpl, nintj, 1, 'intl_j', 0, 0, g_j))
+     &        call errquit('WFAT: Cannot create intl_j global array.',
+     &        1, GA_ERR)
+      call ga_zero(g_j)
+
+      do i = 1, 2
+         if (.not. ga_create(mt_dcpl, nintk, 1, 'intl_k', 0, 0, g_k(i)))
+     &        call errquit('WFAT: Cannot create intl_k global '//
+     &        'array.', 1, GA_ERR)
+         call ga_zero(g_k(i))
+      enddo
+         
       if (.not. MA_alloc_get(MT_DBL, npb, 'polb', l_pb, k_pb))
      &     call errquit('WFAT: polb allocation failed', 59, MA_ERR)
 
       end
+c     NOTES:
+c     1) It's actually okay not to allocate the global array g_j when wfat1=.false.. nintj is still computed anyway because it will be input to wfat_prep_wfat1_ti later.
+c     2) It's actually okay not to allocate the global array g_k when wfat1=.false.. nintk is still computed anyway because it will be input to wfat_prep_wfat1_ti later.
+c     3) polb (static polarizabilities) needs to be allocated anyway because it will be fed into the wfat_calc_intgl subroutine later.
 c=================================================
 
 
@@ -329,7 +338,76 @@ c=================================================
 
       end
 c=================================================
-      
+
+
+c=================================================
+c=================================================
+      subroutine wfat_prep_wfat1_ti(wfat1, nb, ns, nintj, nintk, ndpo,
+     &     l_dpo, k_dpo, l_inj, k_inj, l_ink1, k_ink1, l_ink2, k_ink2)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      logical wfat1             ! [input],
+      integer nb                ! [input],
+      integer ns                ! [input],
+      integer nintj             ! [input],
+      integer nintk             ! [input],
+      integer ndpo              ! [output],
+      integer l_dpo, k_dpo      ! [output],
+      integer l_inj, k_inj      ! [output],
+      integer l_ink1, k_ink1    ! [output],
+      integer l_ink2, k_ink2    ! [output],
+
+      if (wfat1) then
+         ndpo = nb * nb * ns * 3
+      else
+         ndpo = 1
+      endif
+
+      if (.not. MA_alloc_get(MT_DBL, ndpo, 'dpmo', l_dpo, k_dpo))          !! 1)
+     &     call errquit('WFAT: dpmo allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DCPL, nintj, 'intgl_j', l_inj, k_inj))
+     &     call errquit('WFAT: intgl_j allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DCPL, nintk, 'intgl_k1',
+     &     l_ink1, k_ink1))
+     &     call errquit('WFAT: intgl_k1 allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DCPL, nintk, 'intgl_k2',
+     &     l_ink2, k_ink2))
+     &     call errquit('WFAT: intgl_k2 allocation failed', 59, MA_ERR)
+
+      end
+c     NOTES:
+c     1) dpmo, intgl_j, intgl_k1, and intgl_k2 are allocated regardless of the value
+c        of wfat1 because these arrays will be input to the wfat_calc_ti subroutine
+c        later.
+c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_erase_wfat1_ti(l_dpo, l_inj, l_ink1, l_ink2)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer l_dpo
+      integer l_inj
+      integer l_ink1
+      integer l_ink2
+
+      if (.not. MA_free_heap(l_dpo))
+     &     call errquit('WFAT: dpmo deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_inj))
+     &     call errquit('WFAT: intgl_j deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_ink1))
+     &     call errquit('WFAT: intgl_k1 deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_ink2))
+     &     call errquit('WFAT: intgl_k2 deallocation failed', 3, MA_ERR)
+
+      end
+c=================================================
+
       
 c=================================================
 c=================================================

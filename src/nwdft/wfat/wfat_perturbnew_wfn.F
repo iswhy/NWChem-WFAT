@@ -95,6 +95,7 @@ c=======================================================
 
       implicit none
 #include "wfat_qm_param.fh"
+#include "mafdecls.fh"
       integer nch                                      ! [input],
       integer orbid(nch)                               ! [input],
       integer spinid(nch)                              ! [input],
@@ -112,7 +113,7 @@ c=======================================================
             do j1 = 1, 3
 
                pb(j1,j2,i) = 0.0d0
-               do m = 1, nb
+               do m = 1, nbas0
                   id0 = int_mb(k_dgid + (is-1)*nbas0 + (io-1))
                   idm = int_mb(k_dgid + (is-1)*nbas0 + (m-1))
                   if (id0 /= idm) then
