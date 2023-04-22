@@ -42,11 +42,11 @@ c     DESCRIPTION:
       
       logical gap
       integer nsf, nfc, nrt, nbt, ngm, nat, ndgi, ndgn, nsc, nsx, nmmd
-      integer nlpb, n_an, ib, ig, ndid
+      integer nlpb, n_gn, n_an, ib, ig, ndid
       integer l_sf, l_fc, l_rt, l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_lpb
-      integer l_an
+      integer l_gn, l_an
       integer k_sf, k_fc, k_rt, k_dgi, k_dgn, k_sc, k_sx, k_mmd, k_lpb
-      integer k_an
+      integer k_gn, k_an
       double precision bt_start, bt_last, dbt, dbtr, bt
       double precision gm_start, gm_last, dgm, dgmr, gm
       double precision rate
@@ -88,7 +88,8 @@ c     ==== When WFAT1 is active ====
       if (wfat1) then
          call wfat_prepare_an(nb, nat, nch, nqn, ndgi, l_dgi, k_dgi,
      &        ndgn, l_dgn, k_dgn, nsc, l_sc, k_sc, nsx, l_sx, k_sx, 
-     &        nmmd, l_mmd, k_mmd, nlpb, l_lpb, k_lpb, n_an, l_an, k_an)
+     &        nmmd, l_mmd, k_mmd, nlpb, l_lpb, k_lpb, n_gn, l_gn, k_gn,
+     &        n_an, l_an, k_an)
          call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
      &        int_mb(k_dgn))
       endif
@@ -116,16 +117,19 @@ c     ==== Calculate and print structure factor and ion yield ====
             endif
             
             if (pr_srfc .or. pr_rate) then
-c              ==== Calculate structure factor ====
-               call wfat_calc_structuref(geom, bt, gm, nch, erg,
-     &              nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_sf))
-
-               if (wfat1) call wfat_calc_an(bt, gm, nat, nb, ns, nch,
-     &              nqn, lmax, orbid, spinid, int_mb(k_dgi), 
-     &              int_mb(k_dgn), mid, dpmo, chmmt, pb, intgl_j, 
-     &              intgl_k1, intgl_k2, dbl_mb(k_sc), dcpl_mb(k_sx), 
-     &              dbl_mb(k_mmd), dbl_mb(k_lpb), dcpl_mb(k_sf),
-     &              dcpl_mb(k_an))
+c              ==== Calculate structure factors ====
+               if (wfat1) then
+                  call wfat_calc_wfat1_srfc(bt, gm, nat, nb, ns,
+     &                 nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
+     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, intgl, 
+     &                 intgl_j, intgl_k1, intgl_k2, dbl_mb(k_sc), 
+     &                 dcpl_mb(k_sx), dbl_mb(k_mmd), dbl_mb(k_lpb), 
+     &                 dcpl_mb(k_gn), dcpl_mb(k_sf), dcpl_mb(k_an))
+               else
+                  call wfat_calc_structuref_OLD(geom, bt, gm, nch, erg,
+     &                 nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_sf))
+               endif
+               
 
 c              ==== Print structure factor ====
                if (ndid == 0 .and. pr_srfc)
@@ -277,7 +281,7 @@ c===============================================================
       subroutine wfat_prepare_an(nb, nat, nch, nqn, ndgi, l_dgi, k_dgi,
      &           ndgn, l_dgn, k_dgn, nsc, l_sc, k_sc, nsx, l_sx, k_sx,
      &           nmmd, l_mmd, k_mmd, nlpb, l_lpb, k_lpb,
-     &           n_an, l_an, k_an)
+     &           n_gn, l_gn, k_gn, n_an, l_an, k_an)
       
       implicit none
 #include "errquit.fh"
@@ -298,6 +302,8 @@ c===============================================================
       integer l_mmd, k_mmd   ! [output],
       integer nlpb           ! [output],
       integer l_lpb, k_lpb   ! [output],
+      integer n_gn           ! [output],
+      integer l_gn, k_gn     ! [output],
       integer n_an           ! [output],
       integer l_an, k_an     ! [output],
 
@@ -319,6 +325,9 @@ c===============================================================
       nlpb = nch
       if (.not. MA_alloc_get(MT_DBL, nlpb, 'lfpb', l_lpb, k_lpb))
      &     call errquit('WFAT: lfpb allocation failed', 2, MA_ERR)
+      n_gn = nat * nqn * nch
+      if (.not. MA_alloc_get(MT_DCPL, n_gn, 'gn', l_gn, k_gn))
+     &     call errquit('WFAT: gn allocation failed', 2, MA_ERR)
       n_an = nat * nqn * nch
       if (.not. MA_alloc_get(MT_DCPL, n_an, 'an', l_an, k_an))
      &     call errquit('WFAT: an allocation failed', 2, MA_ERR)
@@ -330,7 +339,7 @@ c===============================================================
 c===============================================================
 c===============================================================
       subroutine wfat_erase_an(l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_lpb,
-     &                         l_an)
+     &                         l_gn, l_an)
 
       implicit none
 #include "errquit.fh"
@@ -341,6 +350,7 @@ c===============================================================
       integer l_sx
       integer l_mmd
       integer l_lpb
+      integer l_gn
       integer l_an
 
       if (.not. MA_free_heap(l_dgi))
@@ -355,6 +365,8 @@ c===============================================================
      &     call errquit('WFAT: chmmtd deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_lpb))
      &     call errquit('WFAT: lfpb deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_gn))
+     &     call errquit('WFAT: gn deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_an))
      &     call errquit('WFAT: an deallocation failed', 3, MA_ERR)
 

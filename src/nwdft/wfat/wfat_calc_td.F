@@ -123,10 +123,10 @@ c     ==== Calculate and print structure factor and ion yield ====
             
             if (pr_srfc .or. pr_yild .or. pr_avbeta) then
 c              ==== Calculate structure factor ====
-               call wfat_calc_structuref(geom, bt, gm, nch, erg,
+               call wfat_calc_structuref_OLD(geom, bt, gm, nch, erg,
      &              nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_sf))
-               call wfat_calc_structuref(geom, 180.0d0-bt, 180.0d0+gm, 
-     &              nch, erg, nqn, mid, lmax, chmmt, intgl,
+               call wfat_calc_structuref_OLD(geom, 180.0d0-bt, 
+     &              180.0d0+gm, nch, erg, nqn, mid, lmax, chmmt, intgl,
      &              dcpl_mb(k_sfn))
                
 c              ==== Print structure factor ====
@@ -205,10 +205,10 @@ c     ==== Calculate gamma-averaged ion yield ====
                gm = gm_start + dgm*(ig-1)
 
 c              ==== Calculate structure factor ====
-               call wfat_calc_structuref(geom, bt, gm, nch, erg,
+               call wfat_calc_structuref_OLD(geom, bt, gm, nch, erg,
      &              nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_sf))
-               call wfat_calc_structuref(geom, 180.0d0-bt, 180.0d0+gm,
-     &              nch, erg, nqn, mid, lmax, chmmt, intgl,
+               call wfat_calc_structuref_OLD(geom, 180.0d0-bt, 
+     &              180.0d0+gm, nch, erg, nqn, mid, lmax, chmmt, intgl,
      &              dcpl_mb(k_sfn))
 
 c              ==== Calculate ion yield ====

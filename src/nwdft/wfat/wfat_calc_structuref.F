@@ -1,8 +1,42 @@
 c=======================================================
 c=======================================================
+      subroutine wfat_calc_srfc(nat, nqn, bt, gm, erg, chmmt, gn,
+     &     srfc)
+
+      implicit none
+      integer nat, nqn
+      double precision bt, gm                    ! [input], orientation angle in degree.
+      double precision erg, chmmt(3)                 ! [input], 
+      double complex gn(nat, nqn)                    ! [input], 
+      double complex srfc(nat, nqn)                  ! [output], 
+
+      integer iqn, ic
+      double precision protmat(3,3), mu(3), kp
+      
+      
+c     ==== Get the passive rotation matrix ===
+      call wfat_passrot(-bt, -gm, protmat)
+
+      
+c     ==== Begin calculating structure factor ====
+      mu = matmul(transpose(protmat), -chmmt)
+      kp = sqrt(2 * abs(erg))
+      
+      do iqn = 1, nqn      
+         do ic = 1, nat
+            srfc(ic,iqn) = exp(-kp * mu(3)) * gn(ic,iqn)
+         enddo
+      enddo
+      
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
 c==== Imam ====
-      subroutine wfat_calc_structuref(geom, bt, gm, nch, erg, nqn, mid, 
-     &                                lmax_, chmmt, intgl, srfc)
+      subroutine wfat_calc_structuref_OLD(geom, bt, gm, nch, erg, nqn, 
+     &                                mid, lmax_, chmmt, intgl, srfc)
       
       implicit none
 c     #include "cdft.fh"
@@ -165,4 +199,47 @@ c=======================================================
 
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_calc_gn(nat, nqn, mid, lmax, bt, gm, intgl, gn)
+
+      implicit none
+      integer nat, nqn, mid(nqn), lmax
+      double precision bt, gm                    ! [input], orientation angle in degree.
+      double complex intgl((1+lmax)**2, nat, nqn)    !! 1) nsh * natom * nqn * nch
+      double complex gn(nat, nqn)                    !! 2)
+
+      integer iqn, ic, l, m, i_lm
+      double precision btr, gmr, deg2rad, wgf
+      double complex gn0, czero, imnum
+      parameter ( deg2rad = 0.01745329251994d0 )
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
+      parameter ( imnum = cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
       
+      
+      btr = bt * deg2rad
+      gmr = gm * deg2rad
+      
+c     ==== Begin calculating asymptotic coefficients ====
+      do iqn = 1, nqn
+         do ic = 1, nat
+            
+            gn(ic, iqn) = czero
+            do l = abs(mid(iqn)), lmax
+               do m = -l, l
+                  call wfat_wignerf(l, mid(iqn), m, btr, wgf)
+                  
+                  i_lm = l**2 + l + m + 1
+                  gn0 = intgl(i_lm,ic,iqn) * wgf *
+     &                  exp(-imnum*m*gmr)
+                  gn(ic, iqn) = gn(ic, iqn) + gn0
+               enddo
+            enddo
+
+         enddo
+      enddo
+         
+      end
+c=======================================================

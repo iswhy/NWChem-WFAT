@@ -1,8 +1,9 @@
 c============================================================
 c============================================================
-      subroutine wfat_calc_an(bt, gm, nat, nb, ns, nch, nqn, lmax,
-     &     orbid, spinid, dgid0, dgn0, mid, dpmo, chmmt, pb, intl_j, 
-     &     intl_k1, intl_k2, scr, scrx, chmmtd, lfpb, srfc, an)
+      subroutine wfat_calc_wfat1_srfc(bt, gm, nat, nb, ns, nch, nqn, 
+     &     lmax, orbid, spinid, dgid0, dgn0, mid, dpmo, erg, chmmt, pb,
+     &     intl, intl_j, intl_k1, intl_k2, scr, scrx, chmmtd, lfpb, gn,
+     &     srfc, an)
 
       implicit none
 #include "errquit.fh"
@@ -20,8 +21,10 @@ c============================================================
       integer dgn0(nch)                                     ! [input],
       integer mid(nqn)                                      ! [input],
       double precision dpmo(nb,nb,ns,3)                     ! [input],
+      double precision erg(nch)                             ! [input],
       double precision chmmt(3,nch)                         ! [input],
       double precision pb(3,3,nch)                          ! [input],
+      double complex intl((1+lmax)**2, nat, nqn, nch)       ! [input],
       double complex intl_j((1+lmax)**2, nat, nqn, 3, nch)  ! [input],
       double complex intl_k1((1+lmax)**2, nat, nqn, nch)    ! [input],
       double complex intl_k2((1+lmax)**2, nat, nqn, nch)    ! [input],
@@ -29,7 +32,8 @@ c============================================================
       double complex scrx(1:*)                              ! [output], minimum size is nat*nqn*nch
       double precision chmmtd(3,nch)                        ! [output],
       double precision lfpb(nch)                            ! [output],
-      double complex srfc(nat, nqn, nch)                    ! [in/output],
+      double complex gn(nat, nqn, nch)                      ! [output],
+      double complex srfc(nat, nqn, nch)                    ! [output],
       double complex an(nat, nqn, nch)                      ! [output],
 
       logical iscalc(nch), isdiag, dgtest
@@ -40,6 +44,7 @@ c============================================================
 
       parameter(diagthr=1.0d-12)
 
+      
 c     ==== Double precision scratch ====
       nht = nb**2
       ndp = nb**2
@@ -67,14 +72,18 @@ c     ==== Get the passive rotation matrix ===
 c     Diagonalize the dipole interaction Hamiltonian within any
 c     degenerate manifolds that are ionized.
       chmmtd = chmmt
+      do i = 1, nch
+         call wfat_calc_lfpolb(protmat, pb(:,:,i), lfpb(i))  move to wfat1 ionization rate code.
+      enddo
+      
 
       iscalc = .false.
       mfid = 0      
       do i = 1, nch
          is = spinid(i)
          nn = dgn0(i)
+
          if (.not. iscalc(i)) then
-            
 c           ==== Get the degenerate manifold ID ====
             call wfat_get_degen_mfold(nch, orbid, spinid, dgid0, dgn0,
      &           i, mfid, orbid0)
@@ -91,7 +100,6 @@ c              ==== Construct the H_int within the degenerate MO's ====
      &                                    cu(k)*scr(p_dp0:p_dp0+nn**2-1)
                enddo
                call wfat_isdiag(nn, scr(p_ht0), diagthr, isdiag)
-         
                
                if (.not. isdiag) then
                   call errquit('WFAT: For the moment, degenerate '//
@@ -100,31 +108,30 @@ c              ==== Construct the H_int within the degenerate MO's ====
                   
 c                 ==== Diagonalize H_int in this manifold ====
                   call wfat_dsyev_wrap(nn, scr(p_ht0), scr(p_ev0))
-         
-c                 ==== Construct the new structure factors ====
-                  call wfat_lincomb_srfc(nat, nch, nqn, nn,
-     &                 scr(p_ht0), mfid, scrx(p_lc0), srfc)
-         
+
 c                 ==== Update first moments of ionized orbitals ====
 cforlater                  call wfat_update_orbmmt(chmmtd)
+cforlater                  call wfat_update_polb(pb)
                endif
             endif
 
-c           ==== Calculate a_\nu and polarizabilities ====
+c           ==== Calculate g_\nu and a_\nu ====
             do j = 1, nn
                j_ = mfid(j)
-               call wfat_calc_an0(nat, nqn, mid, lmax, bt, gm, 
+               call wfat_calc_gn(nat, nqn, mid, lmax, bt, gm, 
+     &              intl(:,:,:,j_), gn(:,:,j_))
+               call wfat_calc_an(nat, nqn, mid, lmax, bt, gm, 
      &              chmmtd(:,j_), intl_j(:,:,:,:,j_),
      &              intl_k1(:,:,:,j_), intl_k2(:,:,:,j_), an(:,:,j_))
-               call wfat_calc_lfpolb(protmat, pb(:,:,j_), lfpb(j_))
             enddo
 
-c           ==== Update a_\nu and polarizabilities ====
+c           ==== Update g_\nu and a_\nu ====
             if (dgtest) then
                if (.not. isdiag) then
-                  call wfat_lincomb_srfc(nat, nch, nqn, nn,
-     &                 scr(p_ht0), mfid, scrx(p_lc0), an)
-cforlater                  call wfat_update_polb()
+                  call wfat_lincomb_gn(nat, nch, nqn, nn, scr(p_ht0), 
+     &                 mfid, scrx(p_lc0), gn)
+                  call wfat_lincomb_gn(nat, nch, nqn, nn, scr(p_ht0), 
+     &                 mfid, scrx(p_lc0), an)
                endif
             endif
          
@@ -132,8 +139,15 @@ cforlater                  call wfat_update_polb()
                j_ = mfid(j)
                iscalc(j_) = .true.
             enddo
-
          endif
+         
+      enddo
+
+
+c     ==== Calculate structure factors ====
+      do i = 1, nch
+         call wfat_calc_srfc(nat, nqn, bt, gm, erg(i), chmmtd(:,i), 
+     &        gn(:,:,i), srfc(:,:,i))
       enddo
       
       end
@@ -142,7 +156,7 @@ c============================================================
 
 c============================================================
 c============================================================
-      subroutine wfat_calc_an0(nat, nqn, mid, lmax, bt, gm, mmt,
+      subroutine wfat_calc_an(nat, nqn, mid, lmax, bt, gm, mmt,
      &     intl_j, intl_k1, intl_k2, an)
 
       implicit none
@@ -267,7 +281,7 @@ c============================================================
 
 c============================================================
 c============================================================
-      subroutine wfat_lincomb_srfc(nat, nch, nqn, n, cf, cid, scr, s)
+      subroutine wfat_lincomb_gn(nat, nch, nqn, n, cf, cid, scr, s)
 
       implicit none
       integer nat

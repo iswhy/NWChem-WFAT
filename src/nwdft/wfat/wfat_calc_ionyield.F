@@ -1,7 +1,7 @@
 c=======================================================
 c=======================================================
       subroutine wfat_calc_rate(nat, ef, nch, erg, nqn, nid, mid,
-     &                              zi, srfc, ffc, p_ionyd, ionyd)
+     &                          zi, srfc, ffc, p_ionyd, ionyd)
 
       implicit none
 #include "errquit.fh"
