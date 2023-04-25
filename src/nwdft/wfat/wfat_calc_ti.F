@@ -42,11 +42,11 @@ c     DESCRIPTION:
       
       logical gap
       integer nsf, nfc, nrt, nbt, ngm, nat, ndgi, ndgn, nsc, nsx, nmmd
-      integer nlpb, n_gn, n_an, ib, ig, ndid
-      integer l_sf, l_fc, l_rt, l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_lpb
-      integer l_gn, l_an
-      integer k_sf, k_fc, k_rt, k_dgi, k_dgn, k_sc, k_sx, k_mmd, k_lpb
-      integer k_gn, k_an
+      integer npbd, n_gn, n_an, n_on, ib, ig, ndid, i, iqn, i_on
+      integer l_sf, l_fc, l_rt, l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_pbd
+      integer l_gn, l_an, l_on
+      integer k_sf, k_fc, k_rt, k_dgi, k_dgn, k_sc, k_sx, k_mmd, k_pbd
+      integer k_gn, k_an, k_on
       double precision bt_start, bt_last, dbt, dbtr, bt
       double precision gm_start, gm_last, dgm, dgmr, gm
       double precision rate
@@ -88,10 +88,19 @@ c     ==== When WFAT1 is active ====
       if (wfat1) then
          call wfat_prepare_an(nb, nat, nch, nqn, ndgi, l_dgi, k_dgi,
      &        ndgn, l_dgn, k_dgn, nsc, l_sc, k_sc, nsx, l_sx, k_sx, 
-     &        nmmd, l_mmd, k_mmd, nlpb, l_lpb, k_lpb, n_gn, l_gn, k_gn,
-     &        n_an, l_an, k_an)
+     &        nmmd, l_mmd, k_mmd, npbd, l_pbd, k_pbd, n_gn, l_gn, k_gn,
+     &        n_an, l_an, k_an, n_on, l_on, k_on)
          call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
      &        int_mb(k_dgn))
+         do i = 1, nch
+            do iqn = 1, nqn
+               i_on = k_on + 2*nqn*(i-1) + 2*(iqn-1)
+               call wfat_calc_o(nid(iqn), mid(iqn), erg(i), zi,
+     &              dbl_mb(i_on))
+               write(luout, '("o_nu : ", 2i4, 2es21.12)')
+     &              i, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
+            enddo
+         enddo
       endif
       
       
@@ -123,7 +132,7 @@ c              ==== Calculate structure factors ====
      &                 nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
      &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, intgl, 
      &                 intgl_j, intgl_k1, intgl_k2, dbl_mb(k_sc), 
-     &                 dcpl_mb(k_sx), dbl_mb(k_mmd), dbl_mb(k_lpb), 
+     &                 dcpl_mb(k_sx), dbl_mb(k_mmd), dbl_mb(k_pbd), 
      &                 dcpl_mb(k_gn), dcpl_mb(k_sf), dcpl_mb(k_an))
                else
                   call wfat_calc_structuref_OLD(geom, bt, gm, nch, erg,
@@ -132,19 +141,31 @@ c              ==== Calculate structure factors ====
                
 
 c              ==== Print structure factor ====
-               if (ndid == 0 .and. pr_srfc)
-     &              call wfat_print_structuref(nat, bt, gm, nch, nqn,
-     &              dcpl_mb(k_sf), gap)
-
+               if (ndid == 0 .and. pr_srfc) then
+                  if (wfat1) then
+                     call wfat_print_structuref(nat, bt, gm, nch, nqn,
+     &                    dcpl_mb(k_an), gap)
+                  else
+                     call wfat_print_structuref(nat, bt, gm, nch, nqn,
+     &                    dcpl_mb(k_sf), gap)
+                  endif
+               endif
 cforlater               if (wfat1) call wfat_print_an() resolve here
                   
             endif
 
             if (pr_rate) then
 c              ==== Calculate ionization rate ====
-               call wfat_calc_rate(nat, fieldm, nch, erg,
-     &              nqn, nid, mid, zi, dcpl_mb(k_sf), dbl_mb(k_fc),
-     &              dbl_mb(k_rt), rate)
+               if (wfat1) then
+                  call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid,
+     &                 mid, fieldm, erg, zi, dcpl_mb(k_gn),
+     &                 dcpl_mb(k_an), dbl_mb(k_on), dbl_mb(k_mmd),
+     &                 dbl_mb(k_pbd), dbl_mb(k_fc), dbl_mb(k_rt), rate)
+               else
+                  call wfat_calc_rate(nat, fieldm, nch, erg,
+     &                 nqn, nid, mid, zi, dcpl_mb(k_sf), dbl_mb(k_fc),
+     &                 dbl_mb(k_rt), rate)
+               endif
                
 c              ==== Print ionization rate ====
                if (ndid == 0 .and. pr_rate)
@@ -172,7 +193,7 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: p_rate deallocation failed',
      &     3, MA_ERR)
       if (wfat1) call wfat_erase_an(l_dgi, l_dgn, l_sc, l_sx, l_mmd, 
-     &           l_lpb, l_an)
+     &           l_pbd, l_gn, l_an, l_on)
 
       end
 c===============================================================
@@ -280,8 +301,8 @@ c===============================================================
 c===============================================================
       subroutine wfat_prepare_an(nb, nat, nch, nqn, ndgi, l_dgi, k_dgi,
      &           ndgn, l_dgn, k_dgn, nsc, l_sc, k_sc, nsx, l_sx, k_sx,
-     &           nmmd, l_mmd, k_mmd, nlpb, l_lpb, k_lpb,
-     &           n_gn, l_gn, k_gn, n_an, l_an, k_an)
+     &           nmmd, l_mmd, k_mmd, npbd, l_pbd, k_pbd,
+     &           n_gn, l_gn, k_gn, n_an, l_an, k_an, n_on, l_on, k_on)
       
       implicit none
 #include "errquit.fh"
@@ -300,12 +321,14 @@ c===============================================================
       integer l_sx, k_sx     ! [output],
       integer nmmd           ! [output],
       integer l_mmd, k_mmd   ! [output],
-      integer nlpb           ! [output],
-      integer l_lpb, k_lpb   ! [output],
+      integer npbd           ! [output],
+      integer l_pbd, k_pbd   ! [output],
       integer n_gn           ! [output],
       integer l_gn, k_gn     ! [output],
       integer n_an           ! [output],
       integer l_an, k_an     ! [output],
+      integer n_on           ! [output],
+      integer l_on, k_on     ! [output],
 
       ndgi = nch
       if (.not. MA_alloc_get(MT_INT, ndgi, 'dgid0', l_dgi, k_dgi))
@@ -322,15 +345,18 @@ c===============================================================
       nmmd = 3 * nch
       if (.not. MA_alloc_get(MT_DBL, nmmd, 'chmmtd', l_mmd, k_mmd))
      &     call errquit('WFAT: chmmtd allocation failed', 2, MA_ERR)
-      nlpb = nch
-      if (.not. MA_alloc_get(MT_DBL, nlpb, 'lfpb', l_lpb, k_lpb))
-     &     call errquit('WFAT: lfpb allocation failed', 2, MA_ERR)
+      npbd = 3 * 3 * nch
+      if (.not. MA_alloc_get(MT_DBL, npbd, 'pbd', l_pbd, k_pbd))
+     &     call errquit('WFAT: pbd allocation failed', 2, MA_ERR)
       n_gn = nat * nqn * nch
       if (.not. MA_alloc_get(MT_DCPL, n_gn, 'gn', l_gn, k_gn))
      &     call errquit('WFAT: gn allocation failed', 2, MA_ERR)
       n_an = nat * nqn * nch
       if (.not. MA_alloc_get(MT_DCPL, n_an, 'an', l_an, k_an))
      &     call errquit('WFAT: an allocation failed', 2, MA_ERR)
+      n_on = 2 * nqn * nch
+      if (.not. MA_alloc_get(MT_DBL, n_on, 'on', l_on, k_on))
+     &     call errquit('WFAT: on allocation failed', 2, MA_ERR)
 
       end
 c===============================================================
@@ -338,8 +364,8 @@ c===============================================================
 
 c===============================================================
 c===============================================================
-      subroutine wfat_erase_an(l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_lpb,
-     &                         l_gn, l_an)
+      subroutine wfat_erase_an(l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_pbd,
+     &                         l_gn, l_an, l_on)
 
       implicit none
 #include "errquit.fh"
@@ -349,9 +375,10 @@ c===============================================================
       integer l_sc
       integer l_sx
       integer l_mmd
-      integer l_lpb
+      integer l_pbd
       integer l_gn
       integer l_an
+      integer l_on
 
       if (.not. MA_free_heap(l_dgi))
      &     call errquit('WFAT: dgid0 deallocation failed', 3, MA_ERR)
@@ -363,12 +390,14 @@ c===============================================================
      &     call errquit('WFAT: scr-cpx deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_mmd))
      &     call errquit('WFAT: chmmtd deallocation failed', 3, MA_ERR)
-      if (.not. MA_free_heap(l_lpb))
-     &     call errquit('WFAT: lfpb deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_pbd))
+     &     call errquit('WFAT: pbd deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_gn))
      &     call errquit('WFAT: gn deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_an))
      &     call errquit('WFAT: an deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_on))
+     &     call errquit('WFAT: on deallocation failed', 3, MA_ERR)
 
       end
 c===============================================================

@@ -14,6 +14,7 @@
 	wfat_calc_structuref.o \
 	wfat_calc_an.o \
 	wfat_calc_ionyield.o \
+	wfat_calc_wfat1_rate.o \
 	wfat_calc_tmd.o \
 	wfat_calc_ti.o \
 	wfat_calc_td.o \

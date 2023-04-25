@@ -1258,6 +1258,7 @@ c=======================================================
 c     Experimental code to sort a double precision array and store its
 c     original index. This algorithm is based on the subroutine isortx.
       Implicit NONE
+#include "stdio.fh"
       Integer Inc, N
       double precision dx(*)
       Integer indx(*)
@@ -1330,6 +1331,10 @@ c
         dx(i*incx+1)=-dx(i*incx+1)
  210       continue
       endif
+
+      write(luout, '("max, min id ins = ", 2i7)')
+     &     maxval(indx(1:n)), minval(indx(1:n))
+      
       return
       end
 c=======================================================

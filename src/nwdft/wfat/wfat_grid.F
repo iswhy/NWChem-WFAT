@@ -780,7 +780,8 @@ c=================================================
 #include "mafdecls.fh"
 #include "errquit.fh"
 #include "geom.fh"
-      integer geom                 ! [input], geometry handle.
+#include "stdio.fh"
+      integer geom              ! [input], geometry handle.
       integer nat                  ! [input], the number of atoms contained in centid.
       integer centid(nat)          ! [input], the ID of atoms containing the points of interest.
       integer ptlim(2, nat)        ! [input], the range of the ID of points in each atom contained in centid.
@@ -819,6 +820,8 @@ c=================================================
             p(j) = atan(v_f(2), v_f(1))
          enddo
       enddo
+
+      write(luout, '("nptp__ = ", i7)') j
 
       call wfat_dealloc_quadgrid(l_pt, l_wt)
 

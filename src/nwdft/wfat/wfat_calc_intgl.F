@@ -48,16 +48,16 @@ c==== Imam ====
       integer i, j, ic, icent, ipt, ipt_i, ipt_f
       integer jpt, ich, iqn, ish, i_vc, ndid
       integer l_cf, l_rd, l_pt, l_wt, l_vc, l_om, l_i0
-      integer l_i_, l_sc, l_il, l_icp, l_ipp
+      integer l_i_, l_sc, l_il, l_icp, l_ipp, l_si
       integer k_cf, k_rd, k_pt, k_wt, k_vc, k_om, k_i0
-      integer k_i_, k_sc, k_il, k_icp, k_ipp
+      integer k_i_, k_sc, k_il, k_icp, k_ipp, k_si
       integer k_mo, k_rda
       integer l_ij0, l_ij_, l_ij, l_om1, l_ik1_0, l_ik1_, l_ik1, l_om2
       integer l_ik2_0, l_ik2_, l_ik2
       integer k_ij0, k_ij_, k_ij, k_om1, k_ik1_0, k_ik1_, k_ik1, k_om2
       integer k_ik2_0, k_ik2_, k_ik2
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
-      integer g_rd(2), i_mo, i_om1, i_om2
+      integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch)
       double precision atp(3), znuc, v_c(3), v_m(3)
       double precision normch, celf, wtcelf, numnel
       double complex czero
@@ -69,6 +69,8 @@ c==== Imam ====
 
       call ga_sync()
       ndid = ga_nodeid()
+
+      if (ga_nodeid()==0) print *, 'spins = ', spinid
 
       
 c     ==== Get number of atoms ====
@@ -97,6 +99,10 @@ c            associated to the three cartesian components of the dipole operator
       if (wfat1)
      &     call wfat_perturbnew_cwfn(nch, spinid, orbid,
      &     dbl_mb(k_cf+nbas*nch), pb)
+      if (.not. MA_alloc_get(MT_INT, nch+nch1, 'spinid1', l_si, k_si))
+     &     call errquit('WFAT: spinid1 allocation failed', 59, MA_ERR)
+      call wfat_get_spinid1(wfat1, nch, spinid, int_mb(k_si))
+      
       
 
 c     ==== Get the reduced density matrix ====
@@ -194,8 +200,8 @@ cc            write(luout, '("        v_m = ", 3e14.5)') v_m
             
 c           ==== Calculate vc|psi> ====
             call wfat_dft_vcpsi_1pt(geom_hd, bas_hd, nbas, nspin0, 
-     &           nch+nch1, dbl_mb(k_cf:k_cf+ncf-1), spinid, chpos, v_m, 
-     &           dbl_mb(k_rd:k_rd+nrd-1), zion, smh,
+     &           nch+nch1, dbl_mb(k_cf:k_cf+ncf-1), int_mb(k_si), chpos,
+     &           v_m, dbl_mb(k_rd:k_rd+nrd-1), zion, smh,
      &           dbl_mb(k_sc:k_sc+nscr-1),
      &           dbl_mb(k_vc:k_vc+nvc-1))
 
@@ -317,6 +323,8 @@ c     ==== Deallocations ====
      &     call wfat_dealloc_intgl_wfat1(l_ij0, l_ij_, l_ij,
      &     l_om1, l_ik1_0, l_ik1_, l_ik1, l_om2, l_ik2_0, l_ik2_, l_ik2)
       call wfat_dealloc_gridrange(l_icp, l_ipp)
+      if (.not. MA_free_heap(l_si))
+     &     call errquit('WFAT: spinid1 deallocation failed', 61, MA_ERR)
       
       
       end subroutine wfat_calc_intgl
@@ -932,7 +940,7 @@ c     ==== Omega1 and K1 ====
      &     call errquit('WFAT: intl_k1 allocation failed', 59, MA_ERR)
 
       
-c     ==== K2 ====
+c     ==== Omega2 and K2 ====
       nom2 = nsh * nqn * nch * nptp
       if (.not. MA_alloc_get(MT_DCPL, nom2, 'omg2', l_om2, k_om2))
      &     call errquit('WFAT: omg2 allocation failed', 59, MA_ERR)

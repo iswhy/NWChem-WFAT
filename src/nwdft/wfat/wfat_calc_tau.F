@@ -299,7 +299,7 @@ cc      endif
 
       
 c     ==== Get the passive rotation matrix ===
-      call wfat_passrot(-bt, -gm, protmat)
+      call wfat_passrot(bt, gm, protmat)
       mu = matmul(transpose(protmat), -chmmt)      
 
 
@@ -358,7 +358,8 @@ c=======================================================
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
-      integer lmax                                ! [input], 
+#include "stdio.fh"
+      integer lmax              ! [input], 
       integer m                                   ! [input], 
       integer nr                                  ! [input], 
       integer indx(nr)                            ! [input], 
@@ -372,6 +373,7 @@ c=======================================================
       nn = nl * nr
       if (.not. MA_alloc_get(MT_DBL, nn, 'temp', l_tm, k_tm))
      &     call errquit('WFAT: temp allocation failed', 29, MA_ERR)
+      write(luout, '("herer1")')
 
 
       do i = 1, nr
@@ -386,6 +388,7 @@ c=======================================================
          i_tm2 = k_tm + (i-1)*nl + lmax - abs(m)
          q_1(:,j) = dbl_mb(i_tm1:i_tm2)
       enddo
+      write(luout, '("herer2")')
       
 
       do i = 1, nr
@@ -400,11 +403,19 @@ c=======================================================
          i_tm2 = k_tm + (i-1)*nl + lmax - abs(m)
          q_2(:,j) = dbl_mb(i_tm1:i_tm2)
       enddo
+      write(luout, '("herer3")')
+      write(luout, '("herer4")')
 
+
+      write(luout, '("max, min id = ", 2i7)') maxval(indx), minval(indx)
+      write(luout, '("nptp= ", i7)') nr
+      
+      
 
       if (.not. MA_free_heap(l_tm))
      &     call errquit('WFAT: temp deallocation failed', 46, MA_ERR)
 
+      write(luout, '("herer5")')
       end
 c=======================================================
       

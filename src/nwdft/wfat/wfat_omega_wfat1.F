@@ -47,10 +47,15 @@ c=======================================================
 c        ==== Get the grid points with the current channel center ====
          call wfat_get_gridpt_cents(geom, nat, centid, ptlim, 
      &        chpos(:,i), gq, dbl_mb(k_r), dbl_mb(k_t), dbl_mb(k_p))
+         write(luout, '("max, min r = ", 2es21.12)')
+     &        maxval(dbl_mb(k_r:k_r+nptp-1)),
+     &        minval(dbl_mb(k_r:k_r+nptp-1))
+         
          write(luout, '("Sorting for channel : ", i4, " .....")',
      &        advance='no') i
          call wfat_dsortx(dbl_mb(k_r), 1, nptp, int_mb(k_id))
          write(luout, '(" [Finished]")')
+         write(luout, '("herex1")')
          
 c        ==== Calculate the spherical harmonics for all (l,m) ====
 c        ====   where l=[0,lmax] and m=[-l,l] at each point   ====
@@ -59,6 +64,7 @@ c        ====   where l=[0,lmax] and m=[-l,l] at each point   ====
             call wfat_sphm_1pt(lmax, dbl_mb(k_t+ii-1), dbl_mb(k_p+ii-1),
      &           dcpl_mb(i_sp))
          enddo
+         write(luout, '("herex2")')
 
          do j = 1, nqn
             n = nid(j)
@@ -68,18 +74,27 @@ c        ====   where l=[0,lmax] and m=[-l,l] at each point   ====
      &           call errquit('WFAT: q1 allocation failed', 94, MA_ERR)
             if (.not. MA_alloc_get(MT_DBL, nl*nptp, 'q2', l_q2, k_q2))
      &           call errquit('WFAT: q2 allocation failed', 94, MA_ERR)
+            write(luout, '("herex3")')
 
             
 c           ==== Calculate Q_{(l,m)}^\nu at all points above ====
             call wfat_calc_q(nptp, dbl_mb(k_r), n, m, lmax, nlgl, 
      &           erg(i), zq, dbl_mb(k_q1), dbl_mb(k_q2))
+            write(luout, '("herex4")')
+            write(luout, '("max, min id outs = ", 2i7)')
+     &           maxval(int_mb(k_id:k_id+nptp-1)),
+     &           minval(int_mb(k_id:k_id+nptp-1))
+            
             call wfat_reorder_q(lmax, m, nptp, int_mb(k_id),
      &           dbl_mb(k_q1), dbl_mb(k_q2))
+            write(luout, '("herex5")')
 
 c           ==== Calculate WFAT(1) Omega for all (l,m) and ====
 c           ====             all points above              ====
-            call wfat_omega_wfat1_nm(dbl_mb(k_q1), dbl_mb(k_q2),
-     &           dcpl_mb(k_sp), omg1(:,j,i,:), omg2(:,j,i,:))
+            call wfat_omega_wfat1_nm(nptp, lmax, m, dbl_mb(k_q1), 
+     &           dbl_mb(k_q2), dcpl_mb(k_sp), omg1(:,j,i,:),
+     &           omg2(:,j,i,:))
+            write(luout, '("herex6")')
 
             
             if (.not. MA_free_heap(l_q1)) call errquit('WFAT: q1 '//

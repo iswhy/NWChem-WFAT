@@ -15,7 +15,7 @@ c=======================================================
       
       
 c     ==== Get the passive rotation matrix ===
-      call wfat_passrot(-bt, -gm, protmat)
+      call wfat_passrot(bt, gm, protmat)
 
       
 c     ==== Begin calculating structure factor ====
@@ -66,7 +66,7 @@ c     ==== Get number of atoms ====
 
       
 c     ==== Get the passive rotation matrix ===
-      call wfat_passrot(-bt, -gm, protmat)
+      call wfat_passrot(bt, gm, protmat)
       btr = bt * deg2rad
       gmr = gm * deg2rad
 
@@ -131,15 +131,29 @@ c=======================================================
       bt = bt0 * deg2rad
       gm = gm0 * deg2rad
       
-      prot_y(1:3, 1) = (/  cos(bt),   0.0d0, -sin(bt) /)    ! See eq. (1) in Ref. [1] and the discussion around it.
-      prot_y(1:3, 2) = (/    0.0d0,   1.0d0,    0.0d0 /)
-      prot_y(1:3, 3) = (/  sin(bt),   0.0d0,  cos(bt) /)
+      prot_y(1:3, 1) = (/  cos(bt),    0.0d0,  sin(bt) /)    ! See eq. (1) in Ref. [1] and the discussion around it.
+      prot_y(1:3, 2) = (/    0.0d0,    1.0d0,    0.0d0 /)
+      prot_y(1:3, 3) = (/ -sin(bt),    0.0d0,  cos(bt) /)
       
-      prot_z(1:3, 1) = (/  cos(gm), sin(gm),    0.0d0 /)
-      prot_z(1:3, 2) = (/ -sin(gm), cos(gm),    0.0d0 /)
-      prot_z(1:3, 3) = (/    0.0d0,   0.0d0,    1.0d0 /)  
+      prot_z(1:3, 1) = (/  cos(gm), -sin(gm),    0.0d0 /)
+      prot_z(1:3, 2) = (/  sin(gm),  cos(gm),    0.0d0 /)
+      prot_z(1:3, 3) = (/    0.0d0,    0.0d0,    1.0d0 /)  
       
-      protmat = matmul(prot_z, prot_y)
+      protmat = matmul(prot_y, prot_z)
+
+
+cOLD      bt = bt0 * deg2rad
+cOLD      gm = gm0 * deg2rad
+cOLD      
+cOLD      prot_y(1:3, 1) = (/  cos(bt),   0.0d0, -sin(bt) /)    ! See eq. (1) in Ref. [1] and the discussion around it.
+cOLD      prot_y(1:3, 2) = (/    0.0d0,   1.0d0,    0.0d0 /)
+cOLD      prot_y(1:3, 3) = (/  sin(bt),   0.0d0,  cos(bt) /)
+cOLD      
+cOLD      prot_z(1:3, 1) = (/  cos(gm), sin(gm),    0.0d0 /)
+cOLD      prot_z(1:3, 2) = (/ -sin(gm), cos(gm),    0.0d0 /)
+cOLD      prot_z(1:3, 3) = (/    0.0d0,   0.0d0,    1.0d0 /)  
+cOLD      
+cOLD      protmat = matmul(prot_z, prot_y)
 
       end
 c     References:

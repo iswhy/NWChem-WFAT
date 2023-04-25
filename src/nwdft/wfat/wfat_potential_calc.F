@@ -127,6 +127,9 @@ c     ==== Initial checks ====
 c      if (ga_nodeid()==0) write(luout, '("heren1")')
 c      if (ga_nodeid()==0) write(luout, '("chfx=", es14.6)') chfx      
       if (minval(spinid) < 1 .or. maxval(spinid) > 2) then
+         if (ga_nodeid()==0) print *, 'spins = ', spinid
+         if (ga_nodeid()==0) write(luout, '("spin = ", 2i3)')
+     &        minval(spinid), maxval(spinid)
          call errquit('WFAT: Elements of spinid should be either 1 '//
      &                'or 2.', 1, UERR)
       endif

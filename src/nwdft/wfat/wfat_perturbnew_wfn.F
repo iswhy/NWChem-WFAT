@@ -10,11 +10,11 @@ c=======================================================
       integer nch
       integer spinid(nch)
       integer orbid(nch)
-      double precision vch1(nbas0, 3, nch)
-      double precision pb(3,3,nch)
+      double precision vch1(nbas0, 3, nch)   ! [output], 
+      double precision pb(3,3,nch)           ! [output], 
 
       integer i, is, imo, io, k, j, m, id0, idm, ieg0, iegm, i_dpo
-      integer l_mo, k_mo, l_dpo, k_dpo
+      integer is1, is2, l_mo, k_mo, l_dpo, k_dpo
       double precision derg, ctr(3)
 
       integer ga_create_atom_blocked
@@ -72,8 +72,8 @@ c     ==== the first order correction terms  ====
             
          enddo
       enddo
-      
 
+      
 c     ==== Deallocations ====
       if (.not. MA_free_heap(l_mo))
      &     call errquit('WFAT: mo deallocation failed', 20, MA_ERR)
@@ -132,5 +132,29 @@ c=======================================================
 
       end
 c=======================================================
-      
-      
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_get_spinid1(wfat1, nch, spinid, spinid1)
+
+      implicit none
+      logical wfat1
+      integer nch
+      integer spinid(nch)
+      integer spinid1(1:*)
+
+      integer i, is1, is2
+
+      spinid1(1:nch) = spinid
+
+      if (wfat1) then
+         do i = 1, nch
+            is1 = nch + 3*(i-1) + 1
+            is2 = is1 + 2
+            spinid1(is1:is2) = spinid(i)
+         enddo
+      endif
+
+      end
+c=======================================================

@@ -2,7 +2,7 @@ c============================================================
 c============================================================
       subroutine wfat_calc_wfat1_srfc(bt, gm, nat, nb, ns, nch, nqn, 
      &     lmax, orbid, spinid, dgid0, dgn0, mid, dpmo, erg, chmmt, pb,
-     &     intl, intl_j, intl_k1, intl_k2, scr, scrx, chmmtd, lfpb, gn,
+     &     intl, intl_j, intl_k1, intl_k2, scr, scrx, chmmtd, pbd, gn,
      &     srfc, an)
 
       implicit none
@@ -31,7 +31,7 @@ c============================================================
       double precision scr(1:*)                             ! [output], minimum size is 2*nb**2 + nb
       double complex scrx(1:*)                              ! [output], minimum size is nat*nqn*nch
       double precision chmmtd(3,nch)                        ! [output],
-      double precision lfpb(nch)                            ! [output],
+      double precision pbd(3,3,nch)                         ! [output],
       double complex gn(nat, nqn, nch)                      ! [output],
       double complex srfc(nat, nqn, nch)                    ! [output],
       double complex an(nat, nqn, nch)                      ! [output],
@@ -65,17 +65,15 @@ c     Double complex scratch ====
 
       
 c     ==== Get the passive rotation matrix ===
-      call wfat_passrot(-bt, -gm, protmat)
+      call wfat_passrot(bt, gm, protmat)
       cu = protmat(:,3)
       
 
 c     Diagonalize the dipole interaction Hamiltonian within any
 c     degenerate manifolds that are ionized.
       chmmtd = chmmt
-      do i = 1, nch
-         call wfat_calc_lfpolb(protmat, pb(:,:,i), lfpb(i))  move to wfat1 ionization rate code.
-      enddo
-      
+      pbd = pb
+            
 
       iscalc = .false.
       mfid = 0      
@@ -182,7 +180,7 @@ c============================================================
 
       
 c     ==== Get the passive rotation matrix ===
-      call wfat_passrot(-bt, -gm, protmat)
+      call wfat_passrot(bt, gm, protmat)
       cu = protmat(:,3)      
       btr = bt * deg2rad
       gmr = gm * deg2rad

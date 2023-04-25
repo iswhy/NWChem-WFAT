@@ -23,7 +23,7 @@ c=======================================================
       
 
 c     ==== Get the passive rotation matrix ===
-      call wfat_passrot(-0.0d0, -0.0d0, protmat)
+      call wfat_passrot(0.0d0, 0.0d0, protmat)
       mu = matmul(transpose(protmat), -chmmt)
       
       
