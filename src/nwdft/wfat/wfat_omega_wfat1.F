@@ -27,7 +27,7 @@ c=======================================================
 
       integer l_r, l_t, l_p, l_sp, l_id, l_q1, l_q2
       integer k_r, k_t, k_p, k_sp, k_id, k_q1, k_q2
-      integer nsh, i, ii, j, n, m, nl, i_sp
+      integer nsh, i, ii, j, n, m, nl, i_sp, k
 
 
       if (.not. MA_alloc_get(MT_DBL, nptp, 'r', l_r, k_r))
@@ -53,6 +53,9 @@ c        ==== Get the grid points with the current channel center ====
          
          write(luout, '("Sorting for channel : ", i4, " .....")',
      &        advance='no') i
+         do k = 1, nptp
+            int_mb(k_id+k-1) = k
+         enddo
          call wfat_dsortx(dbl_mb(k_r), 1, nptp, int_mb(k_id))
          write(luout, '(" [Finished]")')
          write(luout, '("herex1")')

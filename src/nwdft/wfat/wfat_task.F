@@ -207,6 +207,9 @@ c        ==== When WFAT(1) is in use ====
      &        ndpo, l_dpo, k_dpo, l_inj, k_inj, l_ink1, k_ink1,
      &        l_ink2, k_ink2)
          if (wfat1) then
+            call ga_get(g_j, 1, nintj, 1, 1, dcpl_mb(k_inj), nintj)
+            call ga_get(g_k(1), 1, nintk, 1, 1, dcpl_mb(k_ink1), nintk)
+            call ga_get(g_k(2), 1, nintk, 1, 1, dcpl_mb(k_ink2), nintk)
             ctr = 0.0d0
             call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
          endif

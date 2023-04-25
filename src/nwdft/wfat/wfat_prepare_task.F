@@ -359,6 +359,9 @@ c=================================================
       integer l_ink1, k_ink1    ! [output],
       integer l_ink2, k_ink2    ! [output],
 
+      double complex czero
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
+      
       if (wfat1) then
          ndpo = nb * nb * ns * 3
       else
@@ -376,6 +379,10 @@ c=================================================
      &     l_ink2, k_ink2))
      &     call errquit('WFAT: intgl_k2 allocation failed', 59, MA_ERR)
 
+      dcpl_mb(k_inj:k_inj+nintj-1) = czero
+      dcpl_mb(k_ink1:k_ink1+nintk-1) = czero
+      dcpl_mb(k_ink2:k_ink2+nintk-1) = czero
+      
       end
 c     NOTES:
 c     1) dpmo, intgl_j, intgl_k1, and intgl_k2 are allocated regardless of the value
