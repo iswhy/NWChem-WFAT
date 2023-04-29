@@ -206,6 +206,8 @@ c     which are a linear combination of the original degenerate states.
                   do i = 1, 3
                      bb = bb + cu(i)*intl_j(ish,ic,iqn,i)
                   enddo
+cc                  bb = czero     !fordebug
+                  
 
                   call wfat_wignerf(l, mid(iqn), m, btr, wgf)
                   xx = (aa + bb) * wgf * exp(-imnum * m * gmr)

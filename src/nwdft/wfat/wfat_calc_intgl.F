@@ -48,9 +48,9 @@ c==== Imam ====
       integer i, j, ic, icent, ipt, ipt_i, ipt_f
       integer jpt, ich, iqn, ish, i_vc, ndid
       integer l_cf, l_rd, l_pt, l_wt, l_vc, l_om, l_i0
-      integer l_i_, l_sc, l_il, l_icp, l_ipp, l_si
+      integer l_i_, l_sc, l_il, l_icp, l_ipp, l_si, l_pos
       integer k_cf, k_rd, k_pt, k_wt, k_vc, k_om, k_i0
-      integer k_i_, k_sc, k_il, k_icp, k_ipp, k_si
+      integer k_i_, k_sc, k_il, k_icp, k_ipp, k_si, k_pos
       integer k_mo, k_rda
       integer l_ij0, l_ij_, l_ij, l_om1, l_ik1_0, l_ik1_, l_ik1, l_om2
       integer l_ik2_0, l_ik2_, l_ik2
@@ -101,7 +101,12 @@ c            associated to the three cartesian components of the dipole operator
      &     dbl_mb(k_cf+nbas*nch), pb)
       if (.not. MA_alloc_get(MT_INT, nch+nch1, 'spinid1', l_si, k_si))
      &     call errquit('WFAT: spinid1 allocation failed', 59, MA_ERR)
-      call wfat_get_spinid1(wfat1, nch, spinid, int_mb(k_si))
+      if (.not. MA_alloc_get(MT_DBL, 3*(nch+nch1), 'chpos1',
+     &     l_pos, k_pos))
+     &     call errquit('WFAT: chpos1 allocation failed', 59, MA_ERR)
+      call wfat_get_wfat1_sppos(wfat1, nch, spinid, chpos, int_mb(k_si),
+     &     dbl_mb(k_pos))
+      
       
       
 
@@ -200,8 +205,8 @@ cc            write(luout, '("        v_m = ", 3e14.5)') v_m
             
 c           ==== Calculate vc|psi> ====
             call wfat_dft_vcpsi_1pt(geom_hd, bas_hd, nbas, nspin0, 
-     &           nch+nch1, dbl_mb(k_cf:k_cf+ncf-1), int_mb(k_si), chpos,
-     &           v_m, dbl_mb(k_rd:k_rd+nrd-1), zion, smh,
+     &           nch+nch1, dbl_mb(k_cf:k_cf+ncf-1), int_mb(k_si), 
+     &           dbl_mb(k_pos), v_m, dbl_mb(k_rd:k_rd+nrd-1), zion, smh,
      &           dbl_mb(k_sc:k_sc+nscr-1),
      &           dbl_mb(k_vc:k_vc+nvc-1))
 
@@ -216,6 +221,10 @@ c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
      &           dbl_mb(k_vc), dcpl_mb(k_i0))
 
             if (wfat1) then
+               write(luout, '("wfat1: ", i8, 4es15.6)')
+     &              jpt, dbl_mb(k_vc), dbl_mb(k_vc+1), dbl_mb(k_vc+2),
+     &              dbl_mb(k_vc+3)
+               
                jpt = jpt + 1
                i_om1 = k_om1 + (jpt-1)*nsh*nqn*nch
                i_om2 = k_om2 + (jpt-1)*nsh*nqn*nch
@@ -226,6 +235,7 @@ c              =====           and K^{(n,m)}_{l,m'}                ====
      &              dbl_mb(k_vc), dcpl_mb(k_ij0), dcpl_mb(k_ik1_0),
      &              dcpl_mb(k_ik2_0))
             endif
+            
             
             
 c           ==== Quadrature summation ====
@@ -288,17 +298,20 @@ c     ==== Accumulate to global intgl (g_il) ====
 
       if (wfat1) then
          call ga_acc(g_j, 1, nij, 1, 1, dcpl_mb(k_ij), nij, 1.0d0)
+c         call ga_zero(g_j)
          call ga_sync()
          call ga_norm1(g_j, normch)
          if (ndid==0) write(luout, '("intgl_j norm = ", es14.6)') normch
 
          call ga_acc(g_k(1), 1, nik1, 1, 1, dcpl_mb(k_ik1), nik1, 1.0d0)
+c         call ga_zero(g_k(1))
          call ga_sync()
          call ga_norm1(g_k(1), normch)
          if (ndid==0) write(luout, '("intgl_k1 norm = ", es14.6)')
      &        normch
 
          call ga_acc(g_k(2), 1, nik2, 1, 1, dcpl_mb(k_ik2), nik2, 1.0d0)
+c         call ga_zero(g_k(2))
          call ga_sync()
          call ga_norm1(g_k(2), normch)
          if (ndid==0) write(luout, '("intgl_k2 norm = ", es14.6)')
@@ -325,6 +338,8 @@ c     ==== Deallocations ====
       call wfat_dealloc_gridrange(l_icp, l_ipp)
       if (.not. MA_free_heap(l_si))
      &     call errquit('WFAT: spinid1 deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_pos))
+     &     call errquit('WFAT: chpos1 deallocation failed', 61, MA_ERR)
       
       
       end subroutine wfat_calc_intgl
@@ -366,6 +381,7 @@ c=======================================================
      &           vxi, vc_psi, intd_j, intd_k1, intd_k2)
 
       implicit none
+#include "stdio.fh"
       integer nch
       integer nqn
       integer nsh
@@ -388,6 +404,15 @@ c=======================================================
          enddo
       enddo
 
+
+
+      write(luout, '(4x, "intgls : ", 5es15.7)')
+     &     abs(intd_j(2,1,1,1)),
+     &     abs(intd_j(2,1,2,1)),
+     &     abs(intd_j(3,1,3,1)),
+     &     abs(intd_k1(1,1,1)),
+     &     abs(intd_k2(1,1,1))
+      
       end
 c=======================================================
       

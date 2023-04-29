@@ -3,6 +3,7 @@ c=======================================================
       subroutine wfat_calc_o(n, m, erg, zq, o)
 
       implicit none
+#include "stdio.fh"
       integer n
       integer m
       double precision erg
@@ -27,6 +28,7 @@ cfordebug      call wfat_calc_o_intl_trapz(n, m, erg, zq, oi)
      &       + (bt0/kp)**4/2) + oi(1)
       o(2) = -1.0d0/(2*kp**2) + oi(2)
 
+      write(luout, '("oo = ", 2es21.12)') oi(1), oi(2)
       end
 c=======================================================
 

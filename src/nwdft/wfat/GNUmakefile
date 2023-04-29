@@ -42,6 +42,7 @@
 	wfat_orb_property.o \
 	wfat_calc_dpmo.o \
 	wfat_eval_mo.o \
+	wfat_eval_vector.o \
 	wfat_eval_laser.o \
 	wfat_print.o \
 	wfat_print_sf.o \
@@ -51,6 +52,7 @@
 	wfat_print_tmar.o \
 	wfat_print_info.o \
 	wfat_print_dens.o \
+	wfat_print_integrals.o \
 	wfat_util.o \
 	wfat_orb_mulliken.o \
 	wfat_opvec_coef.o \

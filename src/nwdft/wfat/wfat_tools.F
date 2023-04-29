@@ -585,6 +585,25 @@ c     where a is a symmetric matrix
 
       end
 c===============================================================
+
+
+c===============================================================
+c===============================================================
+      subroutine wfat_represent(m, n, v, a, t, b)
+
+      implicit none
+      integer m
+      integer n
+      double precision v(m,n)
+      double precision a(m,m)
+      double precision t(m,n)
+      double precision b(n,n)
+
+      t = matmul(a, v)
+      b = matmul(transpose(v), t)
+
+      end
+c===============================================================
       
             
 c=======================================================

@@ -4,7 +4,8 @@ c============================================================
      &     ef, erg, zi, gn, an, on, chmmt, pb, ffc, p_rt, rt)
 
       implicit none
-      double precision bt                    ! [input],
+#include "stdio.fh"
+      double precision bt       ! [input],
       double precision gm                    ! [input],
       integer nat                            ! [input],
       integer nqn                            ! [input],
@@ -57,6 +58,10 @@ c     ==== Get the passive rotation matrix ===
      &            (9-6*gmm)*bt0/4/kp**4 - (49+2*gmm)*bt0**2/8/kp**5 +
      &            3*bt0**3/2/kp**6 - bt0**4/8/kp**7
 
+            write(luout, '("A_nu = ", f15.7)') aa
+            write(luout, '("B_nu = ", f15.7)') bb_
+
+            
             on_ = on(1,iqn,i) + mu(3)*on(2,iqn,i)
             call wfat_field_factor(ef, erg(i), zi, n, m, ffc(iqn, i))
 

@@ -139,7 +139,8 @@ c=======================================================
       prot_z(1:3, 2) = (/  sin(gm),  cos(gm),    0.0d0 /)
       prot_z(1:3, 3) = (/    0.0d0,    0.0d0,    1.0d0 /)  
       
-      protmat = matmul(prot_y, prot_z)
+c      protmat = matmul(prot_y, prot_z)
+      protmat = matmul(prot_z, prot_y)
 
 
 cOLD      bt = bt0 * deg2rad

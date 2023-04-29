@@ -192,7 +192,9 @@ c        ==== Binary-load WFAT integrals on 'restart' startup mode ====
          call errquit('WFAT: WFAT module requires the startup '//
      &        'directive to be either ''start'' or ''restart''.',
      &        1, UERR)
-      endif            
+      endif
+      write(luout, '("FINISHED")')
+      
       
 
 c     ==== Printings ====
@@ -201,6 +203,8 @@ c     ==== Printings ====
          if (.not. MA_alloc_get(MT_DCPL, nintg, 'intgl', l_in, k_in))
      &        call errquit('WFAT: Cannot allocate intgl.', 2, MA_ERR)
          call ga_get(g_il, 1, nintg, 1, 1, dcpl_mb(k_in), nintg)
+         write(luout, '("FINISHED1")')
+         
 
 c        ==== When WFAT(1) is in use ====
          call wfat_prep_wfat1_ti(wfat1, nbas0, nspin0, nintj, nintk,
@@ -213,6 +217,9 @@ c        ==== When WFAT(1) is in use ====
             ctr = 0.0d0
             call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
          endif
+         call wfat_print_integrals(nch, nqn, natm, lmax, int_mb(k_npa),
+     &        int_mb(k_mpa), wfat1, dcpl_mb(k_in), dcpl_mb(k_inj),
+     &        dcpl_mb(k_ink1), dcpl_mb(k_ink2))
 
 
 c        ============================================
