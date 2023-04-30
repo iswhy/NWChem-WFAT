@@ -1,7 +1,7 @@
 c============================================================
 c============================================================
       subroutine wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
-     &     ef, erg, zi, gn, an, on, chmmt, pb, ffc, p_rt, rt)
+     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, p_rt, rt)
 
       implicit none
 #include "stdio.fh"
@@ -16,7 +16,8 @@ c============================================================
       double precision erg(nch)              ! [input],
       double precision zi                    ! [input],
       double complex gn(nat, nqn, nch)       ! [input],
-      double complex an(nat, nqn, nch)       ! [input],
+      double complex jn(nat, nqn, nch)       ! [input],
+      double complex kn(nat, nqn, nch)       ! [input],
       double precision on(2, nqn, nch)       ! [input],
       double precision chmmt(3,nch)          ! [input],
       double precision pb(3,3,nch)           ! [input],
@@ -66,8 +67,8 @@ c     ==== Get the passive rotation matrix ===
             call wfat_field_factor(ef, erg(i), zi, n, m, ffc(iqn, i))
 
             gn_ = sum(gn(:,iqn,i))
-            an_ = sum(an(:,iqn,i))
-            p_rt(iqn,i) = ffc(iqn,i) * exp(-2*kp*mu(3)) * 
+            an_ = sum(jn(:,iqn,i)) + sum(kn(:,iqn,i))
+            p_rt(iqn,i) = ffc(iqn,i) *
      &           (abs(gn_)**2 * 
      &           (1+aa*ef*log(ef/4/kp**2)+bb_*ef+2*ef*on_) +
      &           2*ef*real(conjg(gn_)*an_))

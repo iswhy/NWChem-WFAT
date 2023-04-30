@@ -45,6 +45,8 @@ c     ====     necessities of inputs    ====
 
       WF_SF_PRINT_READY = .false.
       WF_IY_PRINT_READY = .false.
+      WF_SF1_PRINT_READY(1:2) = .false.
+      WF_SF1_UNIT = (/ WF_JN_UNIT, WF_KN_UNIT /)
 
       
 c     ==== Geometry ====

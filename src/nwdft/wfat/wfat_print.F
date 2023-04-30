@@ -24,7 +24,9 @@ c=======================================================
      &     unit0 /= WF_ABTIY_UNIT .and.
      &     unit0 /= WF_AGMIY_UNIT .and. 
      &     unit0 /= WF_TM_UNIT .and.
-     &     unit0 /= WF_TMAR_UNIT )
+     &     unit0 /= WF_TMAR_UNIT .and.
+     &     unit0 /= WF_JN_UNIT .and.
+     &     unit0 /= WF_KN_UNIT)
      &     call errquit('WFAT: Argument unit0 of wfat_print_orbtitle '//
      &     'corresponds to an unavailable option.', 2, UERR)
 
@@ -35,7 +37,8 @@ c=======================================================
          write(io_str, '(" ")')
       endif
 
-      if (unit0 == WF_SF_UNIT) then
+      if (unit0 == WF_SF_UNIT .or. unit0 == WF_JN_UNIT .or.
+     &     unit0 == WF_KN_UNIT) then
          form = WF_SF_TITFMT
       else if (unit0 == WF_RT_UNIT .or. unit0 == WF_IY_UNIT .or. 
      &        unit0 == WF_ABTIY_UNIT .or. unit0 == WF_AGMIY_UNIT) then
@@ -80,12 +83,15 @@ c=======================================================
      &     unit0 /= WF_RT_UNIT .and.
      &     unit0 /= WF_IY_UNIT .and.
      &     unit0 /= WF_ABTIY_UNIT .and.
-     &     unit0 /= WF_AGMIY_UNIT)
+     &     unit0 /= WF_AGMIY_UNIT .and.
+     &     unit0 /= WF_JN_UNIT .and.
+     &     unit0 /= WF_KN_UNIT)
      &     call errquit('WFAT: Argument unit0 of wfat_print_qnttitle '//
      &     'corresponds to an unavailable option.', 2, UERR)
 
 
-      if (unit0 == WF_SF_UNIT) then
+      if (unit0 == WF_SF_UNIT .or. unit0 == WF_JN_UNIT .or.
+     &     unit0 == WF_KN_UNIT) then
          form = WF_SF_TITFMT
       else if (unit0 == WF_RT_UNIT .or. unit0 == WF_IY_UNIT .or. 
      &        unit0 == WF_ABTIY_UNIT .or. unit0 == WF_AGMIY_UNIT) then
@@ -162,12 +168,15 @@ c=======================================================
 
       if ( unit0 /= WF_SF_UNIT .and. 
      &     unit0 /= WF_TM_UNIT .and.
-     &     unit0 /= WF_TMAR_UNIT )
+     &     unit0 /= WF_TMAR_UNIT .and.
+     &     unit0 /= WF_JN_UNIT .and.
+     &     unit0 /= WF_KN_UNIT)
      &     call errquit('WFAT: Argument unit0 of wfat_print_partitle '//
      &     'corresponds to an unavailable option.', 2, UERR)
 
 
-      if (unit0 == WF_SF_UNIT) then
+      if (unit0 == WF_SF_UNIT .or. unit0 == WF_JN_UNIT .or.
+     &     unit0 == WF_KN_UNIT) then
          form = WF_SF_TITFMT
       else if (unit0 == WF_TM_UNIT) then
          form = WF_TM_TITFMT

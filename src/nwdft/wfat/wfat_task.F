@@ -347,7 +347,7 @@ c     ==== Allocation of structure factors and TMD ====
       nsf = nat * nqn * nch
       if (.not. MA_alloc_get(MT_DCPL, nsf, 'srfc', l_sf, k_sf))
      &     call errquit('WFAT: srfc allocation failed', 2, MA_ERR)
-      call wfat_calc_structuref_OLD(geom, bt_tmd, gm_tmd, nch, erg,
+      call wfat_get_srfc0(geom, bt_tmd, gm_tmd, nch, erg,
      &                          nqn, mid, lmax, chmmt, intgl,
      &                          dcpl_mb(k_sf))
       ntmd = nat * nch

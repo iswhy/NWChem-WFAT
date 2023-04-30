@@ -31,10 +31,13 @@ c     ==== Column number and title ====
       write(WF_SF_UNIT, '(a)', advance='no') '#'
       call wfat_print_repeat(WF_SF_UNIT, WF_SF_LINEWD, 0, '-')
       write(WF_SF_UNIT, '(1x)')
-      call wfat_print_sfcoln(nch, nqn)
-      call wfat_print_sftitle(nch, orbid0, spinid, nqn, nid, mid, 'orb')
-      call wfat_print_sftitle(nch, orbid0, spinid, nqn, nid, mid, 'qnt')
-      call wfat_print_sftitle(nch, orbid0, spinid, nqn, nid, mid, 'par')
+      call wfat_print_sfcoln(WF_SF_UNIT, nch, nqn)
+      call wfat_print_sftitle(WF_SF_UNIT, nch, orbid0, spinid, nqn,
+     &     nid, mid, 'orb')
+      call wfat_print_sftitle(WF_SF_UNIT, nch, orbid0, spinid, nqn,
+     &     nid, mid, 'qnt')
+      call wfat_print_sftitle(WF_SF_UNIT, nch, orbid0, spinid, nqn,
+     &     nid, mid, 'par')
       write(WF_SF_UNIT, '(a)', advance='no') '#'
       call wfat_print_repeat(WF_SF_UNIT, WF_SF_LINEWD, 0, '-')
       write(WF_SF_UNIT, '(1x)')
@@ -47,46 +50,44 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_print_sfcoln(nch, nqn)
+      subroutine wfat_print_sfcoln(un, nch, nqn)
 
       implicit none
 #include "wfat.fh"
 #include "errquit.fh"
-      integer nch, nqn
+      integer un, nch, nqn
 
       character*10 k_str
       logical isopen
       integer k, kk, ich, iqn
       
 
-      inquire(unit=WF_SF_UNIT, opened=isopen)
+      inquire(unit=un, opened=isopen)
       if (.not. isopen)
-     &     call errquit('WFAT: WF_SF_UNIT must first be opened '//
+     &     call errquit('WFAT: un must first be opened '//
      &     'before calling wfat_print_sfcoln', 1, UERR)
 
-      write(WF_SF_UNIT, '(a)', advance='no') '#'
-      write(WF_SF_UNIT, '(a15)', advance='no')
-     &     'col. #1'
-      write(WF_SF_UNIT, '(a15)', advance='no')
-     &     'col. #2'
+      write(un, '(a)', advance='no') '#'
+      write(un, '(a15)', advance='no') 'col. #1'
+      write(un, '(a15)', advance='no') 'col. #2'
             
       k = 2
       do ich = 1, nch
-         write(WF_SF_UNIT, WF_ORBGAP, advance='no')
+         write(un, WF_ORBGAP, advance='no')
          do iqn = 1, nqn
-            write(WF_SF_UNIT, WF_QNTGAP, advance='no') 
+            write(un, WF_QNTGAP, advance='no') 
 
             do kk = 1, 3
                k = k + 1
                write(k_str, '(i10)') k
-               write(WF_SF_UNIT, WF_SF_TITFMT, advance='no')
+               write(un, WF_SF_TITFMT, advance='no')
      &              'col. #'//trim(adjustl(k_str))
             enddo
             
          enddo
       enddo
 
-      write(WF_SF_UNIT, '(" ")') 
+      write(un, '(" ")') 
 
       end
 c=======================================================
@@ -94,14 +95,14 @@ c=======================================================
       
 c=======================================================
 c=======================================================
-      subroutine wfat_print_sftitle(nch, orbid0, spinid,
+      subroutine wfat_print_sftitle(un, nch, orbid0, spinid,
      &           nqn, nid, mid, title)
 
       implicit none
 #include "wfat.fh"
 #include "stdio.fh"
 #include "errquit.fh"
-      integer nch, orbid0(nch), spinid(nch), nqn, nid(nqn), mid(nqn)
+      integer un, nch, orbid0(nch), spinid(nch), nqn, nid(nqn), mid(nqn)
       character*3 title
 
       logical isopen
@@ -109,50 +110,50 @@ c=======================================================
       integer ich, iqn, io, is, n, m, i
 
 
-      inquire(unit=WF_SF_UNIT, opened=isopen)
+      inquire(unit=un, opened=isopen)
       if (.not. isopen)
-     &     call errquit('WFAT: WF_SF_UNIT must be opened '//
+     &     call errquit('WFAT: un must be opened '//
      &     'before calling wfat_print_sftitle', 1, UERR)
 
 
-      write(WF_SF_UNIT, '(a)', advance='no') '#'
-      call flush(WF_SF_UNIT)
+      write(un, '(a)', advance='no') '#'
+      call flush(un)
 
 c     ==== beta space ====
       if (title == 'orb') then
-         write(WF_SF_UNIT, '(a15)', advance='no') 'beta (deg)'
+         write(un, '(a15)', advance='no') 'beta (deg)'
       else
-         write(WF_SF_UNIT, '(a15)', advance='no') ' '
+         write(un, '(a15)', advance='no') ' '
       endif
-      call flush(WF_SF_UNIT)
+      call flush(un)
 
 c     ==== gamma space ====      
       if (title == 'orb') then
-         write(WF_SF_UNIT, '(a15)', advance='no') 'gamma (deg)'
+         write(un, '(a15)', advance='no') 'gamma (deg)'
       else
-         write(WF_SF_UNIT, '(a15)', advance='no') ' '
+         write(un, '(a15)', advance='no') ' '
       endif
-      call flush(WF_SF_UNIT)
+      call flush(un)
 
 c     ==== titles ====
       do ich = 1, nch
-         write(WF_SF_UNIT, WF_ORBGAP, advance='no')
-         call flush(WF_SF_UNIT)
+         write(un, WF_ORBGAP, advance='no')
+         call flush(un)
          do iqn = 1, nqn
-            write(WF_SF_UNIT, WF_QNTGAP, advance='no')
-            call flush(WF_SF_UNIT)
+            write(un, WF_QNTGAP, advance='no')
+            call flush(un)
 
             do i = 1, 3
                if (title == 'orb') then
                   io = orbid0(ich)
                   is = spinid(ich)
-                  call wfat_print_orbtitle(WF_SF_UNIT, is, io)
+                  call wfat_print_orbtitle(un, is, io)
                else if (title == 'qnt') then
                   n = nid(iqn)
                   m = mid(iqn)
-                  call wfat_print_qnttitle(WF_SF_UNIT, n, m)
+                  call wfat_print_qnttitle(un, n, m)
                else if (title == 'par') then
-                  call wfat_print_partitle(WF_SF_UNIT, i)
+                  call wfat_print_partitle(un, i)
                else
                   call errquit('WFAT: Argument unit0 of '//
      &                 'wfat_print_sftitle corresponds to an '//
@@ -163,10 +164,10 @@ c     ==== titles ====
          enddo
       enddo
 
-      write(WF_SF_UNIT, '(" ")') 
+      write(un, '(" ")') 
       
       end
-c=======================================================      
+c=======================================================
 
       
 c=======================================================
@@ -175,8 +176,6 @@ c=======================================================
 
       implicit none
 #include "wfat.fh"
-c     #include "cdft.fh"
-ccOLD#include "wfat_qm_param.fh"      
 #include "errquit.fh"
 #include "geom.fh"      
       integer nat

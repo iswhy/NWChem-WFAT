@@ -1,9 +1,9 @@
 c============================================================
 c============================================================
-      subroutine wfat_calc_wfat1_srfc(bt, gm, nat, nb, ns, nch, nqn, 
+      subroutine wfat_get_srfc1(bt, gm, nat, nb, ns, nch, nqn, 
      &     lmax, orbid, spinid, dgid0, dgn0, mid, dpmo, erg, chmmt, pb,
      &     intl, intl_j, intl_k1, intl_k2, scr, scrx, chmmtd, pbd, gn,
-     &     srfc, an)
+     &     jn, kn)
 
       implicit none
 #include "errquit.fh"
@@ -32,9 +32,9 @@ c============================================================
       double complex scrx(1:*)                              ! [output], minimum size is nat*nqn*nch
       double precision chmmtd(3,nch)                        ! [output],
       double precision pbd(3,3,nch)                         ! [output],
-      double complex gn(nat, nqn, nch)                      ! [output],
-      double complex srfc(nat, nqn, nch)                    ! [output],
-      double complex an(nat, nqn, nch)                      ! [output],
+      double complex gn(nat, nqn, nch)                      ! [output], G_n = \exp{-\kappa*\mu_z} * g_n
+      double complex jn(nat, nqn, nch)                      ! [output], J_n = \exp{-\kappa*\mu_z} * j_n
+      double complex kn(nat, nqn, nch)                      ! [output], K_n = \exp{-\kappa*\mu_z} * k_n
 
       logical iscalc(nch), isdiag, dgtest
       integer nht, ndp, nev, nlc, p_ht0, p_htn, p_dp0, p_dpn, p_ev0
@@ -120,7 +120,8 @@ c           ==== Calculate g_\nu and a_\nu ====
      &              intl(:,:,:,j_), gn(:,:,j_))
                call wfat_calc_an(nat, nqn, mid, lmax, bt, gm, 
      &              chmmtd(:,j_), intl_j(:,:,:,:,j_),
-     &              intl_k1(:,:,:,j_), intl_k2(:,:,:,j_), an(:,:,j_))
+     &              intl_k1(:,:,:,j_), intl_k2(:,:,:,j_), jn(:,:,j_),
+     &              kn(:,:,j_))
             enddo
 
 c           ==== Update g_\nu and a_\nu ====
@@ -129,7 +130,9 @@ c           ==== Update g_\nu and a_\nu ====
                   call wfat_lincomb_gn(nat, nch, nqn, nn, scr(p_ht0), 
      &                 mfid, scrx(p_lc0), gn)
                   call wfat_lincomb_gn(nat, nch, nqn, nn, scr(p_ht0), 
-     &                 mfid, scrx(p_lc0), an)
+     &                 mfid, scrx(p_lc0), jn)
+                  call wfat_lincomb_gn(nat, nch, nqn, nn, scr(p_ht0), 
+     &                 mfid, scrx(p_lc0), kn)
                endif
             endif
          
@@ -144,8 +147,10 @@ c           ==== Update g_\nu and a_\nu ====
 
 c     ==== Calculate structure factors ====
       do i = 1, nch
-         call wfat_calc_srfc(nat, nqn, bt, gm, erg(i), chmmtd(:,i), 
-     &        gn(:,:,i), srfc(:,:,i))
+         call wfat_calc_srfc0(nat, nqn, bt, gm, erg(i), chmmtd(:,i), 
+     &        gn(:,:,i))
+         call wfat_calc_srfc1(nat, nqn, bt, gm, erg(i), chmmtd(:,i),
+     &        jn(:,:,i), kn(:,:,i))
       enddo
       
       end
@@ -155,7 +160,7 @@ c============================================================
 c============================================================
 c============================================================
       subroutine wfat_calc_an(nat, nqn, mid, lmax, bt, gm, mmt,
-     &     intl_j, intl_k1, intl_k2, an)
+     &     intl_j, intl_k1, intl_k2, jn, kn)
 
       implicit none
       integer nat
@@ -168,12 +173,13 @@ c============================================================
       double complex intl_j((1+lmax)**2, nat, nqn, 3)  ! [input],
       double complex intl_k1((1+lmax)**2, nat, nqn)    ! [input],
       double complex intl_k2((1+lmax)**2, nat, nqn)    ! [input],
-      double complex an(nat, nqn)              ! [output],
+      double complex jn(nat, nqn)              ! [output],
+      double complex kn(nat, nqn)              ! [output],
 
       integer iqn, ic, l, m, ish, i
       double precision protmat(3,3), cu(3), btr, gmr, mu(3), deg2rad
       double precision wgf
-      double complex aa, bb, xx, czero, imnum
+      double complex aa, bb, czero, imnum
       parameter ( deg2rad = 0.01745329251994d0 )
       parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
       parameter ( imnum = cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
@@ -194,7 +200,8 @@ c     which are a linear combination of the original degenerate states.
       do iqn = 1, nqn
          do ic = 1, nat
 
-            an(ic, iqn) = czero
+            jn(ic, iqn) = czero
+            kn(ic, iqn) = czero
             do l = abs(mid(iqn)), lmax
                do m = -l, l
                   ish = l**2 + l + m + 1
@@ -206,13 +213,12 @@ c     which are a linear combination of the original degenerate states.
                   do i = 1, 3
                      bb = bb + cu(i)*intl_j(ish,ic,iqn,i)
                   enddo
-cc                  bb = czero     !fordebug
-                  
 
                   call wfat_wignerf(l, mid(iqn), m, btr, wgf)
-                  xx = (aa + bb) * wgf * exp(-imnum * m * gmr)
-
-                  an(ic, iqn) = an(ic, iqn) + xx
+                  jn(ic, iqn) = jn(ic, iqn) +
+     &                          bb * wgf * exp(-imnum * m * gmr)
+                  kn(ic, iqn) = kn(ic, iqn) +
+     &                          aa * wgf * exp(-imnum * m * gmr)
                enddo
             enddo
             

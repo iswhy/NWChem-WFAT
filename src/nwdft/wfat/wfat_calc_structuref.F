@@ -1,14 +1,12 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_calc_srfc(nat, nqn, bt, gm, erg, chmmt, gn,
-     &     srfc)
+      subroutine wfat_calc_srfc0(nat, nqn, bt, gm, erg, chmmt, gn)
 
       implicit none
       integer nat, nqn
       double precision bt, gm                    ! [input], orientation angle in degree.
       double precision erg, chmmt(3)                 ! [input], 
-      double complex gn(nat, nqn)                    ! [input], 
-      double complex srfc(nat, nqn)                  ! [output], 
+      double complex gn(nat, nqn)                    ! [in/output], 
 
       integer iqn, ic
       double precision protmat(3,3), mu(3), kp
@@ -24,7 +22,41 @@ c     ==== Begin calculating structure factor ====
       
       do iqn = 1, nqn      
          do ic = 1, nat
-            srfc(ic,iqn) = exp(-kp * mu(3)) * gn(ic,iqn)
+            gn(ic,iqn) = exp(-kp * mu(3)) * gn(ic,iqn)
+         enddo
+      enddo
+      
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_calc_srfc1(nat, nqn, bt, gm, erg, chmmt, jn, kn)
+
+      implicit none
+      integer nat, nqn
+      double precision bt, gm                    ! [input], orientation angle in degree.
+      double precision erg, chmmt(3)                 ! [input], 
+      double complex jn(nat, nqn)                    ! [in/output], 
+      double complex kn(nat, nqn)                    ! [in/output], 
+
+      integer iqn, ic
+      double precision protmat(3,3), mu(3), kp
+      
+      
+c     ==== Get the passive rotation matrix ===
+      call wfat_passrot(bt, gm, protmat)
+
+      
+c     ==== Begin calculating structure factor ====
+      mu = matmul(transpose(protmat), -chmmt)
+      kp = sqrt(2 * abs(erg))
+      
+      do iqn = 1, nqn      
+         do ic = 1, nat
+            jn(ic,iqn) = exp(-kp * mu(3)) * jn(ic,iqn)
+            kn(ic,iqn) = exp(-kp * mu(3)) * kn(ic,iqn)
          enddo
       enddo
       
@@ -35,7 +67,7 @@ c=======================================================
 c=======================================================
 c=======================================================
 c==== Imam ====
-      subroutine wfat_calc_structuref_OLD(geom, bt, gm, nch, erg, nqn, 
+      subroutine wfat_get_srfc0(geom, bt, gm, nch, erg, nqn, 
      &                                mid, lmax_, chmmt, intgl, srfc)
       
       implicit none

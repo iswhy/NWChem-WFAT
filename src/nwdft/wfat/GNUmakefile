@@ -46,6 +46,7 @@
 	wfat_eval_laser.o \
 	wfat_print.o \
 	wfat_print_sf.o \
+	wfat_print_srfc1.o \
 	wfat_print_rt.o \
 	wfat_print_iy.o \
 	wfat_print_tm.o \
