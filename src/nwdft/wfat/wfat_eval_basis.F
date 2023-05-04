@@ -5,6 +5,7 @@ c==== Imam ====
      &                bval, d1bval, d2bval, d3bval)
 
       implicit none
+#include "wfat_qm_param.fh"      
 #include "stdio.fh"      
 #include "mafdecls.fh"
 #include "bas.fh"
@@ -24,6 +25,9 @@ c==== Imam ====
       integer ids, iac, iaq, itag, irq, inz, ibcent_info, ibcset_info
       integer ic
       double precision dx, dy, dz
+
+      logical slas
+      double precision rsl, kp
       
       parameter (npoint = 1)
 
@@ -83,7 +87,21 @@ c     ==== Filling bas_cent_info and bas_cset_info ====
 c     ==== Calculating basis at the input point ====
       if (.not. bas_numbf(bhan, nbas))
      &     call errquit('WFAT: Getting nbas failed', 53, BASIS_ERR)
-      call xc_eval_basis(bhan, maxder, 
+c      call xc_eval_basis(bhan, maxder, 
+c     &                   bval(1:nbas),
+c     &                   d1bval(1:3, 1:nbas),
+c     &                   d2bval(1:6, 1:nbas),
+c     &                   d3bval(1:10, 1:nbas),      
+c     &                   dbl_mb(irq),
+c     &                   vpt, dbl_mb(iac), npoint, natom,
+c     &                   int_mb(inz), log_mb(ids),
+c     &                   int_mb(ibcent_info),
+c     &                   int_mb(ibcset_info))
+
+      slas = .false.
+      rsl = 5.0d0
+      kp = sqrt(2*abs(dbl_mb(k_moerg)))
+      call wfat_eval_basis_slater(bhan, maxder, 
      &                   bval(1:nbas),
      &                   d1bval(1:3, 1:nbas),
      &                   d2bval(1:6, 1:nbas),
@@ -92,7 +110,7 @@ c     ==== Calculating basis at the input point ====
      &                   vpt, dbl_mb(iac), npoint, natom,
      &                   int_mb(inz), log_mb(ids),
      &                   int_mb(ibcent_info),
-     &                   int_mb(ibcset_info))
+     &                   int_mb(ibcset_info), slas, kp, rsl)
 
       
 c     ==== Deallocations ====

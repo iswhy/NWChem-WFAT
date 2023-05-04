@@ -70,6 +70,11 @@ c     ==== Calculate Q_l ====
             q_1(l, i) = d1 * g + dbl_mb(i_qp1)
             i_qp2 = k_qp2 + (i-1)*nl + l - abs(m)
             q_2(l, i) = d2 * g + dbl_mb(i_qp2)
+
+
+
+            if ( isnan(q_1(l, i)) ) q_1(l, i) = 0.0d0
+            if ( isnan(q_2(l, i)) ) q_2(l, i) = 0.0d0
          enddo
       enddo
 

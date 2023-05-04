@@ -410,10 +410,13 @@ c=======================================================
       kp = sqrt(2 * abs(erg))
       zb = kp * eb
 
-      if (zb < 30.0d0)
-     &     call errquit('WFAT: The argument eb of '//
+      if (zb < 30.0d0 - 1.0d-13) then
+         write(luout, '("zb = ", f21.14)') zb
+         call errquit('WFAT: The argument eb of '//
      &     'wfat_calc_o_intl_part3 must be such that sqrt(2*|erg|)*eb'//
-     &     ' is bigger than or equal to 30.0', 41, UERR)
+     &        ' is bigger than or equal to 30.0', 41, UERR)
+      endif
+      
       
 
 c      write(luout, '("herew1")')

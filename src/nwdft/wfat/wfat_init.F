@@ -27,6 +27,8 @@ c=======================================================
       external movecs_read, nwxc_has_cam
       logical int_normalize
       external int_normalize
+      integer ga_create_atom_blocked
+      external ga_create_atom_blocked
 
 
       if (.not. rtdb_print(rtdb, .false.))
@@ -205,6 +207,17 @@ cOLD      call wfat_set_fockreplicate(1)
       call wfat_reset_lfqlib()        ! Reset Gauss-Laguerre nodes and weights for the calculations of the various U(a,b,z).
       
 
+c     ==== Store the common integrals ====
+      gwf_ovl = ga_create_atom_blocked(geom_hd, bas_hd, 'overlap')
+      call ga_zero(gwf_ovl)
+      call int_1e_ga(bas_hd, bas_hd, gwf_ovl, 'overlap', oskel)
+      gwf_kin = ga_create_atom_blocked(geom_hd, bas_hd, 'kinetic')
+      call ga_zero(gwf_kin)
+      call int_1e_ga(bas_hd, bas_hd, gwf_kin, 'kinetic', oskel)
+      gwf_pot = ga_create_atom_blocked(geom_hd, bas_hd, 'potential')
+      call ga_zero(gwf_pot)
+      call int_1e_ga(bas_hd, bas_hd, gwf_pot, 'potential', oskel)
+      
 
 c     ==== Printing important information ====
       call wfat_print_info(rtdb)
@@ -461,6 +474,15 @@ c     ==== Molecular orbitals ====
 c     ==== Molecular integrals ====
       call int_terminate()      
 
+
+c     ==== Common integrals ====
+      if (.not. ga_destroy(gwf_ovl))
+     $     call errquit ("WFAT: couldnt destroy overlap", 0, GA_ERR)
+      if (.not. ga_destroy(gwf_kin))
+     $     call errquit ("WFAT: couldnt destroy kinetic", 0, GA_ERR)
+      if (.not. ga_destroy(gwf_pot))
+     $     call errquit ("WFAT: couldnt destroy potential", 0, GA_ERR)
+      
 
 c     ==== RTDB ====
       ll = rtdb_delete(rtdb, 'wfat:print_srfc')

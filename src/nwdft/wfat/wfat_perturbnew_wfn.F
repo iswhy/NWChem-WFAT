@@ -15,12 +15,13 @@ c=======================================================
       double precision pb(3,3,nch)           ! [output], 
 
       integer i, is, imo, io, k, j, m, id0, idm, ieg0, iegm, i_dpo
-      integer is1, is2, l_mo, k_mo, l_dpo, k_dpo
+      integer is1, is2, l_mo, k_mo, l_dpo, k_dpo, ndid
       double precision derg, ctr(3), vpt(3), val
 
       integer ga_create_atom_blocked
       external ga_create_atom_blocked
 
+      ndid = ga_nodeid()
 
 c     ==== Calculate dipole matrix in the MO basis ====      
       if (.not. MA_alloc_get(MT_DBL, nbas0**2*nspin0*3, 'dpmo',
@@ -86,12 +87,15 @@ c     ==== the first order correction terms  ====
       enddo
 
 
-      write(luout, '("vch1 = ")')
-      call wfat_dprintmat(nbas0, 3, 'f', vch1(:,:,1))
+      if (ndid==0) then
+         write(luout, '("vch1 = ")')
+         call wfat_dprintmat(nbas0, 3, 'f', vch1(:,:,1))
+      endif
+      
       vpt = (/ 0.5d0, 0.3d0, 0.4d0/)
       do i = 1, 3
          call wfat_eval_vector(geom_hd, bas_hd, vpt, vch1(:,i,1), val)
-         write(luout, '("vch1 val = ", i3, es15.7)') i, val
+         if (ndid==0) write(luout, '("vch1 val = ", i3, es15.7)') i, val
       enddo
       
 

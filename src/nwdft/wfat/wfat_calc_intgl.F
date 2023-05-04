@@ -40,7 +40,7 @@ c==== Imam ====
       
       character*16 tag
       character*9 rdm_name(2)
-      logical t1
+      logical t1, with_alp, with_ss
       integer natom, nbas, ncf, nrd, max_npt, nvc, nsh, nom, ni0, ni_
       integer nch1, npt, natomp, nptp, ncpos, nscr, nil, nmo, nrda
       integer nij0, nij_, nij
@@ -58,7 +58,7 @@ c==== Imam ====
       integer k_ik2_0, k_ik2_, k_ik2
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
       integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch)
-      double precision atp(3), znuc, v_c(3), v_m(3)
+      double precision atp(3), znuc, v_c(3), v_m(3), alp, ss, ef
       double precision normch, celf, wtcelf, numnel
       double complex czero
       
@@ -80,6 +80,13 @@ c     ==== Get number of bases ====
       if (.not. bas_numbf(bas_hd, nbas))
      &     call errquit('WFAT: Getting nbas failed in ', 53, UERR)
 
+      with_alp = .false.
+      if (rtdb_get(rtdb, 'wfat:alp', mt_dbl, 1, alp))
+     &     with_alp = .true.
+      with_ss = .false.
+      if (rtdb_get(rtdb, 'wfat:ss', mt_dbl, 1, ss))
+     &     with_ss = .true.
+
       
 c     ==== Obtain properties of each channel ====
 c     nch = the number of the ionized channels.
@@ -96,9 +103,13 @@ c            associated to the three cartesian components of the dipole operator
      &     call errquit('WFAT: vch allocation failed', 59, MA_ERR)
       call wfat_orb_property(rtdb, nch, orbid, spinid, dbl_mb(k_cf), 
      &                       erg, chpos, chmmt, iondip)
-      if (wfat1)
-     &     call wfat_perturbnew_cwfn(nch, spinid, orbid,
-     &     dbl_mb(k_cf+nbas*nch), pb)
+      if (wfat1) then
+         call wfat_perturbnew_cwfn(nch, spinid, orbid,
+     &        dbl_mb(k_cf+nbas*nch), pb)
+         call wfat_prep_field(rtdb, ef)
+         call wfat_check_wfat1ovl(nch, dbl_mb(k_cf),
+     &        dbl_mb(k_cf+nbas*nch))
+      endif
       if (.not. MA_alloc_get(MT_INT, nch+nch1, 'spinid1', l_si, k_si))
      &     call errquit('WFAT: spinid1 allocation failed', 59, MA_ERR)
       if (.not. MA_alloc_get(MT_DBL, 3*(nch+nch1), 'chpos1',
@@ -106,8 +117,6 @@ c            associated to the three cartesian components of the dipole operator
      &     call errquit('WFAT: chpos1 allocation failed', 59, MA_ERR)
       call wfat_get_wfat1_sppos(wfat1, nch, spinid, chpos, int_mb(k_si),
      &     dbl_mb(k_pos))
-      
-      
       
 
 c     ==== Get the reduced density matrix ====
@@ -234,9 +243,22 @@ c              =====           and K^{(n,m)}_{l,m'}                ====
      &              dcpl_mb(i_om1), dcpl_mb(i_om2), dbl_mb(k_vc+nch),
      &              dbl_mb(k_vc), dcpl_mb(k_ij0), dcpl_mb(k_ik1_0),
      &              dcpl_mb(k_ik2_0))
+
+               
             endif
-            
-            
+
+            if (with_alp .and. with_ss) then
+               if (wfat1) then
+                  call wfat_mask_gjk(geom_hd, nch, erg, nqn, nsh, v_m,
+     &                 chpos, alp, ss, ef, dcpl_mb(k_i0), 
+     &                 dcpl_mb(k_ij0), dcpl_mb(k_ik1_0),
+     &                 dcpl_mb(k_ik2_0))
+               else
+                  call wfat_mask_g(geom_hd, nch, erg, nqn, nsh, v_m,
+     &                 chpos, alp, ss, ef, dcpl_mb(k_i0))
+               endif
+            endif
+
             
 c           ==== Quadrature summation ====
             call wfat_celf_1pt(geom_hd, icent, v_c, wf_msm, celf)
@@ -413,6 +435,88 @@ c=======================================================
      &     abs(intd_k1(1,1,1)),
      &     abs(intd_k2(1,1,1))
       
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_mask_g(geom, nch, erg, nqn, nsh, v_m, chpos, a, 
+     &     s, ef, intd_g)
+
+      implicit none
+      integer geom
+      integer nch
+      double precision erg(nch)
+      integer nqn
+      integer nsh
+      double precision v_m(3)
+      double precision chpos(3, nch)
+      double precision a
+      double precision s
+      double precision ef
+      double complex intd_g(nsh, nqn, nch)
+
+      logical t1
+      integer i, imf
+      double precision v_f(3), r, r0, mask
+      real*8 util_erfc
+      parameter( imf=0 )
+      external util_erfc
+      
+      do i = 1, nch
+         r0 = abs(erg(i))/ef/s
+         call geom_cent2arb(geom, imf, v_m, chpos(:,i), v_f, t1)
+         r = sqrt( sum(v_f**2) )
+         mask = 0.5d0 * util_erfc(a*(r-r0))
+         intd_g(:,:,i) = intd_g(:,:,i) * mask
+      enddo
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_mask_gjk(geom, nch, erg, nqn, nsh, v_m, chpos, a, 
+     &     s, ef, intd_g, intd_j, intd_k1, intd_k2)
+
+      implicit none
+      integer geom
+      integer nch
+      double precision erg(nch)
+      integer nqn
+      integer nsh
+      double precision v_m(3)
+      double precision chpos(3, nch)
+      double precision a
+      double precision s
+      double precision ef
+      double complex intd_g(nsh, nqn, nch)
+      double complex intd_j(nsh, nqn, 3, nch)
+      double complex intd_k1(nsh, nqn, nch)
+      double complex intd_k2(nsh, nqn, nch)
+
+      logical t1
+      integer i, imf
+      double precision v_f(3), r, r0, mask
+      real*8 util_erfc
+      parameter( imf=0 )
+      external util_erfc
+      
+      
+      
+      do i = 1, nch
+         r0 = abs(erg(i))/ef/s
+         call geom_cent2arb(geom, imf, v_m, chpos(:,i), v_f, t1)
+         r = sqrt( sum(v_f**2) )
+         mask = 0.5d0 * util_erfc(a*(r-r0))
+         intd_g(:,:,i) = intd_g(:,:,i) * mask
+         intd_j(:,:,:,i) = intd_j(:,:,:,i) * mask
+         intd_k1(:,:,i) = intd_k1(:,:,i) * mask
+         intd_k2(:,:,i) = intd_k2(:,:,i) * mask
+      enddo
+
       end
 c=======================================================
       
@@ -1053,6 +1157,51 @@ c=======================================================
       if (.not. MA_free_heap(l_ik2))
      &     call errquit('WFAT: intl_k2 deallocation failed', 61, MA_ERR)
       
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_check_wfat1ovl(nch, vch, vch1)
+
+      implicit none
+#include "stdio.fh"
+#include "mafdecls.fh"
+#include "global.fh"
+#include "errquit.fh"
+#include "wfat_qm_param.fh"
+      integer nch
+      double precision vch(nbas0, nch)
+      double precision vch1(nbas0, 3, nch)
+
+      integer i, j, l_ov, k_ov
+      double precision val(3)
+
+
+      write(luout, '("Overlaps of the 0-th order ionized orbital '//
+     &     'and their first order corrections")')
+
+      if (.not. ma_alloc_get(mt_dbl, nbas0**2, 'ovl', l_ov, k_ov))
+     &     call errquit('WFAT: Cannot allocate ovl ', 74, MA_ERR)
+      call ga_get(gwf_ovl, 1, nbas0, 1, nbas0, dbl_mb(k_ov), nbas0)
+
+
+      do i = 1, nch
+         do j = 1, 3
+            call wfat_mat_element(nbas0, vch1(:,j,i), vch(:,i),
+     &           dbl_mb(k_ov), val(j))
+         enddo
+         write(luout, '("Channel : ", i5)') i
+         write(luout, '("  <v_x|v> = ", es21.12)') val(1)
+         write(luout, '("  <v_y|v> = ", es21.12)') val(2)
+         write(luout, '("  <v_z|v> = ", es21.12)') val(3)
+         write(luout, '(" ")')
+      enddo
+
+      if (.not. ma_free_heap(l_ov))
+     &     call errquit('WFAT: Cannot deallocate ovl', 74, MA_ERR )
+
       end
 c=======================================================
 

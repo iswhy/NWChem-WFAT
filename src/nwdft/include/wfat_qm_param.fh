@@ -13,8 +13,9 @@ cOLD     &     rstag, rsgeom_name, rsbas_name
       integer
      &     bas_hd, nbas0, nspin0, geom_hd, natm, nel(2), nelec0, multip,
      &     g_mov(2), nerg0, l_moerg, k_moerg, nocc0, l_moocc, k_moocc,
-     &     l_dgid, k_dgid, l_dgn, k_dgn, l_norbdg, k_norbdg, ixcfit       !, rsgeom, rsbas
-
+     &     l_dgid, k_dgid, l_dgn, k_dgn, l_norbdg, k_norbdg, ixcfit,       !, rsgeom, rsbas
+     &     gwf_ovl, gwf_kin, gwf_pot
+      
       double precision
      &     charge, tol2e, zion     !, rschg
 
@@ -31,6 +32,7 @@ c     ---- Integers ----
      &     bas_hd, nbas0, nspin0, geom_hd, natm, nel, nelec0, multip,
      &     g_mov, nerg0, l_moerg, k_moerg, nocc0, l_moocc, k_moocc,
      &     l_dgid, k_dgid, l_dgn, k_dgn, l_norbdg, k_norbdg, ixcfit,
+     &     gwf_ovl, gwf_kin, gwf_pot,
 c     ---- Double precision ----
      &     charge, tol2e, zion
       

@@ -25,6 +25,7 @@
 	wfat_laguerre.o \
 	wfat_density.o \
 	wfat_eval_basis.o \
+	wfat_eval_basis_slater.o \
 	wfat_grid.o \
 	wfat_lebedev.o \
 	wfat_omega.o \
