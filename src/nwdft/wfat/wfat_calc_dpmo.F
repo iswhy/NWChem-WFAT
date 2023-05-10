@@ -23,12 +23,12 @@ c     ==== Dipole matrices in GTO basis relative to ctr ====
      &     MA_ERR)
 
       call int_mpole_all(bas_hd, nbas0, 1, ctr, dbl_mb(k_mp))
-      write(luout, '("X dipole AO:")')
-      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_mp+nbas0**2))
-      write(luout, '("Y dipole AO:")')
-      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_mp+2*nbas0**2))
-      write(luout, '("Z dipole AO:")')
-      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_mp+3*nbas0**2))
+cc      write(luout, '("X dipole AO:")')
+cc      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_mp+nbas0**2))
+cc      write(luout, '("Y dipole AO:")')
+cc      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_mp+2*nbas0**2))
+cc      write(luout, '("Z dipole AO:")')
+cc      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_mp+3*nbas0**2))
 
 
 c     ==== Get MO coeffs ====

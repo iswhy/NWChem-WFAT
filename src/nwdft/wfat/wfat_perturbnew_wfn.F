@@ -29,12 +29,13 @@ c     ==== Calculate dipole matrix in the MO basis ====
      &     call errquit('WFAT: dpmo allocation failed', 19, MA_ERR)
       ctr = (/ 0.0d0, 0.0d0, 0.0d0 /)      !0.0d0                                     !! 1)
       call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
-      write(luout, '("X dipole MO:")')
-      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_dpo))
-      write(luout, '("Y dipole MO:")')
-      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_dpo+nbas0**2))
-      write(luout, '("Z dipole MO:")')
-      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_dpo+2*nbas0**2))
+
+cc      write(luout, '("X dipole MO:")')
+cc      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_dpo))
+cc      write(luout, '("Y dipole MO:")')
+cc      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_dpo+nbas0**2))
+cc      write(luout, '("Z dipole MO:")')
+cc      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_dpo+2*nbas0**2))
 
       
 c     ==== Compute the static polarizabilities in molecular frame ====
@@ -76,9 +77,6 @@ c     ==== the first order correction terms  ====
      &                       nbas0**2*(is-1) + nbas0*(io-1) + (m-1)
                      vch1(j,k,i) = vch1(j,k,i) +
      &                             dbl_mb(imo) * dbl_mb(i_dpo) / derg
-
-                  else
-                     write(luout, '("idm=", i6)') idm
                   endif
                enddo
             enddo

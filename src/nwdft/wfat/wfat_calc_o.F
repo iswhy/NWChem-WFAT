@@ -50,7 +50,7 @@ c=======================================================
       logical l1, l2
       integer k, NNGR, l_wt, k_wt, l_pt, k_pt
       double precision eb1, eb2, kp, oi_p1(2), oi_p2(2), oi_p3(2), THR
-      parameter (NNGR=3, THR=1.0d-7)
+      parameter (NNGR=3, THR=1.0d-4)
       integer ngr(NNGR)
       double precision oi0(2,NNGR)
 

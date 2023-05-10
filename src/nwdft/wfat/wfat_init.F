@@ -21,7 +21,7 @@ c=======================================================
       character*2 spin_name
       character*7 mov_name0, mov_name
       parameter(mov_name0='movec')
-      double precision zn, rscent0(3)
+      double precision zn, rscent0(3), dgnthr
       
       logical movecs_read, nwxc_has_cam
       external movecs_read, nwxc_has_cam
@@ -140,7 +140,7 @@ c     ==== Molecular orbitals ====
      $        call errquit("WFAT: Failed to read movecs data", 0, UERR)
       enddo
 
-c     == Detect degeneracies ==
+c     ==== Detect degeneracies ====
       if (.not. ma_alloc_get(mt_int, nbas0*nspin0, 'dgid',
      &     l_dgid, k_dgid))
      &     call errquit('WFAT: Allocating dgid failed', 1, MA_ERR)
@@ -150,8 +150,15 @@ c     == Detect degeneracies ==
       if (.not. ma_alloc_get(mt_int, nspin0, 'norb_dg',
      &     l_norbdg, k_norbdg))
      &     call errquit('WFAT: Allocating norb_dg failed', 1, MA_ERR)
-      call wfat_detect_degen(nbas0, nspin0, dbl_mb(k_moerg), 
+      if (.not. rtdb_get(rtdb, 'wfat:dgnthr', mt_dbl, 1, dgnthr))
+     &     call errquit('WFAT: Failed reading dgnthr from RTDB.', 1,
+     &     RTDB_ERR)
+      call wfat_detect_degen(nbas0, nspin0, dbl_mb(k_moerg), dgnthr,
      &     int_mb(k_dgid), int_mb(k_dgn), int_mb(k_norbdg))
+      if (ga_nodeid()==0) call wfat_print_degen(nbas0, nspin0,
+     &     dbl_mb(k_moerg), dbl_mb(k_moocc), dgnthr, int_mb(k_dgid),
+     &     int_mb(k_dgn))
+      call ga_sync()
 
 
 c     ==== Calculate charge state and multiplicity ====
@@ -228,20 +235,20 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_detect_degen(nb, ns, erg, dgid, dgn, norb_dg)
+      subroutine wfat_detect_degen(nb, ns, erg, thr, dgid, dgn, norb_dg)
 
       implicit none
       integer nb
       integer ns
       double precision erg(nb, ns)
+      double precision thr
       integer dgid(nb, ns)           ! [output], degenerate ID.
       integer dgn(nb, ns)            ! [output], the number of degenerate MO's in each manifold.
       integer norb_dg(ns)            ! [output], the number of MO's taking degeneracy into account.
 
       logical isdtct(nb)
       integer is, id, i, j
-      double precision derg, dgnthr
-      parameter( dgnthr=1.0d-6 )
+      double precision derg
       
 
       do is = 1, ns
@@ -256,7 +263,7 @@ c=======================================================
                do j = i+1, nb
                   derg = erg(i,is) - erg(j,is)
     
-                  if ( abs(derg) <= dgnthr ) then
+                  if ( abs(derg) <= thr ) then
                      dgid(j,is) = id
                      isdtct(j) = .true.
                   endif
@@ -282,6 +289,50 @@ c=======================================================
             enddo
 
          enddo
+      enddo
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_print_degen(nb, ns, erg, occ, thr, dgid, dgn)
+
+      implicit none
+#include "stdio.fh"
+      integer nb
+      integer ns
+      double precision erg(nb,ns)
+      double precision occ(nb,ns)
+      double precision thr
+      integer dgid(nb,ns)
+      integer dgn(nb,ns)
+
+      integer is, i
+
+
+      write(luout, '(2x, "*** Degeneracy Analysis ***")')
+      write(luout, '(2x, "Degenerate threshold = ", es15.6)') thr
+      
+
+c     ==== Print column titles ====
+      write(luout, '(a5)', advance='no') 'No.'
+      do is = 1, ns
+         write(luout, '(a21, a10, 2a5)', advance='no')
+     &        'Energy (H)', 'Occ.', 'ID', 'Size'
+      enddo
+      write(luout, '(" ")')
+
+      
+c     ==== Print ID's ====
+      do i = 1, nb
+         write(luout, '(i5)', advance='no') i
+         do is = 1, ns
+            write(luout, '(es21.12, f10.5, 2i5)', advance='no')
+     &           erg(i,is), occ(i,is), dgid(i,is), dgn(i,is)
+         enddo
+         write(luout, '(" ")')
       enddo
 
       end

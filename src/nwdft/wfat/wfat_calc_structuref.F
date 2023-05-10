@@ -68,7 +68,7 @@ c=======================================================
 c=======================================================
 c==== Imam ====
       subroutine wfat_get_srfc0(geom, bt, gm, nch, erg, nqn, 
-     &                                mid, lmax_, chmmt, intgl, srfc)
+     &                          mid, lmax_, chmmt, intgl, srfc)
       
       implicit none
 c     #include "cdft.fh"

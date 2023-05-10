@@ -40,7 +40,7 @@ c==== Imam ====
       
       character*16 tag
       character*9 rdm_name(2)
-      logical t1, with_alp, with_ss
+      logical t1, ismask_g, ismask_j, ismask_k
       integer natom, nbas, ncf, nrd, max_npt, nvc, nsh, nom, ni0, ni_
       integer nch1, npt, natomp, nptp, ncpos, nscr, nil, nmo, nrda
       integer nij0, nij_, nij
@@ -58,8 +58,9 @@ c==== Imam ====
       integer k_ik2_0, k_ik2_, k_ik2
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
       integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch)
-      double precision atp(3), znuc, v_c(3), v_m(3), alp, ss, ef
-      double precision normch, celf, wtcelf, numnel
+      double precision atp(3), znuc, v_c(3), v_m(3), ef, mask_g(2)
+      double precision mask_j(2), mask_k(2), normch, celf, wtcelf
+      double precision numnel
       double complex czero
       
       parameter (imf = 0)
@@ -80,13 +81,27 @@ c     ==== Get number of bases ====
       if (.not. bas_numbf(bas_hd, nbas))
      &     call errquit('WFAT: Getting nbas failed in ', 53, UERR)
 
-      with_alp = .false.
-      if (rtdb_get(rtdb, 'wfat:alp', mt_dbl, 1, alp))
-     &     with_alp = .true.
-      with_ss = .false.
-      if (rtdb_get(rtdb, 'wfat:ss', mt_dbl, 1, ss))
-     &     with_ss = .true.
 
+
+
+      ismask_g = .false.
+      if (rtdb_get(rtdb, 'wfat:mask_g', mt_dbl, 2, mask_g))
+     &     ismask_g = .true.
+      ismask_j = .false.
+      if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_j', mt_dbl, 2, mask_j))
+     &     ismask_j = .true.
+      ismask_k = .false.
+      if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_k', mt_dbl, 2, mask_k))
+     &     ismask_k = .true.
+      call wfat_prep_field(rtdb, ef)
+
+      if (ismask_g) write(luout, '("Masking g")')
+      if (ismask_j) write(luout, '("Masking j")')
+      if (ismask_k) write(luout, '("Masking k")')
+
+
+
+      
       
 c     ==== Obtain properties of each channel ====
 c     nch = the number of the ionized channels.
@@ -106,7 +121,6 @@ c            associated to the three cartesian components of the dipole operator
       if (wfat1) then
          call wfat_perturbnew_cwfn(nch, spinid, orbid,
      &        dbl_mb(k_cf+nbas*nch), pb)
-         call wfat_prep_field(rtdb, ef)
          call wfat_check_wfat1ovl(nch, dbl_mb(k_cf),
      &        dbl_mb(k_cf+nbas*nch))
       endif
@@ -243,22 +257,21 @@ c              =====           and K^{(n,m)}_{l,m'}                ====
      &              dcpl_mb(i_om1), dcpl_mb(i_om2), dbl_mb(k_vc+nch),
      &              dbl_mb(k_vc), dcpl_mb(k_ij0), dcpl_mb(k_ik1_0),
      &              dcpl_mb(k_ik2_0))
+            endif
 
+            
+            if (ismask_g) call wfat_mask_intd(geom_hd, natom, nch, erg, 
+     &           nqn, nsh, v_m, mask_g, ef, dcpl_mb(k_i0))
+            if (ismask_j .and. wfat1) call wfat_mask_intd(geom_hd, 
+     &           natom, 3*nch, erg, nqn, nsh, v_m, mask_j, ef,
+     &           dcpl_mb(k_ij0))
+            if (ismask_k .and. wfat1) then
+               call wfat_mask_intd(geom_hd, natom, nch, erg, nqn, nsh,
+     &              v_m, mask_k, ef, dcpl_mb(k_ik1_0))
+               call wfat_mask_intd(geom_hd, natom, nch, erg, nqn, nsh,
+     &              v_m, mask_k, ef, dcpl_mb(k_ik2_0))
+            endif
                
-            endif
-
-            if (with_alp .and. with_ss) then
-               if (wfat1) then
-                  call wfat_mask_gjk(geom_hd, nch, erg, nqn, nsh, v_m,
-     &                 chpos, alp, ss, ef, dcpl_mb(k_i0), 
-     &                 dcpl_mb(k_ij0), dcpl_mb(k_ik1_0),
-     &                 dcpl_mb(k_ik2_0))
-               else
-                  call wfat_mask_g(geom_hd, nch, erg, nqn, nsh, v_m,
-     &                 chpos, alp, ss, ef, dcpl_mb(k_i0))
-               endif
-            endif
-
             
 c           ==== Quadrature summation ====
             call wfat_celf_1pt(geom_hd, icent, v_c, wf_msm, celf)
@@ -438,87 +451,87 @@ c=======================================================
       end
 c=======================================================
 
-
+      
 c=======================================================
 c=======================================================
-      subroutine wfat_mask_g(geom, nch, erg, nqn, nsh, v_m, chpos, a, 
-     &     s, ef, intd_g)
+      subroutine wfat_mask_intd(geom, natom, nch, erg, nqn, nsh, v_m,
+     &     mask, ef, intd)
 
       implicit none
       integer geom
+      integer natom                           ! [input], the total number of atoms that corresponds to the geometry handle 'geom'.
       integer nch
       double precision erg(nch)
       integer nqn
       integer nsh
-      double precision v_m(3)
-      double precision chpos(3, nch)
-      double precision a
-      double precision s
+      double precision v_m(3)                 ! [input], the Cartesian coordinate of the point in molecular-frame
+      double precision mask(2)
       double precision ef
-      double complex intd_g(nsh, nqn, nch)
+      double complex intd(nsh, nqn, nch)
 
       logical t1
-      integer i, imf
-      double precision v_f(3), r, r0, mask
-      real*8 util_erfc
+      integer i, j, imf
+      double precision v_c(3), r(natom), r_, f
       parameter( imf=0 )
-      external util_erfc
       
       do i = 1, nch
-         r0 = abs(erg(i))/ef/s
-         call geom_cent2arb(geom, imf, v_m, chpos(:,i), v_f, t1)
-         r = sqrt( sum(v_f**2) )
-         mask = 0.5d0 * util_erfc(a*(r-r0))
-         intd_g(:,:,i) = intd_g(:,:,i) * mask
+         r = 0.0d0
+         do j = 1, natom
+            call geom_cent2cent(geom, imf, v_m, j, v_c, t1)
+            r(j) = sqrt( sum(v_c**2) )
+         enddo
+         r_ = minval(r)         
+         f = 0.5d0 * erfc(mask(1) * (r_-mask(2)))
+
+         intd(:,:,i) = intd(:,:,i) * f
       enddo
 
       end
 c=======================================================
 
       
-c=======================================================
-c=======================================================
-      subroutine wfat_mask_gjk(geom, nch, erg, nqn, nsh, v_m, chpos, a, 
-     &     s, ef, intd_g, intd_j, intd_k1, intd_k2)
-
-      implicit none
-      integer geom
-      integer nch
-      double precision erg(nch)
-      integer nqn
-      integer nsh
-      double precision v_m(3)
-      double precision chpos(3, nch)
-      double precision a
-      double precision s
-      double precision ef
-      double complex intd_g(nsh, nqn, nch)
-      double complex intd_j(nsh, nqn, 3, nch)
-      double complex intd_k1(nsh, nqn, nch)
-      double complex intd_k2(nsh, nqn, nch)
-
-      logical t1
-      integer i, imf
-      double precision v_f(3), r, r0, mask
-      real*8 util_erfc
-      parameter( imf=0 )
-      external util_erfc
-      
-      
-      
-      do i = 1, nch
-         r0 = abs(erg(i))/ef/s
-         call geom_cent2arb(geom, imf, v_m, chpos(:,i), v_f, t1)
-         r = sqrt( sum(v_f**2) )
-         mask = 0.5d0 * util_erfc(a*(r-r0))
-         intd_g(:,:,i) = intd_g(:,:,i) * mask
-         intd_j(:,:,:,i) = intd_j(:,:,:,i) * mask
-         intd_k1(:,:,i) = intd_k1(:,:,i) * mask
-         intd_k2(:,:,i) = intd_k2(:,:,i) * mask
-      enddo
-
-      end
-c=======================================================
+cOLDc=======================================================
+cOLDc=======================================================
+cOLD      subroutine wfat_mask_gjk(geom, natom, nch, erg, nqn, nsh, v_m,
+cOLD     &     a, s, ef, intd_g, intd_j, intd_k1, intd_k2)
+cOLD
+cOLD      implicit none
+cOLD      integer geom
+cOLD      integer natom                           ! [input], the total number of atoms that corresponds to the geometry handle 'geom'.
+cOLD      integer nch
+cOLD      double precision erg(nch)
+cOLD      integer nqn
+cOLD      integer nsh
+cOLD      double precision v_m(3)                 ! [input], the Cartesian coordinate of the point in molecular-frame
+cOLD      double precision a
+cOLD      double precision s
+cOLD      double precision ef
+cOLD      double complex intd_g(nsh, nqn, nch)
+cOLD      double complex intd_j(nsh, nqn, 3, nch)
+cOLD      double complex intd_k1(nsh, nqn, nch)
+cOLD      double complex intd_k2(nsh, nqn, nch)
+cOLD
+cOLD      logical t1
+cOLD      integer i, j, imf
+cOLD      double precision v_c(3), r(natom), r_, mask
+cOLD      parameter( imf=0 )
+cOLD      
+cOLD      do i = 1, nch
+cOLD         r = 0.0d0
+cOLD         do j = 1, natom
+cOLD            call geom_cent2cent(geom, imf, v_m, j, v_c, t1)
+cOLD            r(j) = sqrt( sum(v_c**2) )
+cOLD         enddo
+cOLD         r_ = minval(r)
+cOLD         mask = 0.5d0 * erfc(a*(r_-s))
+cOLD         intd_g(:,:,i) = intd_g(:,:,i) * mask
+cOLD         intd_j(:,:,:,i) = intd_j(:,:,:,i) * mask
+cOLD         intd_k1(:,:,i) = intd_k1(:,:,i) * mask
+cOLD         intd_k2(:,:,i) = intd_k2(:,:,i) * mask
+cOLD      enddo
+cOLD
+cOLD      end
+cOLDc=======================================================
       
 
 c=======================================================
@@ -1224,7 +1237,7 @@ c=======================================================
       integer ndid
       integer l_chgtest(2), l_r1test(2), l_qtest(2)
       integer l_phi1test(2), l_tautest(2), l_otest(2)
-      double precision d_chgutest(2)
+      double precision d_chgutest(2), d_erfctest(5)
 
 
       ndid = ga_nodeid()
@@ -1259,6 +1272,14 @@ c=======================================================
       if (rtdb_get(rtdb, 'wfat:test_o', mt_int, 2, l_otest)) then
          if (ndid==0) call wfat_test_o(l_otest(1), l_otest(2),
      &        erg(1), zi)
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_erfc', mt_dbl, 5, d_erfctest)) then
+         if (ndid==0)
+     &        call wfat_test_erfc(d_erfctest(1),
+     &                            d_erfctest(2),
+     &                            d_erfctest(3),
+     &                            d_erfctest(4),
+     &                            idnint(d_erfctest(5)))
       endif
 
 
