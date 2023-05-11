@@ -3,8 +3,8 @@ c===============================================================
       subroutine wfat_calc_td(rtdb, geom, pr_srfc, pr_yild, 
      &           pr_avbeta, pr_avgamma, nlas, ftlas, alas, wlas, 
      &           plas, tlas, dlas, nt, tmax, extf, nch, orbid0, spinid,
-     &           erg, chmmt, nqn, nid, mid, lmax, zi, intgl)
-
+     &           erg, chmmt, nqn, nid, mid, lmax, zi, intgl, wfat1, nb,
+     &           ns, orbid, dpmo, pb, intgl_j, intgl_k1, intgl_k2)
 c     DESCRIPTION:
       
       implicit none
@@ -43,12 +43,24 @@ cOLD      character*5 ftlas(nlas)       ! Function type of envelope, 'gauss' or 
       integer lmax                    ! [input]
       double precision zi             ! [input]
       double complex intgl(1:*)       ! [input]
-
+      logical wfat1                       ! [input]
+      integer nb                          ! [input], only used when wfat1=.true.
+      integer ns                          ! [input], only used when wfat1=.true.
+      integer orbid(1:*)                  ! [input], only used when wfat1=.true.
+      double precision dpmo(1:*)          ! [input], only used when wfat1=.true. The minimum size should be nb*nb*ns*3.
+      double precision pb(1:*)            ! [input], only used when wfat1=.true. The minimum size should be 3*3*nch.
+      double complex intgl_j(1:*)         ! [input], only used when wfat1=.true.
+      double complex intgl_k1(1:*)        ! [input], only used when wfat1=.true.
+      double complex intgl_k2(1:*)        ! [input], only used when wfat1=.true.
+      
       logical gap, sumbtgm
-      integer nsf, nbt, ngm, nat
-      integer ib, ig, ndid
-      integer l_sf, l_sfn
-      integer k_sf, k_sfn
+      integer nsf, nbt, ngm, nat, ndid, ndgi, ndgn, nsc, nsx, nmmd, npbd
+      integer n_jn, n_kn, n_on
+      integer ib, ig, i_on
+      integer l_gn, l_gnn, l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_pbd, l_jn
+      integer l_kn, l_on, l_jnn, l_knn
+      integer k_gn, k_gnn, k_dgi, k_dgn, k_sc, k_sx, k_mmd, k_pbd, k_jn
+      integer k_kn, k_on, k_jnn, k_knn
       double precision bt_start, bt_last, dbt, dbtr, bt
       double precision gm_start, gm_last, dgm, dgmr, gm
       double precision yield, a_yield, yieldbt, yieldbtgm, f
@@ -76,17 +88,44 @@ c     ==== Allocation of structure factors ====
       if (.not. geom_ncent(geom, nat))
      &     call errquit('WFAT: Getting natom failed', 31, GEOM_ERR)
       nsf = nat * nqn * nch
-      if (.not. MA_alloc_get(MT_DCPL, nsf, 'srfc', l_sf, k_sf))
+      if (.not. MA_alloc_get(MT_DCPL, nsf, 'srfc', l_gn, k_gn))
      &     call errquit('WFAT: srfc allocation failed', 2, MA_ERR)
-      if (.not. MA_alloc_get(MT_DCPL, nsf, 'srfcn', l_sfn, k_sfn))
+      if (.not. MA_alloc_get(MT_DCPL, nsf, 'srfcn', l_gnn, k_gnn))
      &     call errquit('WFAT: srfc allocation failed', 2, MA_ERR)
       
 
+c     ==== When WFAT1 is active ====
+      if (wfat1) then
+         call wfat_prepare_an(nb, nat, nch, nqn, ndgi, l_dgi, k_dgi,
+     &        ndgn, l_dgn, k_dgn, nsc, l_sc, k_sc, nsx, l_sx, k_sx, 
+     &        nmmd, l_mmd, k_mmd, npbd, l_pbd, k_pbd,
+     &        n_jn, l_jn, k_jn, n_kn, l_kn, k_kn, n_on, l_on, k_on)
+         if (.not. MA_alloc_get(MT_DCPL, n_jn, 'jnn', l_jnn, k_jnn))
+     &        call errquit('WFAT: jnn allocation failed', 2, MA_ERR)
+         if (.not. MA_alloc_get(MT_DCPL, n_kn, 'knn', l_knn, k_knn))
+     &        call errquit('WFAT: knn allocation failed', 2, MA_ERR)
+         
+         call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
+     &        int_mb(k_dgn))
+         do i = 1, nch
+            do iqn = 1, nqn
+               i_on = k_on + 2*nqn*(i-1) + 2*(iqn-1)
+               call wfat_calc_o(nid(iqn), mid(iqn), erg(i), zi,
+     &              dbl_mb(i_on))
+               write(luout, '("o_nu : ", 2i4, 2es21.12)')
+     &              i, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
+            enddo
+         enddo
+      endif
+
       
 c     ==== Initializing the printings ====
-      if (ndid == 0 .and. pr_srfc)
-     &     call wfat_initprint_structuref(nch, orbid0,
-     &          spinid, nqn, nid, mid) 
+      if (ndid == 0 .and. pr_srfc) then
+         call wfat_initprint_structuref(nch, orbid0, spinid, nqn,
+     &        nid, mid)
+         if (wfat1) call wfat_initprint_srfc1(nch, orbid0, spinid, nqn,
+     &        nid, mid)
+      endif
       if (ndid == 0 .and. pr_yild)
      &     call wfat_initprint_yield()
       if (ndid == 0 .and. pr_avbeta) 
@@ -123,23 +162,47 @@ c     ==== Calculate and print structure factor and ion yield ====
             
             if (pr_srfc .or. pr_yild .or. pr_avbeta) then
 c              ==== Calculate structure factor ====
-               call wfat_get_srfc0(geom, bt, gm, nch, erg,
-     &              nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_sf))
-               call wfat_get_srfc0(geom, 180.0d0-bt, 
-     &              180.0d0+gm, nch, erg, nqn, mid, lmax, chmmt, intgl,
-     &              dcpl_mb(k_sfn))
+               if (wfat1) then
+                  call wfat_get_srfc1(bt, gm, nat, nb, ns,
+     &                 nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
+     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, intgl, 
+     &                 intgl_j, intgl_k1, intgl_k2, dbl_mb(k_sc), 
+     &                 dcpl_mb(k_sx), dbl_mb(k_mmd), dbl_mb(k_pbd), 
+     &                 dcpl_mb(k_gn), dcpl_mb(k_jn), dcpl_mb(k_kn))
+                  call wfat_get_srfc1(180.0d0-bt, 180.0d0+gm, nat, nb,
+     &                 ns, nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
+     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, intgl, 
+     &                 intgl_j, intgl_k1, intgl_k2, dbl_mb(k_sc), 
+     &                 dcpl_mb(k_sx), dbl_mb(k_mmd), dbl_mb(k_pbd), 
+     &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn))
+               else
+                  call wfat_get_srfc0(geom, bt, gm, nch, erg,
+     &                 nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_gn))
+                  call wfat_get_srfc0(geom, 180.0d0-bt, 
+     &                 180.0d0+gm, nch, erg, nqn, mid, lmax, chmmt, 
+     &                 intgl, dcpl_mb(k_gnn))
+               endif
+               
                
 c              ==== Print structure factor ====
-               if (ndid == 0 .and. pr_srfc)
-     &              call wfat_print_structuref(nat, bt, gm, nch, nqn,
-     &                                         dcpl_mb(k_sf), gap)
+               if (ndid == 0 .and. pr_srfc) then
+                  call wfat_print_structuref(nat, bt, gm, nch, nqn,
+     &                 dcpl_mb(k_gn), gap)
+                  if (wfat1) call wfat_print_srfc1(nat, bt, gm, nch, 
+     &                 nqn, dcpl_mb(k_jn), dcpl_mb(k_kn), gap)
+               endif
+               
             endif
 
             if (pr_yild .or. pr_avbeta) then
 c              ==== Calculate ion yield ====
-               call wfat_calc_yield(nat, zi, nlas, ftlas, alas, wlas, 
-     &              plas, tlas, dlas, nt, tmax, extf, nch, erg, nqn, 
-     &              nid, mid, dcpl_mb(k_sf), dcpl_mb(k_sfn), yield)
+               if (wfat1) then
+                  call wfat_calc_wfat1_yield()
+               else
+                  call wfat_calc_yield(nat, zi, nlas, ftlas, alas, wlas,
+     &                 plas, tlas, dlas, nt, tmax, extf, nch, erg, nqn,
+     &                 nid, mid, dcpl_mb(k_gn), dcpl_mb(k_gnn), yield)
+               endif
                
 c              ==== Print ion yield ====
                if (ndid == 0 .and. pr_yild)
@@ -205,16 +268,36 @@ c     ==== Calculate gamma-averaged ion yield ====
                gm = gm_start + dgm*(ig-1)
 
 c              ==== Calculate structure factor ====
-               call wfat_get_srfc0(geom, bt, gm, nch, erg,
-     &              nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_sf))
-               call wfat_get_srfc0(geom, 180.0d0-bt, 
-     &              180.0d0+gm, nch, erg, nqn, mid, lmax, chmmt, intgl,
-     &              dcpl_mb(k_sfn))
+               if (wfat1) then
+                  call wfat_get_srfc1(bt, gm, nat, nb, ns,
+     &                 nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
+     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, intgl, 
+     &                 intgl_j, intgl_k1, intgl_k2, dbl_mb(k_sc), 
+     &                 dcpl_mb(k_sx), dbl_mb(k_mmd), dbl_mb(k_pbd), 
+     &                 dcpl_mb(k_gn), dcpl_mb(k_jn), dcpl_mb(k_kn))
+                  call wfat_get_srfc1(180.0d0-bt, 180.0d0+gm, nat, nb,
+     &                 ns, nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
+     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, intgl, 
+     &                 intgl_j, intgl_k1, intgl_k2, dbl_mb(k_sc), 
+     &                 dcpl_mb(k_sx), dbl_mb(k_mmd), dbl_mb(k_pbd), 
+     &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn))
+               else
+                  call wfat_get_srfc0(geom, bt, gm, nch, erg,
+     &                 nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_gn))
+                  call wfat_get_srfc0(geom, 180.0d0-bt, 
+     &                 180.0d0+gm, nch, erg, nqn, mid, lmax, chmmt, 
+     &                 intgl, dcpl_mb(k_gnn))
+               endif
 
 c              ==== Calculate ion yield ====
-               call wfat_calc_yield(nat, zi, nlas, ftlas, alas, 
-     &              wlas, plas, tlas, dlas, nt, tmax, extf, nch, erg, 
-     &              nqn, nid, mid, dcpl_mb(k_sf), dcpl_mb(k_sfn), yield)
+               if (wfat1) then
+                  call wfat_calc_wfat1_yield()
+               else
+                  call wfat_calc_yield(nat, zi, nlas, ftlas, alas, 
+     &                 wlas, plas, tlas, dlas, nt, tmax, extf, nch, erg,
+     &                 nqn, nid, mid, dcpl_mb(k_gn), dcpl_mb(k_gnn),
+     &                 yield)
+               endif
 
                a_yield = a_yield + yield * dgmr / 2.0d0 / pi_const
             enddo
@@ -225,20 +308,28 @@ c              ==== Calculate ion yield ====
       
 
 c     ==== Terminating printings ====      
-      if (ndid==0 .and. pr_srfc) call wfat_endprint_structuref()
+      if (ndid==0 .and. pr_srfc) then
+         call wfat_endprint_structuref()
+         if (wfat1) call wfat_endprint_srfc1()
+      endif
       if (ndid==0 .and. pr_yild) call wfat_endprint_yield()
       if (ndid==0 .and. pr_avbeta) call wfat_endprint_avbeta()
       if (ndid==0 .and. pr_avgamma) call wfat_endprint_avgamma()
 
       
 c     ==== Deallocations ====
-      if (.not. MA_free_heap(l_sf))
-     &     call errquit('WFAT: srfc deallocation failed',
-     &     3, MA_ERR)
-      if (.not. MA_free_heap(l_sfn))
-     &     call errquit('WFAT: srfcn deallocation failed',
-     &     3, MA_ERR)
-      
+      if (.not. MA_free_heap(l_gn))
+     &     call errquit('WFAT: srfc deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_gnn))
+     &     call errquit('WFAT: srfcn deallocation failed', 3, MA_ERR)
+      if (wfat1) then
+         call wfat_erase_an(l_dgi, l_dgn, l_sc, l_sx, l_mmd, 
+     &        l_pbd, l_jn, l_kn, l_on)
+         if (.not. MA_free_heap(l_jnn))
+     &        call errquit('WFAT: jnn deallocation failed', 3, MA_ERR)
+         if (.not. MA_free_heap(l_knn))
+     &        call errquit('WFAT: knn deallocation failed', 3, MA_ERR)
+      endif
       
       end
 c===============================================================

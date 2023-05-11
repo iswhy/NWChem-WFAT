@@ -40,8 +40,14 @@ cc      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_dpo+2*nbas0**2))
       
 c     ==== Compute the static polarizabilities in molecular frame ====
       call wfat_calc_polb(nch, orbid, spinid, dbl_mb(k_dpo), pb)
-      write(luout, '("Polarizability tensor = ")')
-      call wfat_dprintmat(3, 3, 'f', pb(:,:,1))
+      if (ndid==0) then
+         write(luout, '("Polarizability tensor = ")')
+         do i = 1, nch
+            write(luout, '(3x, "Channel : ", i4)') i
+            call wfat_dprintmat(3, 3, 'e', pb(:,:,i))
+         enddo
+      endif
+      call ga_sync()
 
 
 c     ==== MO coefficients ====

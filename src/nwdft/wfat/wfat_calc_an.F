@@ -7,7 +7,8 @@ c============================================================
 
       implicit none
 #include "errquit.fh"
-      double precision bt     ! [input], beta in degrees
+#include "stdio.fh"
+      double precision bt       ! [input], beta in degrees
       double precision gm     ! [input], gamma in degrees
       integer nat
       integer nb
@@ -100,9 +101,26 @@ c              ==== Construct the H_int within the degenerate MO's ====
                call wfat_isdiag(nn, scr(p_ht0), diagthr, isdiag)
                
                if (.not. isdiag) then
+                  write(luout, '("non-diag subH: ", 2f10.4)') bt, gm
+                  call wfat_dprintmat(nn, nn, 'e',
+     &                 scr(p_ht0:p_ht0+nn*2-1))
                   call errquit('WFAT: For the moment, degenerate '//
      &                 'ionized channels must diagonalize the '//
      &                 'interaction Hamiltonian', 48, UERR)
+
+
+cforlater                  call wfat_equal_mmt(nn, mfid, chmmtd, mthr, iseq)
+cforlater                  if (.not. iseq) then
+cforlater                     do ii = 1, nn
+cforlater                        jj = mfid(ii)
+cforlater                        write(luout, '("Moment of channel ", i4)') jj
+cforlater                        call wfat_dprintmat(1, 3, 'e', chmmtd(:,jj))
+cforlater                     enddo
+cforlater                     call errquit('WFAT: For the moment, degenerate '//
+cforlater     &                    'ionized channels must also have identical '//
+cforlater     &                    'dipole moments', 48, UERR)
+cforlater                  endif
+                  
                   
 c                 ==== Diagonalize H_int in this manifold ====
                   call wfat_dsyev_wrap(nn, scr(p_ht0), scr(p_ev0))

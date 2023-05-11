@@ -263,6 +263,7 @@ c     DESCRIPTION:
 
 
       dummy_int = 0
+c     ATTENTION: Update the arguments of wfat_calc_td below!!!
       call wfat_calc_td(rtdb, geom, pr_srfc, pr_yild, 
      &     pr_avbeta, pr_avgamma, nlas, ftlas, alas, wlas, 
      &     plas, tlas, dlas, nt, tmax, extf, nch, dummy_int, spinid, 

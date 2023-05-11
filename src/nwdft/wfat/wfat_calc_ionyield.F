@@ -82,7 +82,6 @@ c=======================================================
       dt = (tmax-t0)/(nt-1)
 
       yield = 0.0d0
-cOLD      p_yield = 0.0d0
       do i = 1, nt
          t = t0 + (i-1)*dt
          if (extf) then
@@ -107,18 +106,9 @@ cdebug            write(luout, '("laser: ", i5, es14.6)') i, las
             yield0 = 0.0d0
          endif
 
-cOLD         ii = 0
-cOLD         do k = 1, nch
-cOLD            do j = 1, nqn
-cOLD               p_yield(j,k) = p_yield(j,k) + dbl_mb(k_pi+ii) *
-cOLD     &                        wfat_tfs_tau(1, dt)
-cOLD               ii = ii + 1
-cOLD            enddo
-cOLD         enddo
          yield = yield + yield0 * dt
       enddo
 
-cOLD      p_yield = exp(-p_yield)
       yield = 1.0d0 - exp(-yield)
 
       if (.not. ma_free_heap(l_pi))
