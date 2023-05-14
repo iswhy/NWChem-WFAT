@@ -56,7 +56,7 @@ cOLD      character*5 ftlas(nlas)       ! Function type of envelope, 'gauss' or 
       logical gap, sumbtgm
       integer nsf, nbt, ngm, nat, ndid, ndgi, ndgn, nsc, nsx, nmmd, npbd
       integer n_jn, n_kn, n_on
-      integer ib, ig, i_on
+      integer ib, ig, i, iqn, i_on
       integer l_gn, l_gnn, l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_pbd, l_jn
       integer l_kn, l_on, l_jnn, l_knn
       integer k_gn, k_gnn, k_dgi, k_dgn, k_sc, k_sx, k_mmd, k_pbd, k_jn
@@ -197,7 +197,13 @@ c              ==== Print structure factor ====
             if (pr_yild .or. pr_avbeta) then
 c              ==== Calculate ion yield ====
                if (wfat1) then
-                  call wfat_calc_wfat1_yield()
+                  call wfat_calc_wfat1_yield(bt, gm, zi, nlas, ftlas, 
+     &                 alas, wlas, plas, tlas, dlas, nt, tmax, extf, 
+     &                 nch, erg, nqn, nid, mid, nat, dcpl_mb(k_gn), 
+     &                 dcpl_mb(k_jn), dcpl_mb(k_kn), dcpl_mb(k_gnn),
+     &                 dcpl_mb(k_jnn), dcpl_mb(k_knn), dbl_mb(k_on),
+     &                 dbl_mb(k_mmd), dbl_mb(k_pbd), yield)
+                  
                else
                   call wfat_calc_yield(nat, zi, nlas, ftlas, alas, wlas,
      &                 plas, tlas, dlas, nt, tmax, extf, nch, erg, nqn,
@@ -291,7 +297,12 @@ c              ==== Calculate structure factor ====
 
 c              ==== Calculate ion yield ====
                if (wfat1) then
-                  call wfat_calc_wfat1_yield()
+                  call wfat_calc_wfat1_yield(bt, gm, zi, nlas, ftlas, 
+     &                 alas, wlas, plas, tlas, dlas, nt, tmax, extf, 
+     &                 nch, erg, nqn, nid, mid, nat, dcpl_mb(k_gn), 
+     &                 dcpl_mb(k_jn), dcpl_mb(k_kn), dcpl_mb(k_gnn),
+     &                 dcpl_mb(k_jnn), dcpl_mb(k_knn), dbl_mb(k_on),
+     &                 dbl_mb(k_mmd), dbl_mb(k_pbd), yield)
                else
                   call wfat_calc_yield(nat, zi, nlas, ftlas, alas, 
      &                 wlas, plas, tlas, dlas, nt, tmax, extf, nch, erg,

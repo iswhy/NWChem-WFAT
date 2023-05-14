@@ -62,7 +62,6 @@ c     ==== Get the passive rotation matrix ===
 cfordebug            write(luout, '("A_nu = ", f15.7)') aa
 cfordebug            write(luout, '("B_nu = ", f15.7)') bb_
 
-            
             on_ = on(1,iqn,i) + mu(3)*on(2,iqn,i)
             call wfat_field_factor(ef, erg(i), zi, n, m, ffc(iqn, i))
 
@@ -83,16 +82,18 @@ c============================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_calc_wfat1_yield(nat, zi, nlas, ftlas, alas, wlas,
-     &                 plas, tlas, dlas, nt, tmax, extf, nch, erg, nqn,
-     &                 nid, mid, srfc, srfcn, yield)
+      subroutine wfat_calc_wfat1_yield(bt, gm, zi, nlas, ftlas, alas, 
+     &                 wlas, plas, tlas, dlas, nt, tmax, extf, nch, erg,
+     &                 nqn, nid, mid, nat, gn, jn, kn, gnn, jnn, knn,
+     &                 on, chmmt, pb, yield)
 
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
 #include "stdio.fh"
 #include "wfat_field_param.fh"
-      integer nat
+      double precision bt           ! [input],
+      double precision gm           ! [input],
       double precision zi
       integer nlas
       character(len=FLD_TP_LEN) ftlas(nlas)       ! Function type of envelope, 'gaussian' or 'hann'         
@@ -109,12 +110,20 @@ c=======================================================
       integer nqn
       integer nid(nqn)
       integer mid(nqn)
-      double complex srfc(1:*)
-      double complex srfcn(1:*)
+      integer nat
+      double complex gn(nat, nqn, nch)       ! [input],
+      double complex jn(nat, nqn, nch)       ! [input],
+      double complex kn(nat, nqn, nch)       ! [input],
+      double complex gnn(nat, nqn, nch)      ! [input],
+      double complex jnn(nat, nqn, nch)      ! [input],
+      double complex knn(nat, nqn, nch)      ! [input],
+      double precision on(2, nqn, nch)       ! [input],
+      double precision chmmt(3,nch)          ! [input],
+      double precision pb(3,3,nch)           ! [input],
       double precision yield
-
+      
       integer i, j, k, npi, l_pi, k_pi, nfc, l_fc, k_fc
-      double precision t0, dt, t, las, yield0
+      double precision t0, dt, t, las, rate
       parameter (t0=0.0d0)
 
       
@@ -143,19 +152,19 @@ cdebug            write(luout, '("laser: ", i5, es14.6)') i, las
          dbl_mb(k_pi:k_pi+npi-1) = 0.0d0
          if (las >= 1.0d-13) then
             call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid,
-     &           mid, fieldm, erg, zi, gn, jn, kn, on, mmd, pbd,
-     &           dbl_mb(k_fc), dbl_mb(k_pi), yield0)
+     &           mid, las, erg, zi, gn, jn, kn, on, chmmt, pb,
+     &           dbl_mb(k_fc), dbl_mb(k_pi), rate)
          else if (las <= -1.0d-13) then
             call wfat_calc_wfat1_rate(180.0d0-bt, 180.0d0+gm, nat, nqn,
-     &           nch, nid, mid, fieldm, erg, zi, gnn, jnn, knn, on, mmd,
-     &           pbd, dbl_mb(k_fc), dbl_mb(k_pi), yield0)
+     &           nch, nid, mid, abs(las), erg, zi, gnn, jnn, knn, on, 
+     &           chmmt, pb, dbl_mb(k_fc), dbl_mb(k_pi), rate)
          else
             dbl_mb(k_fc : k_fc+nfc-1) = 0.0d0
             dbl_mb(k_pi : k_pi+npi-1) = 0.0d0
-            yield0 = 0.0d0
+            rate = 0.0d0
          endif
 
-         yield = yield + yield0 * dt
+         yield = yield + rate * dt
       enddo
 
       yield = 1.0d0 - exp(-yield)

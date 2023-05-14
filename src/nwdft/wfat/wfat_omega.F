@@ -141,6 +141,9 @@ c        ==== Calculate channel functions ====
                i_af = k_af - 1 + ish
                omega(ish, iq) = dbl_mb(k_rf - lmin_ + l) *
      &                          dcpl_mb(i_af)
+
+               if ( isnan(abs( omega(ish,iq) )) )
+     &              omega(ish,iq) = czero
             enddo
          enddo
          

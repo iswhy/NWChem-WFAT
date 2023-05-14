@@ -67,7 +67,7 @@ c=======================================================
       double precision yield
 
       integer i, j, k, npi, l_pi, k_pi, nfc, l_fc, k_fc
-      double precision t0, dt, t, las, yield0
+      double precision t0, dt, t, las, rate
       parameter (t0=0.0d0)
 
       
@@ -96,17 +96,17 @@ cdebug            write(luout, '("laser: ", i5, es14.6)') i, las
          dbl_mb(k_pi:k_pi+npi-1) = 0.0d0
          if (las >= 1.0d-13) then
             call wfat_calc_rate(nat, las, nch, erg, nqn, nid, mid,
-     &           zi, srfc, dbl_mb(k_fc), dbl_mb(k_pi), yield0)
+     &           zi, srfc, dbl_mb(k_fc), dbl_mb(k_pi), rate)
          else if (las <= -1.0d-13) then
             call wfat_calc_rate(nat, abs(las), nch, erg, nqn, nid, mid,
-     &           zi, srfcn, dbl_mb(k_fc), dbl_mb(k_pi), yield0)
+     &           zi, srfcn, dbl_mb(k_fc), dbl_mb(k_pi), rate)
          else
             dbl_mb(k_fc : k_fc+nfc-1) = 0.0d0
             dbl_mb(k_pi : k_pi+npi-1) = 0.0d0
-            yield0 = 0.0d0
+            rate = 0.0d0
          endif
 
-         yield = yield + yield0 * dt
+         yield = yield + rate * dt
       enddo
 
       yield = 1.0d0 - exp(-yield)

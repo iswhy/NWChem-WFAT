@@ -127,7 +127,7 @@ c                 ==== Diagonalize H_int in this manifold ====
 
 c                 ==== Update first moments of ionized orbitals ====
 cforlater                  call wfat_update_orbmmt(chmmtd)
-cforlater                  call wfat_update_polb(pb)
+cforlater                  call wfat_update_polb(pbd)
                endif
             endif
 
@@ -354,6 +354,125 @@ cforlater      double precision mmtd()      ! [output], New orbital moments in m
       end
 c============================================================
 
+
+c============================================================
+c============================================================
+      subroutine wfat_update_polb(nch, n, orbid0, ispin, dpmo, cf, pbd)
+
+      implicit none
+#include "mafdecls.fh"
+#include "errquit.fh"
+#include "wfat_qm_param.fh"
+      integer nch
+      integer n
+      integer orbid0(n)
+      integer ispin
+      double precision dpmo(nbas0, nbas0, nspin0, 3)   ! [input]
+      double precision cf(n,n)                         ! [in/output]
+      double precision pbd(3,3,nch)                    ! [in/output]
+
+      integer i, pid(n), l_cf, k_cf, j, i_cf
+      double precision polxx(n), pb_(3,3,n)
+
+      
+      call wfat_get_newpolb(n, orbid0, ispin, cf, dpmo, pb_)
+      
+      polxx = pbd(1,1,:)        ! polxx contains the xx-component of the static polarizabilities of the old degenerate channels.
+      do i = 1, n
+         pid(i) = i
+      enddo
+      call wfat_dsortx(polxx, 1, n, pid)
+
+
+      if (.not. MA_alloc_get(MT_DBL, n**2, 'cf', l_cf, k_cf))
+     &     call errquit('WFAT: Cannot allocate cf', 41, MA_ERR)
+
+      do i = 1, n
+         j = pid(i)
+         pbd(:,:,i) = pb_(:,:,j)
+         i_cf = k_cf + n*(j-1)
+         cf(:,i) = dbl_mb(i_cf:i_cf+n-1)
+      enddo
+      
+      if (.not. MA_free_heap(l_cf))
+     &     call errquit('WFAT: cf deallocation failed', 20, MA_ERR)
+
+      end
+c============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_get_newpolb(n, orbid0, ispin, cf, dpmo, pb)
+
+      implicit none
+#include "mafdecls.fh"
+#include "errquit.fh"
+#include "wfat_qm_param.fh"
+      integer n
+      integer orbid0(n)
+      integer ispin
+      double precision cf(n,n)
+      double precision dpmo(nbas0, nbas0, nspin0, 3)
+      double precision pb(3,3,n)
+
+      integer l_dp, k_dp, is, i, j, i_dp1, i_dp2, k, io
+
+      
+      if (.not. MA_alloc_get(MT_DBL, nbas0*n*3, 'dpo_', l_dp, k_dp))
+     &     call errquit('WFAT: Cannot allocate dpo_', 41, MA_ERR)
+
+
+c     ==== Construct the columns of dpmo corresponding to ====
+c     ====   the new degenerate channels (i.e. when the   ====
+c     ====     kets are the new degenerate channels)      ====
+      is = ispin  
+      do i = 1, 3      ! Loop over cartesian coordinates
+         do j = 1, n      ! Loop over the new degenerate channels
+            i_dp1 = k_dp + nbas0*n*(i-1) + nbas0*(j-1)
+            i_dp2 = i_dp1 + nbas0 - 1
+
+            dbl_mb(i_dp1:i_dp2) = 0.0d0
+            do k = 1, n       ! Loop (sum) over the old degenerate channels
+               io = orbid0(k)
+               dbl_mb(i_dp1:i_dp2) = dbl_mb(i_dp1:i_dp2) +
+     &              cf(k,j)*dpmo(:,io,is,i)
+            enddo   
+         enddo
+      enddo
+
+
+c     ==== Deliberately set the elements of dpmo between the ====
+c     ====  new degenerate channels (i.e. when both the bra  ====
+c     ====    and ket are the new degenerate channels) to    ====
+c     ====                 Infinity or NaN                   ====           ! 1)
+      do i = 1, 3
+         do j = 1, n
+            do k = 1, n
+               io = orbid0(k)
+               i_dp1 = k_dp + nbas0*n*(i-1) + nbas0*(j-1) + (io-1)
+               dbl_mb(i_dp1) = 1/0.0d0
+            enddo
+         enddo
+      enddo
+      
+
+c     ==== Compute the new static polarizabilities ====
+c     ====     for these degenerate channels       ====
+      call wfat_calc_polb_eco(n, orbid0, ispin, dbl_mb(k_dp), pb)
+
+
+      if (.not. MA_free_heap(l_dp))
+     &     call errquit('WFAT: dpo_ deallocation failed', 20, MA_ERR)
+      end
+c     Notes:
+c     1) This is because the elements of dpmo between the new degenerate
+c        channels will not be used in the computation of the static
+c        polarizabilities. Assigining an Infinity or NaN to these elements
+c        helps in identifying when they are mistakenly used in the above
+c        computations.
+c============================================================
+      
 
 c============================================================
 c============================================================

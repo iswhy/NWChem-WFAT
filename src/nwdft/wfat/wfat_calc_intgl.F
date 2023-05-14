@@ -57,7 +57,8 @@ c==== Imam ====
       integer k_ij0, k_ij_, k_ij, k_om1, k_ik1_0, k_ik1_, k_ik1, k_om2
       integer k_ik2_0, k_ik2_, k_ik2
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
-      integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch)
+      integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch), pr_count
+      integer pr_chk(10), kk
       double precision atp(3), znuc, v_c(3), v_m(3), ef, mask_g(2)
       double precision mask_j(2), mask_k(2), normch, celf, wtcelf
       double precision numnel
@@ -199,7 +200,10 @@ c     ==== Calculate WFAT(1) Omega ====
 c     ==== BEGIN QUADRATURE SUMMATION ====
 c     ==== Loop over atoms ====
       call ga_sync()
+      call wfat_get_intgl_chkpt(nptp, pr_chk)
       jpt = 0
+      pr_count = 0
+      kk = 1
       dcpl_mb(k_i_ : k_i_+ni_-1) = czero
       if (wfat1) then
          dcpl_mb(k_ij_ : k_ij_+nij_-1) = czero
@@ -242,11 +246,16 @@ c           ==== Calculate Omega^(n,m)_(l,m') functions ====
 c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
             call wfat_integrand(nch, nqn, nsh, dcpl_mb(k_om),
      &           dbl_mb(k_vc), dcpl_mb(k_i0))
+            if (isnan( abs(dcpl_mb(k_i0)) ))
+     &           write(luout, '("isnan", i8, 3es14.6, 6x, 3es21.12E3)')
+     &           ic, v_m, dcpl_mb(k_om), dbl_mb(k_vc)
+            
+            
 
             if (wfat1) then
-               write(luout, '("wfat1: ", i8, 4es15.6)')
-     &              jpt, dbl_mb(k_vc), dbl_mb(k_vc+1), dbl_mb(k_vc+2),
-     &              dbl_mb(k_vc+3)
+cfordebug               write(luout, '("wfat1: ", i8, 4es15.6)')
+cfordebug     &              jpt, dbl_mb(k_vc), dbl_mb(k_vc+1), dbl_mb(k_vc+2),
+cfordebug     &              dbl_mb(k_vc+3)
                
                jpt = jpt + 1
                i_om1 = k_om1 + (jpt-1)*nsh*nqn*nch
@@ -303,6 +312,12 @@ c           ==== Quadrature summation ====
      &                            wtcelf
             endif
 
+            pr_count = pr_count + 1
+            if (pr_count == pr_chk(kk)) then
+               if (ndid==0) write(luout, '(4x, "Progress : ", i3, "%")')
+     &              kk*10
+               kk = kk + 1
+            endif
          enddo
       enddo
       
@@ -439,14 +454,13 @@ c=======================================================
          enddo
       enddo
 
-
-
-      write(luout, '(4x, "intgls : ", 5es15.7)')
-     &     abs(intd_j(2,1,1,1)),
-     &     abs(intd_j(2,1,2,1)),
-     &     abs(intd_j(3,1,3,1)),
-     &     abs(intd_k1(1,1,1)),
-     &     abs(intd_k2(1,1,1))
+      
+cfordebug      write(luout, '(4x, "intgls : ", 5es15.7)')
+cfordebug     &     abs(intd_j(2,1,1,1)),
+cfordebug     &     abs(intd_j(2,1,2,1)),
+cfordebug     &     abs(intd_j(3,1,3,1)),
+cfordebug     &     abs(intd_k1(1,1,1)),
+cfordebug     &     abs(intd_k2(1,1,1))
       
       end
 c=======================================================
@@ -1287,6 +1301,26 @@ c=======================================================
       
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_get_intgl_chkpt(npt, chk)
+
+      implicit none
+      integer npt
+      integer chk(10)
+
+      integer i
+
+      do i = 1, 10
+         chk(i) = int( i/10.0d0 * npt )
+      enddo
+      chk(10) = npt
+
+      end
+c=======================================================
+      
       
       
       

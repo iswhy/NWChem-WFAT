@@ -166,6 +166,52 @@ c=======================================================
 
 c=======================================================
 c=======================================================
+      subroutine wfat_calc_polb_eco(n, orbid0, ispin, dpmo, pb)
+c     DESCRIPTION :
+c     The more economic version of the wfat_calc_polb subroutine.
+      implicit none
+#include "wfat_qm_param.fh"
+#include "mafdecls.fh"
+      integer n                          ! [input],
+      integer orbid0(n)                  ! [input],
+      integer ispin                      ! [input],
+      double precision dpmo(nbas0, n, 3) ! [input],
+      double precision pb(3,3,n)         ! [output],
+
+      integer i, io, is, j2, j1, m, id0, idm, ieg0, iegm
+      double precision derg, pb0
+
+
+      is = ispin
+      do i = 1, n
+         io = orbid0(i)
+         do j2 = 1, 3
+            do j1 = 1, 3
+
+               pb(j1,j2,i) = 0.0d0
+               do m = 1, nbas0
+                  id0 = int_mb(k_dgid + (is-1)*nbas0 + (io-1))
+                  idm = int_mb(k_dgid + (is-1)*nbas0 + (m-1))
+                  if (id0 /= idm) then
+                     ieg0 = k_moerg + (is-1)*nbas0 + (io-1)
+                     iegm = k_moerg + (is-1)*nbas0 + (m-1)
+                     derg = dbl_mb(ieg0) - dbl_mb(iegm)
+
+                     pb0 = dpmo(m,i,j1) * dpmo(m,i,j2) / derg
+                     pb(j1,j2,i) = pb(j1,j2,i) + pb0
+                  endif
+               enddo
+
+            enddo
+         enddo
+      enddo
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
       subroutine wfat_get_wfat1_sppos(wfat1, nch, spinid, chpos, 
      &     spinid1, chpos1)
 
