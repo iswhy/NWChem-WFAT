@@ -2,8 +2,8 @@ c============================================================
 c============================================================
       subroutine wfat_get_srfc1(bt, gm, nat, nb, ns, nch, nqn, 
      &     lmax, orbid, spinid, dgid0, dgn0, mid, dpmo, erg, chmmt, pb,
-     &     intl, intl_j, intl_k1, intl_k2, scr, scrx, chmmtd, pbd, gn,
-     &     jn, kn)
+     &     chpos, mthr, dthr, intl, intl_j, intl_k1, intl_k2, scr, scrx,
+     &     chmmtd, pbd, gn, jn, kn)
 
       implicit none
 #include "errquit.fh"
@@ -25,6 +25,9 @@ c============================================================
       double precision erg(nch)                             ! [input],
       double precision chmmt(3,nch)                         ! [input],
       double precision pb(3,3,nch)                          ! [input],
+      double precision chpos(3,nch)                         ! [input],
+      double precision mthr                                 ! [input], threshold for determining if the dipole moments in the degenerate channels are identical.
+      double precision dthr                                 ! [input], threhsold for determining if the interaction Hamiltonian in the degenerate subspace is diagonal.
       double complex intl((1+lmax)**2, nat, nqn, nch)       ! [input],
       double complex intl_j((1+lmax)**2, nat, nqn, 3, nch)  ! [input],
       double complex intl_k1((1+lmax)**2, nat, nqn, nch)    ! [input],
@@ -37,13 +40,13 @@ c============================================================
       double complex jn(nat, nqn, nch)                      ! [output], J_n = \exp{-\kappa*\mu_z} * j_n
       double complex kn(nat, nqn, nch)                      ! [output], K_n = \exp{-\kappa*\mu_z} * k_n
 
-      logical iscalc(nch), isdiag, dgtest
+      logical iscalc(nch), isdiag, dgtest, ismeq
       integer nht, ndp, nev, nlc, p_ht0, p_htn, p_dp0, p_dpn, p_ev0
       integer p_evn, p_lc0, p_lcn, i, is, nn, k, j, j_, mfid(nch)
-      integer orbid0(nch)
-      double precision protmat(3,3), cu(3), diagthr
+      integer orbid0(nch), ii, jj, ii_
+      double precision protmat(3,3), cu(3)
 
-      parameter(diagthr=1.0d-12)
+cOLD      parameter(dthr=1.0d-12)
 
       
 c     ==== Double precision scratch ====
@@ -98,36 +101,35 @@ c              ==== Construct the H_int within the degenerate MO's ====
                   scr(p_ht0:p_ht0+nn**2-1) = scr(p_ht0:p_ht0+nn**2-1) +
      &                                    cu(k)*scr(p_dp0:p_dp0+nn**2-1)
                enddo
-               call wfat_isdiag(nn, scr(p_ht0), diagthr, isdiag)
+               call wfat_isdiag(nn, scr(p_ht0), dthr, isdiag)
                
                if (.not. isdiag) then
-                  write(luout, '("non-diag subH: ", 2f10.4)') bt, gm
-                  call wfat_dprintmat(nn, nn, 'e',
-     &                 scr(p_ht0:p_ht0+nn*2-1))
-                  call errquit('WFAT: For the moment, degenerate '//
-     &                 'ionized channels must diagonalize the '//
-     &                 'interaction Hamiltonian', 48, UERR)
-
-
-cforlater                  call wfat_equal_mmt(nn, mfid, chmmtd, mthr, iseq)
-cforlater                  if (.not. iseq) then
-cforlater                     do ii = 1, nn
-cforlater                        jj = mfid(ii)
-cforlater                        write(luout, '("Moment of channel ", i4)') jj
-cforlater                        call wfat_dprintmat(1, 3, 'e', chmmtd(:,jj))
-cforlater                     enddo
-cforlater                     call errquit('WFAT: For the moment, degenerate '//
-cforlater     &                    'ionized channels must also have identical '//
-cforlater     &                    'dipole moments', 48, UERR)
-cforlater                  endif
+cOLD                  call wfat_equal_mmt(nch, nn, mfid, chmmtd, chpos,
+cOLD     &                 mthr, ismeq)
+cOLD                  if (.not. ismeq) then
+cOLD                     do ii = 1, nn
+cOLD                        jj = mfid(ii)
+cOLD                        write(luout, '("Moment of channel ", i4)') jj
+cOLD                        call wfat_dprintmat(1, 3, 'e', chmmtd(:,jj))
+cOLD                     enddo
+cOLD                     call errquit('WFAT: For the moment, degenerate '//
+cOLD     &                    'ionized channels must also have identical '//
+cOLD     &                    'dipole moments', 48, UERR)
+cOLD                  endif
                   
                   
 c                 ==== Diagonalize H_int in this manifold ====
                   call wfat_dsyev_wrap(nn, scr(p_ht0), scr(p_ev0))
 
+
 c                 ==== Update first moments of ionized orbitals ====
-cforlater                  call wfat_update_orbmmt(chmmtd)
-cforlater                  call wfat_update_polb(pbd)
+                  call wfat_setorder_polb(nch, nn, mfid, orbid0, is,
+     &                 nb, ns, dpmo, scr(p_ht0), pbd)
+                  do ii = 1, nn
+                     ii_ = mfid(ii)
+                     write(luout, '("nondiag: ", 2f10.5, i6, 4es21.12)')
+     &                    bt, gm, ii, scr(p_ev0+ii-1), chmmtd(:,ii_)
+                  enddo
                endif
             endif
 
@@ -343,13 +345,39 @@ c============================================================
 
 c============================================================
 c============================================================
-      subroutine wfat_update_orbmmt()
+      subroutine wfat_equal_mmt(nch, n, mfid, mmd, ctr, mthr, t)
 
       implicit none
-cforlater      double precision scr(n,n)
-cforlater      double precision mmtd()      ! [output], New orbital moments in molecular frame and relative to the corresponding orbital center.
+      integer nch
+      integer n
+      integer mfid(n)
+      double precision mmd(3,nch)
+      double precision ctr(3,nch)
+      double precision mthr
+      logical t
+
+      integer j, j_, i, i_
+      double precision d(3), e
 
 
+      t = .true.
+
+      do j = 1, n
+         j_ = mfid(j)
+         do i = 1, n
+            i_ = mfid(i)
+
+            if (j > i) then
+               d = (mmd(:,j_)+ctr(:,j_)) - (mmd(:,i_)+ctr(:,i_))
+               e = sqrt( sum(d**2) )
+               if (e > mthr) then
+                  t = .false.
+                  return
+               endif
+            endif
+            
+         enddo
+      enddo
 
       end
 c============================================================
@@ -357,44 +385,67 @@ c============================================================
 
 c============================================================
 c============================================================
-      subroutine wfat_update_polb(nch, n, orbid0, ispin, dpmo, cf, pbd)
+      subroutine wfat_setorder_polb(nch, n, mfid, orbid0, ispin, nb, ns,
+     &     dpmo, cf, pbd)
 
       implicit none
 #include "mafdecls.fh"
 #include "errquit.fh"
-#include "wfat_qm_param.fh"
-      integer nch
-      integer n
-      integer orbid0(n)
-      integer ispin
-      double precision dpmo(nbas0, nbas0, nspin0, 3)   ! [input]
-      double precision cf(n,n)                         ! [in/output]
-      double precision pbd(3,3,nch)                    ! [in/output]
+      integer nch                             ! [input]
+      integer n                               ! [input]
+      integer mfid(n)                         ! [input]
+      integer orbid0(n)                       ! [input]
+      integer ispin                           ! [input]
+      integer nb                              ! [input]
+      integer ns                              ! [input]
+      double precision dpmo(nb, nb, ns, 3)    ! [input]
+      double precision cf(n,n)                ! [in/output]
+      double precision pbd(3,3,nch)           ! [in/output]
 
-      integer i, pid(n), l_cf, k_cf, j, i_cf
-      double precision polxx(n), pb_(3,3,n)
+      integer i, pid(n), l_sc, k_sc, j, k, i_sc, i_
+      double precision dd(n), pb_(3,3,n)
 
       
-      call wfat_get_newpolb(n, orbid0, ispin, cf, dpmo, pb_)
+      call wfat_get_newpolb(n, orbid0, ispin, cf, nb, ns, dpmo, pb_)
+
+      do i = 1, n
+         dd(i) = 0.0d0
+         do j = 1, 3
+            dd(i) = dd(i) + (pb_(j,j,i) - pbd(j,j,i))**2
+         enddo
+      enddo
       
-      polxx = pbd(1,1,:)        ! polxx contains the xx-component of the static polarizabilities of the old degenerate channels.
       do i = 1, n
          pid(i) = i
       enddo
-      call wfat_dsortx(polxx, 1, n, pid)
+      call wfat_dsortx(dd, 1, n, pid)
 
 
-      if (.not. MA_alloc_get(MT_DBL, n**2, 'cf', l_cf, k_cf))
+      if (.not. MA_alloc_get(MT_DBL, n**2, 'cf', l_sc, k_sc))
      &     call errquit('WFAT: Cannot allocate cf', 41, MA_ERR)
+      call dcopy(n**2, cf, 1, dbl_mb(k_sc), 1)
 
       do i = 1, n
          j = pid(i)
-         pbd(:,:,i) = pb_(:,:,j)
-         i_cf = k_cf + n*(j-1)
-         cf(:,i) = dbl_mb(i_cf:i_cf+n-1)
+         k = mfid(i)
+         pbd(:,:,k) = pb_(:,:,j)
+         i_sc = k_sc + n*(j-1)
+         cf(:,i) = dbl_mb(i_sc:i_sc+n-1)
       enddo
+
+cOLD      do i = 1, n
+cOLD         i_ = mfid(i)
+cOLD         do k = 1, 3
+cOLD            call wfat_submatrix(nb, nb, dpmo(:,:,ispin,k), n, n, orbid0,
+cOLD     &           orbid0, dbl_mb(k_sc))
+cOLD            call wfat_1e_expval_1eopr(n, cf(:,i), dbl_mb(k_sc),
+cOLD     &           mmd(k,i_))
+cOLD         enddo
+cOLD         mmd(:,i_) = mmd(:,i_) - ctr(:,i_)
+cOLD      enddo
       
-      if (.not. MA_free_heap(l_cf))
+      
+      if (.not. MA_free_heap(l_sc))
      &     call errquit('WFAT: cf deallocation failed', 20, MA_ERR)
 
       end
@@ -403,23 +454,25 @@ c============================================================
 
 c============================================================
 c============================================================
-      subroutine wfat_get_newpolb(n, orbid0, ispin, cf, dpmo, pb)
+      subroutine wfat_get_newpolb(n, orbid0, ispin, cf, nb, ns, dpmo,
+     &     pb)
 
       implicit none
 #include "mafdecls.fh"
 #include "errquit.fh"
-#include "wfat_qm_param.fh"
       integer n
       integer orbid0(n)
       integer ispin
       double precision cf(n,n)
-      double precision dpmo(nbas0, nbas0, nspin0, 3)
+      integer nb
+      integer ns
+      double precision dpmo(nb, nb, ns, 3)
       double precision pb(3,3,n)
 
       integer l_dp, k_dp, is, i, j, i_dp1, i_dp2, k, io
 
       
-      if (.not. MA_alloc_get(MT_DBL, nbas0*n*3, 'dpo_', l_dp, k_dp))
+      if (.not. MA_alloc_get(MT_DBL, nb*n*3, 'dpo_', l_dp, k_dp))
      &     call errquit('WFAT: Cannot allocate dpo_', 41, MA_ERR)
 
 
@@ -429,8 +482,8 @@ c     ====     kets are the new degenerate channels)      ====
       is = ispin  
       do i = 1, 3      ! Loop over cartesian coordinates
          do j = 1, n      ! Loop over the new degenerate channels
-            i_dp1 = k_dp + nbas0*n*(i-1) + nbas0*(j-1)
-            i_dp2 = i_dp1 + nbas0 - 1
+            i_dp1 = k_dp + nb*n*(i-1) + nb*(j-1)
+            i_dp2 = i_dp1 + nb - 1
 
             dbl_mb(i_dp1:i_dp2) = 0.0d0
             do k = 1, n       ! Loop (sum) over the old degenerate channels
@@ -450,7 +503,7 @@ c     ====                 Infinity or NaN                   ====           ! 1)
          do j = 1, n
             do k = 1, n
                io = orbid0(k)
-               i_dp1 = k_dp + nbas0*n*(i-1) + nbas0*(j-1) + (io-1)
+               i_dp1 = k_dp + nb*n*(i-1) + nb*(j-1) + (io-1)
                dbl_mb(i_dp1) = 1/0.0d0
             enddo
          enddo

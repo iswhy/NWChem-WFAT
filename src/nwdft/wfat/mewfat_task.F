@@ -263,7 +263,7 @@ c     DESCRIPTION:
 
 
       dummy_int = 0
-c     ATTENTION: Update the arguments of wfat_calc_td below!!!
+c     WARNING!!!!: Update the arguments of wfat_calc_td below!!!
       call wfat_calc_td(rtdb, geom, pr_srfc, pr_yild, 
      &     pr_avbeta, pr_avgamma, nlas, ftlas, alas, wlas, 
      &     plas, tlas, dlas, nt, tmax, extf, nch, dummy_int, spinid, 
@@ -319,6 +319,7 @@ c     DESCRIPTION:
       
 
       dummy_int = 0
+c     WARNING!!!! : The argument list of wfat_calc_ti needs to be updated.
       call wfat_calc_ti(rtdb, geom, pr_srfc, pr_rate, fieldm, 
      &     1, dummy_int, spinid, erg, chmmt, nqn, nid, mid, lmax,
      &     zi, dcpl_mb(k_in))

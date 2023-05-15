@@ -4,7 +4,8 @@ c===============================================================
      &           pr_avbeta, pr_avgamma, nlas, ftlas, alas, wlas, 
      &           plas, tlas, dlas, nt, tmax, extf, nch, orbid0, spinid,
      &           erg, chmmt, nqn, nid, mid, lmax, zi, intgl, wfat1, nb,
-     &           ns, orbid, dpmo, pb, intgl_j, intgl_k1, intgl_k2)
+     &           ns, orbid, dpmo, pb, chpos, intgl_j, intgl_k1,
+     &           intgl_k2)
 c     DESCRIPTION:
       
       implicit none
@@ -49,6 +50,7 @@ cOLD      character*5 ftlas(nlas)       ! Function type of envelope, 'gauss' or 
       integer orbid(1:*)                  ! [input], only used when wfat1=.true.
       double precision dpmo(1:*)          ! [input], only used when wfat1=.true. The minimum size should be nb*nb*ns*3.
       double precision pb(1:*)            ! [input], only used when wfat1=.true. The minimum size should be 3*3*nch.
+      double precision chpos(1:*)         ! [input], only used when wfat1=.true.
       double complex intgl_j(1:*)         ! [input], only used when wfat1=.true.
       double complex intgl_k1(1:*)        ! [input], only used when wfat1=.true.
       double complex intgl_k2(1:*)        ! [input], only used when wfat1=.true.
@@ -63,7 +65,7 @@ cOLD      character*5 ftlas(nlas)       ! Function type of envelope, 'gauss' or 
       integer k_kn, k_on, k_jnn, k_knn
       double precision bt_start, bt_last, dbt, dbtr, bt
       double precision gm_start, gm_last, dgm, dgmr, gm
-      double precision yield, a_yield, yieldbt, yieldbtgm, f
+      double precision yield, a_yield, yieldbt, yieldbtgm, f, mthr, dthr
       double precision deg2rad, pi_const
 
       parameter (deg2rad = 0.01745329251994d0)
@@ -107,6 +109,12 @@ c     ==== When WFAT1 is active ====
          
          call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
      &        int_mb(k_dgn))
+         if (.not. rtdb_get(rtdb, 'wfat:mthr', mt_dbl, 1, mthr))
+     &        call errquit('WFAT: Failed reading mthr from rtdb',
+     &        1, RTDB_ERR)
+         if (.not. rtdb_get(rtdb, 'wfat:dthr', mt_dbl, 1, dthr))
+     &        call errquit('WFAT: Failed reading dthr from rtdb',
+     &        1, RTDB_ERR)
          do i = 1, nch
             do iqn = 1, nqn
                i_on = k_on + 2*nqn*(i-1) + 2*(iqn-1)
@@ -165,16 +173,18 @@ c              ==== Calculate structure factor ====
                if (wfat1) then
                   call wfat_get_srfc1(bt, gm, nat, nb, ns,
      &                 nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
-     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, intgl, 
-     &                 intgl_j, intgl_k1, intgl_k2, dbl_mb(k_sc), 
-     &                 dcpl_mb(k_sx), dbl_mb(k_mmd), dbl_mb(k_pbd), 
-     &                 dcpl_mb(k_gn), dcpl_mb(k_jn), dcpl_mb(k_kn))
+     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, chpos, 
+     &                 mthr, dthr, intgl, intgl_j, intgl_k1, intgl_k2, 
+     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_mmd), 
+     &                 dbl_mb(k_pbd), dcpl_mb(k_gn), dcpl_mb(k_jn),
+     &                 dcpl_mb(k_kn))
                   call wfat_get_srfc1(180.0d0-bt, 180.0d0+gm, nat, nb,
      &                 ns, nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
-     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, intgl, 
-     &                 intgl_j, intgl_k1, intgl_k2, dbl_mb(k_sc), 
-     &                 dcpl_mb(k_sx), dbl_mb(k_mmd), dbl_mb(k_pbd), 
-     &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn))
+     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, chpos, 
+     &                 mthr, dthr, intgl, intgl_j, intgl_k1, intgl_k2, 
+     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_mmd), 
+     &                 dbl_mb(k_pbd), dcpl_mb(k_gnn), dcpl_mb(k_jnn),
+     &                 dcpl_mb(k_knn))
                else
                   call wfat_get_srfc0(geom, bt, gm, nch, erg,
      &                 nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_gn))
@@ -277,16 +287,18 @@ c              ==== Calculate structure factor ====
                if (wfat1) then
                   call wfat_get_srfc1(bt, gm, nat, nb, ns,
      &                 nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
-     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, intgl, 
-     &                 intgl_j, intgl_k1, intgl_k2, dbl_mb(k_sc), 
-     &                 dcpl_mb(k_sx), dbl_mb(k_mmd), dbl_mb(k_pbd), 
-     &                 dcpl_mb(k_gn), dcpl_mb(k_jn), dcpl_mb(k_kn))
+     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, chpos, 
+     &                 mthr, dthr, intgl, intgl_j, intgl_k1, intgl_k2, 
+     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_mmd), 
+     &                 dbl_mb(k_pbd), dcpl_mb(k_gn), dcpl_mb(k_jn),
+     &                 dcpl_mb(k_kn))
                   call wfat_get_srfc1(180.0d0-bt, 180.0d0+gm, nat, nb,
      &                 ns, nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
-     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, intgl, 
-     &                 intgl_j, intgl_k1, intgl_k2, dbl_mb(k_sc), 
-     &                 dcpl_mb(k_sx), dbl_mb(k_mmd), dbl_mb(k_pbd), 
-     &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn))
+     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, chpos, 
+     &                 mthr, dthr, intgl, intgl_j, intgl_k1, intgl_k2, 
+     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_mmd), 
+     &                 dbl_mb(k_pbd), dcpl_mb(k_gnn), dcpl_mb(k_jnn),
+     &                 dcpl_mb(k_knn))
                else
                   call wfat_get_srfc0(geom, bt, gm, nch, erg,
      &                 nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_gn))

@@ -233,8 +233,8 @@ c        ============================================
      &           dbl_mb(k_dl), ntime, tmax, extf, nch, int_mb(k_or0), 
      &           int_mb(k_sp), dbl_mb(k_eg), dbl_mb(k_cmm), nqn,
      &           int_mb(k_npa), int_mb(k_mpa), lmax, zion,
-     &           dcpl_mb(k_in), wfat1, nbas0,
-     &           nspin0, int_mb(k_or), dbl_mb(k_dpo), dbl_mb(k_pb),
+     &           dcpl_mb(k_in), wfat1, nbas0, nspin0, int_mb(k_or),
+     &           dbl_mb(k_dpo), dbl_mb(k_pb), dbl_mb(k_ps),
      &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
          else
             if (pr_srfc .or. pr_rate)
@@ -243,7 +243,8 @@ c        ============================================
      &           dbl_mb(k_eg), dbl_mb(k_cmm), nqn, int_mb(k_npa),
      &           int_mb(k_mpa), lmax, zion, dcpl_mb(k_in), wfat1, nbas0,
      &           nspin0, int_mb(k_or), dbl_mb(k_dpo), dbl_mb(k_pb),
-     &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
+     &           dbl_mb(k_ps), dcpl_mb(k_inj), dcpl_mb(k_ink1),
+     &           dcpl_mb(k_ink2))
 
             if (pr_tmd .or. pr_tmd_atom) 
      &           call wfat_calcprint_tmd(rtdb, geom_hd, pr_tmd, 
