@@ -1,7 +1,7 @@
 c============================================================
 c============================================================
       subroutine wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
-     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, p_rt, rt)
+     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, justa, ffc, p_rt, rt)
 
       implicit none
 #include "stdio.fh"
@@ -21,13 +21,14 @@ c============================================================
       double precision on(2, nqn, nch)       ! [input],
       double precision chmmt(3,nch)          ! [input],
       double precision pb(3,3,nch)           ! [input],
+      logical justa                          ! [input],
       double precision ffc(nqn, nch)         ! [output],
       double precision p_rt(nqn,nch)         ! [output],
       double precision rt                    ! [output],
       
       integer i, iqn, n, m
       double precision on_, protmat(3,3), mu(3), lpbz, kp, gmm
-      double precision bt0, bt1_1, bt1_2, bt1, aa, bb_
+      double precision bt0, bt1_1, bt1_2, bt1, aa, bb_, ffc_
       double complex gn_, an_
 
       
@@ -64,10 +65,15 @@ cfordebug            write(luout, '("B_nu = ", f15.7)') bb_
 
             on_ = on(1,iqn,i) + mu(3)*on(2,iqn,i)
             call wfat_field_factor(ef, erg(i), zi, n, m, ffc(iqn, i))
+            if (justa) then
+               ffc_ = 1.0d0
+            else
+               ffc_ = ffc(iqn,i)
+            endif
 
             gn_ = sum(gn(:,iqn,i))
             an_ = sum(jn(:,iqn,i)) + sum(kn(:,iqn,i))
-            p_rt(iqn,i) = ffc(iqn,i) *
+            p_rt(iqn,i) = ffc_ *
      &           (abs(gn_)**2 * 
      &           (1+aa*ef*log(ef/4/kp**2)+bb_*ef+2*ef*on_) +
      &           2*ef*real(conjg(gn_)*an_))
@@ -152,12 +158,12 @@ cdebug            write(luout, '("laser: ", i5, es14.6)') i, las
          dbl_mb(k_pi:k_pi+npi-1) = 0.0d0
          if (las >= 1.0d-13) then
             call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid,
-     &           mid, las, erg, zi, gn, jn, kn, on, chmmt, pb,
+     &           mid, las, erg, zi, gn, jn, kn, on, chmmt, pb, .false.,
      &           dbl_mb(k_fc), dbl_mb(k_pi), rate)
          else if (las <= -1.0d-13) then
             call wfat_calc_wfat1_rate(180.0d0-bt, 180.0d0+gm, nat, nqn,
      &           nch, nid, mid, abs(las), erg, zi, gnn, jnn, knn, on, 
-     &           chmmt, pb, dbl_mb(k_fc), dbl_mb(k_pi), rate)
+     &           chmmt, pb, .false., dbl_mb(k_fc), dbl_mb(k_pi), rate)
          else
             dbl_mb(k_fc : k_fc+nfc-1) = 0.0d0
             dbl_mb(k_pi : k_pi+npi-1) = 0.0d0

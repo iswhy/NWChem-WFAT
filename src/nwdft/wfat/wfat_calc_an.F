@@ -26,7 +26,7 @@ c============================================================
       double precision chmmt(3,nch)                         ! [input],
       double precision pb(3,3,nch)                          ! [input],
       double precision chpos(3,nch)                         ! [input],
-      double precision mthr                                 ! [input], threshold for determining if the dipole moments in the degenerate channels are identical.
+      double precision mthr                                 ! [input], UNUSED. Threshold for determining if the dipole moments in the degenerate channels are identical.
       double precision dthr                                 ! [input], threhsold for determining if the interaction Hamiltonian in the degenerate subspace is diagonal.
       double complex intl((1+lmax)**2, nat, nqn, nch)       ! [input],
       double complex intl_j((1+lmax)**2, nat, nqn, 3, nch)  ! [input],

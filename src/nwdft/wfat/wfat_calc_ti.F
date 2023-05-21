@@ -41,7 +41,7 @@ c     DESCRIPTION:
       double complex intgl_k1(1:*)        ! [input], only used when wfat1=.true.
       double complex intgl_k2(1:*)        ! [input], only used when wfat1=.true.
       
-      logical gap
+      logical gap, justa
       integer n_gn, nfc, nrt, nbt, ngm, nat, ndgi, ndgn, nsc, nsx, nmmd
       integer npbd, n_jn, n_kn, n_on, ib, ig, ndid, i, iqn, i_on
       integer l_gn, l_fc, l_rt, l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_pbd
@@ -99,6 +99,10 @@ c     ==== When WFAT1 is active ====
          if (.not. rtdb_get(rtdb, 'wfat:dthr', mt_dbl, 1, dthr))
      &        call errquit('WFAT: Failed reading dthr from rtdb',
      &        1, RTDB_ERR)
+         if (.not. rtdb_get(rtdb, 'wfat:justa', mt_log, 1, justa))
+     &        justa = .false.
+         if (justa) write(luout, '("Ionization rate will not include '//
+     &        'the field factor")')
          do i = 1, nch
             do iqn = 1, nqn
                i_on = k_on + 2*nqn*(i-1) + 2*(iqn-1)
@@ -170,8 +174,8 @@ c              ==== Calculate ionization rate ====
                   call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid,
      &                 mid, fieldm, erg, zi, dcpl_mb(k_gn),
      &                 dcpl_mb(k_jn), dcpl_mb(k_kn), dbl_mb(k_on), 
-     &                 dbl_mb(k_mmd), dbl_mb(k_pbd), dbl_mb(k_fc),
-     &                 dbl_mb(k_rt), rate)
+     &                 dbl_mb(k_mmd), dbl_mb(k_pbd), justa, 
+     &                 dbl_mb(k_fc), dbl_mb(k_rt), rate)
                else
                   call wfat_calc_rate(nat, fieldm, nch, erg,
      &                 nqn, nid, mid, zi, dcpl_mb(k_gn), dbl_mb(k_fc),

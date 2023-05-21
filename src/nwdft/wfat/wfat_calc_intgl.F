@@ -371,11 +371,9 @@ c         call ga_zero(g_k(2))
       
 c     ==== Deallocations ====
       if (.not. MA_free_heap(l_cf))
-     &     call errquit('WFAT: vch deallocation failed',
-     &     61, MA_ERR)
+     &     call errquit('WFAT: vch deallocation failed', 61, MA_ERR)
       if (.not. MA_free_heap(l_rd))
-     &     call errquit('WFAT: rdm deallocation failed',
-     &     61, MA_ERR)
+     &     call errquit('WFAT: rdm deallocation failed', 61, MA_ERR)
       call wfat_dealloc_quadgrid(l_pt, l_wt)
       if (.not. MA_free_heap(l_sc))
      &     call errquit('WFAT: vscr deallocation failed', 61, MA_ERR)

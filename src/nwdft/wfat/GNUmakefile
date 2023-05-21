@@ -55,6 +55,8 @@
 	wfat_print_info.o \
 	wfat_print_dens.o \
 	wfat_print_integrals.o \
+	wfat_print_corb.o \
+	wfat_print_cube.o \
 	wfat_util.o \
 	wfat_orb_mulliken.o \
 	wfat_opvec_coef.o \
