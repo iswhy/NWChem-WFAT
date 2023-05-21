@@ -17,7 +17,7 @@ c===============================================================
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
       logical rtdb_stat, wfat1, res_mode, os, oc, or, int_nosave
-      logical dd, td, extf
+      logical dd, td, extf, corb_print
       character*32 theory
       character*2 prtb_type
       integer ndid, gqual, i, lmax, nlgl, is, npb, ndpo
@@ -146,7 +146,14 @@ c     ==== Calculate (or load) WFAT integrals ====
 c     ==== Preparing WFAT(1) integrals ====
       call wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, nintj, 
      &     g_j, nintk, g_k, npb, l_pb, k_pb)
-      
+
+
+c     ==== Printing the corrected ionizing orbital ====
+      if (.not. rtdb_get(rtdb, 'wfat:corb_print', mt_log, 
+     &     1, corb_print)) corb_print = .false.
+      if (corb_print)
+     &     call wfat_print_corb(rtdb, nch, int_mb(k_or), int_mb(k_sp))
+
       
       smh = 0.0d0
       call util_get_rtdb_state(rtdb, os, oc, or)

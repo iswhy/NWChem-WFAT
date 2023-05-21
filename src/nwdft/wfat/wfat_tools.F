@@ -1074,6 +1074,7 @@ c     n+1 = number of nodes including the end nodes
 c     node = quadrature nodes inlcuding end nodes
 c     weig = quadrature weights including those associated with the end nodes.
       implicit none
+#include "stdio.fh"
 #include "mafdecls.fh"      
 #include "errquit.fh"
       integer n              ! The number of nodes and weights are N+1
@@ -1085,9 +1086,11 @@ c     weig = quadrature weights including those associated with the end nodes.
 
       
       m = n - 2
-      if (n < 2)
-     &     call errquit('Argument n of wfat_lgl must be bigger than '//
-     &     'or equal to 2', 73, UERR)
+      if (n < 2) then
+         write(luout, '("n = ", i3)') n
+         call errquit('Argument n of wfat_lgl must be bigger than '//
+     &        'or equal to 2', 73, UERR)
+      endif
 
       
 c     ==== Construct the dipole moment matrix ====

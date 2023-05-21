@@ -283,8 +283,10 @@ c     dfem = the finite element interval
          id = 3
       endif
 
-cc      if (ga_nodeid()==0)
-cc     &     write(luout, '("nfem, ngr, id : ", 3i4)') nfem, ngr, id
+cfordebug      if (ga_nodeid()==0)
+cfordebug     &     write(luout, '("nfem, ngr, id, r1, r2, dr : ", '//
+cfordebug     &     '3i4, 3es21.12)') nfem, ngr, id, r1, r2, dr
+      
       
       
       kappa = sqrt(2 * abs(erg))

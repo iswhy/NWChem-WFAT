@@ -4,6 +4,7 @@ c=================================================
      &     bas, cf, isnorm)
 
       implicit none
+#include "stdio.fh"
 #include "errquit.fh"
 #include "global.fh"
 #include "bas.fh"
@@ -13,9 +14,9 @@ c=================================================
       character*255 name0      ! [input],
       integer iunit            ! [input],
       integer np(3)            ! [input],
-      double precision xr(2)   ! [input],
-      double precision yr(2)   ! [input],
-      double precision zr(2)   ! [input],
+      double precision xr(2)   ! [input], in bohr
+      double precision yr(2)   ! [input], in bohr
+      double precision zr(2)   ! [input], in bohr
       integer geom             ! [input],
       integer bas              ! [input],
       double precision cf(1:*) ! [input],
@@ -31,6 +32,7 @@ c=================================================
 
       call ga_sync()
       ndid = ga_nodeid()
+
       call util_file_name(trim(adjustl(name0))//'.cube',
      &     .false., .false., fname)
       if (ndid==0) open(iunit, file=fname, action='write')

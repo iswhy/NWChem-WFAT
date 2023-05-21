@@ -17,17 +17,11 @@ c=================================================
 
       character*256 name0
       character*11 idstring
-      logical corb_print
       integer np(3), ncf, l_cf, k_cf, i_cf0, i_cf1, i, j, k1, k2, is, id
       double precision wfn(nbas0), erg(nch), pb(3,3,nch), ef, xr(2)
       double precision yr(2), zr(2), scr(2), bt, gm, protmat(3,3), cu(3)
 
 
-      if (.not. rtdb_get(rtdb, 'mewfat:corb_print', mt_log, 
-     &     1, corb_print)) corb_print = .false.
-      if (.not. corb_print) return
-
-      
       if (ga_nodeid() == 0)
      &     write(luout, '("Printing first-order corrected orbitals '//
      &     'to cube files")') 
@@ -88,7 +82,7 @@ c=================================================
          else if (is == 2) then
             name0 = 'corb.b.'//trim(adjustl(idstring))
          endif
-         call wfat_print_cube(trim(adjustl(name0)), WF_CORB_UNIT, np, 
+         call wfat_print_cube(name0, WF_CORB_UNIT, np, 
      &        xr, yr, zr, geom_hd, bas_hd, wfn, .True.)
       enddo
       
