@@ -141,11 +141,11 @@ c     ==== Molecular orbitals ====
       enddo
 
 c     ==== Detect degeneracies ====
-      if (.not. ma_alloc_get(mt_int, nbas0*nspin0, 'dgid',
-     &     l_dgid, k_dgid))
+      if (.not. ma_alloc_get(mt_int, nbas0*nspin0, 'modgid',
+     &     l_modgid, k_modgid))
      &     call errquit('WFAT: Allocating dgid failed', 1, MA_ERR)
-      if (.not. ma_alloc_get(mt_int, nbas0*nspin0, 'dgn',
-     &     l_dgn, k_dgn))
+      if (.not. ma_alloc_get(mt_int, nbas0*nspin0, 'modgn',
+     &     l_modgn, k_modgn))
      &     call errquit('WFAT: Allocating dgn failed', 1, MA_ERR)
       if (.not. ma_alloc_get(mt_int, nspin0, 'norb_dg',
      &     l_norbdg, k_norbdg))
@@ -154,10 +154,10 @@ c     ==== Detect degeneracies ====
      &     call errquit('WFAT: Failed reading dgnthr from RTDB.', 1,
      &     RTDB_ERR)
       call wfat_detect_degen(nbas0, nspin0, dbl_mb(k_moerg), dgnthr,
-     &     int_mb(k_dgid), int_mb(k_dgn), int_mb(k_norbdg))
+     &     int_mb(k_modgid), int_mb(k_modgn), int_mb(k_norbdg))
       if (ga_nodeid()==0) call wfat_print_degen(nbas0, nspin0,
-     &     dbl_mb(k_moerg), dbl_mb(k_moocc), dgnthr, int_mb(k_dgid),
-     &     int_mb(k_dgn))
+     &     dbl_mb(k_moerg), dbl_mb(k_moocc), dgnthr, int_mb(k_modgid),
+     &     int_mb(k_modgn))
       call ga_sync()
 
 
@@ -487,9 +487,9 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: Deallocating occnum failed', 3, MA_ERR)
       if (.not. ma_free_heap(l_moerg))
      &     call errquit('WFAT: Deallocating erg failed', 3, MA_ERR)
-      if (.not. ma_free_heap(l_dgid))
+      if (.not. ma_free_heap(l_modgid))
      &     call errquit('WFAT: Deallocating dgid failed', 3, MA_ERR)
-      if (.not. ma_free_heap(l_dgn))
+      if (.not. ma_free_heap(l_modgn))
      &     call errquit('WFAT: Deallocating dgn failed', 3, MA_ERR)
       if (.not. ma_free_heap(l_norbdg))
      &     call errquit('WFAT: Deallocating norb_dg failed', 3, MA_ERR)

@@ -70,8 +70,8 @@ c     ==== the first order correction terms  ====
             do j = 1, nbas0     ! Loop over GTO bases
                vch1(j,k,i) = 0.0d0
                do m = 1, nbas0  ! Sum over MO's
-                  id0 = int_mb(k_dgid + (is-1)*nbas0 + (io-1))
-                  idm = int_mb(k_dgid + (is-1)*nbas0 + (m-1))
+                  id0 = int_mb(k_modgid + (is-1)*nbas0 + (io-1))
+                  idm = int_mb(k_modgid + (is-1)*nbas0 + (m-1))
                   if (id0 /= idm) then
                      ieg0 = k_moerg + (is-1)*nbas0 + (io-1)
                      iegm = k_moerg + (is-1)*nbas0 + (m-1)
@@ -144,8 +144,8 @@ c=======================================================
 
                pb(j1,j2,i) = 0.0d0
                do m = 1, nbas0
-                  id0 = int_mb(k_dgid + (is-1)*nbas0 + (io-1))
-                  idm = int_mb(k_dgid + (is-1)*nbas0 + (m-1))
+                  id0 = int_mb(k_modgid + (is-1)*nbas0 + (io-1))
+                  idm = int_mb(k_modgid + (is-1)*nbas0 + (m-1))
                   if (id0 /= idm) then
                      ieg0 = k_moerg + (is-1)*nbas0 + (io-1)
                      iegm = k_moerg + (is-1)*nbas0 + (m-1)
@@ -190,8 +190,8 @@ c     The more economic version of the wfat_calc_polb subroutine.
 
                pb(j1,j2,i) = 0.0d0
                do m = 1, nbas0
-                  id0 = int_mb(k_dgid + (is-1)*nbas0 + (io-1))
-                  idm = int_mb(k_dgid + (is-1)*nbas0 + (m-1))
+                  id0 = int_mb(k_modgid + (is-1)*nbas0 + (io-1))
+                  idm = int_mb(k_modgid + (is-1)*nbas0 + (m-1))
                   if (id0 /= idm) then
                      ieg0 = k_moerg + (is-1)*nbas0 + (io-1)
                      iegm = k_moerg + (is-1)*nbas0 + (m-1)

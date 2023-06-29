@@ -7,7 +7,9 @@ c     ==== START : Neutral parameters ====
 
       integer
      &     nbf0, ns_ion0, nmo0(2), me_nocc0, me_nerg0, l_moocc0,
-     &     k_moocc0, l_moerg0, k_moerg0, g_mov0(2), nel0(2), multip0
+     &     k_moocc0, l_moerg0, k_moerg0, g_mov0(2), nel0(2), multip0,
+     &     l_modgid0, k_modgid0, l_modgn0, k_modgn0, l_norbdg0,
+     &     k_norbdg0
 
       double precision
      &     charge0
@@ -20,7 +22,9 @@ c     ==== START : Cation parameters ====
 
       integer
      &     nbf1, ns_ion1, nmo1(2), me_nocc1, me_nerg1, l_moocc1, 
-     &     k_moocc1, l_moerg1, k_moerg1, g_mov1(2), nel1(2), multip1
+     &     k_moocc1, l_moerg1, k_moerg1, g_mov1(2), nel1(2), multip1,
+     &     l_modgid1, k_modgid1, l_modgn1, k_modgn1, l_norbdg1,
+     &     k_norbdg1
 
       double precision
      &     charge1
@@ -48,8 +52,12 @@ c     ---- Logicals ----
 c     ---- Integers ----
      &     nbf0, ns_ion0, nmo0, me_nocc0, me_nerg0, l_moocc0,
      &     k_moocc0, l_moerg0, k_moerg0, g_mov0, nel0, multip0,
+     &     l_modgid0, k_modgid0, l_modgn0, k_modgn0, l_norbdg0,
+     &     k_norbdg0,
      &     nbf1, ns_ion1, nmo1, me_nocc1, me_nerg1, l_moocc1,
      &     k_moocc1, l_moerg1, k_moerg1, g_mov1, nel1, multip1,
+     &     l_modgid1, k_modgid1, l_modgn1, k_modgn1, l_norbdg1,
+     &     k_norbdg1,
      &     geom_hd, bas_hd, natm, spinx, spiny, nbas, ixcfit,
 c     ---- Double precisions ----
      &     charge0, charge1, tol2e, zion

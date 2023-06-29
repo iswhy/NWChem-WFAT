@@ -232,13 +232,13 @@ c============================================================
 
       integer i, io, is
 
-c     dgid0 is a subset of int_mb(k_dgid:k_dgid+nbas0*nspin0-1)
+c     dgid0 is a subset of int_mb(k_modgid:k_modgid+nbas0*nspin0-1)
 c     dgn0 is a subset of int_mb(k_dgn:k_dgn+nbas0*nspin0-1)
       do i = 1, nch
          io = orbid(i)
          is = spinid(i)
-         dgid0(i) = int_mb(k_dgid + (is-1)*nbas0 + (io-1))
-         dgn0(i) = int_mb(k_dgn + (is-1)*nbas0 + (io-1))
+         dgid0(i) = int_mb(k_modgid + (is-1)*nbas0 + (io-1))
+         dgn0(i) = int_mb(k_modgn + (is-1)*nbas0 + (io-1))
       enddo
 
       end

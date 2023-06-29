@@ -781,6 +781,7 @@ c=================================================
 #include "errquit.fh"
 #include "geom.fh"
 #include "stdio.fh"
+#include "global.fh"
       integer geom              ! [input], geometry handle.
       integer nat                  ! [input], the number of atoms contained in centid.
       integer centid(nat)          ! [input], the ID of atoms containing the points of interest.
@@ -797,6 +798,8 @@ c=================================================
       integer npt
       double precision atp(3), znuc, v_c(3), v_f(3)
 
+
+cfordebug      if (ga_nodeid()==0) write(luout, '("vcent = ", 3es21.12)') vcent
 
       call wfat_alloc_quadgrid(gq, max_npt, l_pt, k_pt, l_wt, k_wt)
 
@@ -818,6 +821,9 @@ c=================================================
             r(j) = sqrt(sum(v_f*v_f))
             t(j) = acos(v_f(3)/r(j))
             p(j) = atan(v_f(2), v_f(1))
+
+cfordebug            if (ga_nodeid()==0) write(luout, '("rrr: ", 2i8, 2es21.12)')
+cfordebug     &           ic, i, sqrt(sum(v_c*v_c)), r(j)
          enddo
       enddo
 

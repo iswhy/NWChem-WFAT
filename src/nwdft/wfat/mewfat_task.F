@@ -35,9 +35,9 @@ cne
       if (ndid==0) write(luout, '("WFAT: Moving to wfat directory")')
       
       
-c     ==============================
+c     ================================
 c     ==== Initiate MEWFAT module ====
-c     ==============================
+c     ================================
       call mewfat_init(rtdb)
 
 
@@ -252,6 +252,12 @@ c     DESCRIPTION:
 
       integer nsh, nintg, dummy_int, l_in, k_in
       double precision nall
+
+      logical wfat1
+      integer nb, ns, orbid
+      double precision dpmo, pb, chpos
+      double complex intgl_j, intgl_k1, intgl_k2, czero
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
       
 
       nsh = (1 + lmax)**2
@@ -264,10 +270,34 @@ c     DESCRIPTION:
 
       dummy_int = 0
 c     WARNING!!!!: Update the arguments of wfat_calc_td below!!!
+cOLD      call wfat_calc_td(rtdb, geom, pr_srfc, pr_yild, 
+cOLD     &     pr_avbeta, pr_avgamma, nlas, ftlas, alas, wlas, 
+cOLD     &     plas, tlas, dlas, nt, tmax, extf, nch, dummy_int, spinid, 
+cOLD     &     erg, chmmt, nqn, nid, mid, lmax, zi, dcpl_mb(k_in))
+
+
+      
+c     ==== These dummy parameters will need to be properly computed ====
+c     ====      later when WFAT(1) is implemented for ME-WFAT       ====
+      wfat1 = .false.
+      nb = 1
+      ns = 1
+      orbid = 1
+      dpmo = 0.0d0
+      pb = 0.0d0
+      chpos = 0.0d0
+      intgl_j = czero
+      intgl_k1 = czero
+      intgl_k2 = czero
+c     ==================================================================
+      
       call wfat_calc_td(rtdb, geom, pr_srfc, pr_yild, 
      &     pr_avbeta, pr_avgamma, nlas, ftlas, alas, wlas, 
      &     plas, tlas, dlas, nt, tmax, extf, nch, dummy_int, spinid, 
-     &     erg, chmmt, nqn, nid, mid, lmax, zi, dcpl_mb(k_in))
+     &     erg, chmmt, nqn, nid, mid, lmax, zi, dcpl_mb(k_in), 
+     &     wfat1, nb, ns, orbid, dpmo, pb, chpos, intgl_j, intgl_k1,
+     &     intgl_k2)
+      
 
       if (.not. ma_free_heap(l_in))
      &     call errquit('MEWFAT: Cannot deallocate intgl', 31, MA_ERR)
@@ -308,6 +338,12 @@ c     DESCRIPTION:
 
       integer nsh, nintg, dummy_int, l_in, k_in
       double precision nall
+
+      logical wfat1
+      integer nb, ns, orbid
+      double precision dpmo, pb, chpos
+      double complex intgl_j, intgl_k1, intgl_k2, czero
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
       
 
       nsh = (1 + lmax)**2
@@ -320,9 +356,29 @@ c     DESCRIPTION:
 
       dummy_int = 0
 c     WARNING!!!! : The argument list of wfat_calc_ti needs to be updated.
+cOLD      call wfat_calc_ti(rtdb, geom, pr_srfc, pr_rate, fieldm, 
+cOLD     &     1, dummy_int, spinid, erg, chmmt, nqn, nid, mid, lmax,
+cOLD     &     zi, dcpl_mb(k_in))
+
+
+c     ==== These dummy parameters will need to be properly computed ====
+c     ====      later when WFAT(1) is implemented for ME-WFAT       ====
+      wfat1 = .false.
+      nb = 1
+      ns = 1
+      orbid = 1
+      dpmo = 0.0d0
+      pb = 0.0d0
+      chpos = 0.0d0
+      intgl_j = czero
+      intgl_k1 = czero
+      intgl_k2 = czero
+c     ==================================================================
+      
       call wfat_calc_ti(rtdb, geom, pr_srfc, pr_rate, fieldm, 
      &     1, dummy_int, spinid, erg, chmmt, nqn, nid, mid, lmax,
-     &     zi, dcpl_mb(k_in))
+     &     zi, dcpl_mb(k_in), wfat1, nb, ns, orbid, dpmo, pb, chpos, 
+     &     intgl_j, intgl_k1, intgl_k2)
 
 
       if (.not. ma_free_heap(l_in))

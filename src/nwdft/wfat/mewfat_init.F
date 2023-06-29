@@ -18,7 +18,7 @@ c=================================================
       character*20 basis_name, trans_name
       logical use_nwxc, rtdb_stat, status, reorder, isdft
       integer ndid, basnormid, noio
-      double precision nel0_(2), nel1_(2), zn, rscent0(3)
+      double precision nel0_(2), nel1_(2), zn, rscent0(3), dgnthr
 
       logical int_normalize, nwxc_has_xc, nwxc_has_cam
       external int_normalize, nwxc_has_xc, nwxc_has_cam
@@ -135,6 +135,19 @@ c     ==== Calculate charge state and multiplicity ====
       charge1 = zn - sum(nel1)
       multip0 = nel0(1) - nel0(2) + 1
       multip1 = nel1(1) - nel1(2) + 1
+
+
+c     ==== Detect degeneracies ====
+      if (.not. rtdb_get(rtdb, 'wfat:dgnthr', mt_dbl, 1, dgnthr))
+     &     call errquit('WFAT: Failed reading dgnthr from RTDB.', 1,
+     &     RTDB_ERR)
+      call mewfat_degeneracy(rtdb, 0, nbas, ns_ion0, dbl_mb(k_moerg0), 
+     &     dbl_mb(k_moocc0), dgnthr, l_modgid0, k_modgid0, l_modgn0, 
+     &     k_modgn0, l_norbdg0, k_norbdg0)
+      call mewfat_degeneracy(rtdb, 1, nbas, ns_ion1, dbl_mb(k_moerg1), 
+     &     dbl_mb(k_moocc1), dgnthr, l_modgid1, k_modgid1, l_modgn1, 
+     &     k_modgn1, l_norbdg1, k_norbdg1)
+      call ga_sync()
       
       
 c     ==== Molecular integrals ====
@@ -297,7 +310,7 @@ c     ==== Reading movecs header ====
      &     'MO''s', 1, UERR)
       if (ns_ == 2) then       
          ns = ns_
-      else if (ns_ == 1) then     ! Take care for spin channels in the case restricted MO's.
+      else if (ns_ == 1) then     ! Take care for spin channels in the case of restricted MO's.
          ns = 2
          nmo(2) = nmo(1)
       else
@@ -356,6 +369,71 @@ c     ====Compute numbers of electrons ====
             nel(2) = nel(1)
          endif
       enddo
+      
+      end
+c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine mewfat_degeneracy(rtdb, c, nb, ns, erg, occ, dgnthr, 
+     &     l_dgid, k_dgid, l_dgn, k_dgn, l_norbdg, k_norbdg)
+
+      implicit none
+#include "stdio.fh"
+#include "errquit.fh"
+#include "rtdb.fh"
+#include "global.fh"
+#include "mafdecls.fh"
+      integer rtdb                  ![input]
+      integer c                     ![input]
+      integer nb                    ![input]
+      integer ns                    ![input]
+      double precision erg(nb,ns)   ![input]
+      double precision occ(nb,ns)   ![input]
+      double precision dgnthr       ![input]
+      integer l_dgid, k_dgid        ![output]
+      integer l_dgn, k_dgn          ![output]
+      integer l_norbdg, k_norbdg    ![output]
+
+      character*1 cs
+      character*7 cs_nm
+
+      
+c     ==== Determine whether handling neutral or cation ====
+      if (c == 0) then
+         cs = '0'
+         cs_nm = 'neutral'
+      else if (c == 1) then
+         cs = '1'
+         cs_nm = 'cation'
+      else
+         call errquit('MEWFAT: Unknwon value of argument ''c'' of '//
+     &        'the subroutine ''mewfat_degeneracy''.', 1, UERR)
+      endif
+
+
+c     ==== Some allocations ====
+      if (.not. ma_alloc_get(mt_int, nb*ns, 'modgid'//cs,
+     &     l_dgid, k_dgid))
+     &     call errquit('WFAT: Allocating dgid failed', 1, MA_ERR)
+      if (.not. ma_alloc_get(mt_int, nb*ns, 'modgn'//cs,
+     &     l_dgn, k_dgn))
+     &     call errquit('WFAT: Allocating dgn failed', 1, MA_ERR)
+      if (.not. ma_alloc_get(mt_int, ns, 'norb_dg'//cs,
+     &     l_norbdg, k_norbdg))
+     &     call errquit('WFAT: Allocating norb_dg failed', 1, MA_ERR)
+
+      
+c     ==== Detect degeneracies ====
+      call wfat_detect_degen(nb, ns, erg, dgnthr,
+     &     int_mb(k_dgid), int_mb(k_dgn), int_mb(k_norbdg))
+      if (ga_nodeid()==0) then
+         write(luout, '("==== Degeneracy analysis on the '//cs_nm//
+     &        ' ====")')
+         call wfat_print_degen(nb, ns, erg, occ, 
+     &        dgnthr, int_mb(k_dgid), int_mb(k_dgn))
+      endif
       
       end
 c=================================================
@@ -511,6 +589,12 @@ c     ==== Neutral deallocations ====
      &     call errquit('WFAT: Deallocating occnum failed', 3, MA_ERR)
       if (.not. ma_free_heap(l_moerg0))
      &     call errquit('WFAT: Deallocating erg failed', 3, MA_ERR)
+      if (.not. ma_free_heap(l_modgid0))
+     &     call errquit('WFAT: Deallocating modgid0 failed', 3, MA_ERR)
+      if (.not. ma_free_heap(l_modgn0))
+     &     call errquit('WFAT: Deallocating modgn0 failed', 3, MA_ERR)
+      if (.not. ma_free_heap(l_norbdg0))
+     &     call errquit('WFAT: Deallocating norb_dg0 failed', 3, MA_ERR)
 
 
 c     ==== Cation deallocations ====
@@ -518,6 +602,12 @@ c     ==== Cation deallocations ====
      &     call errquit('WFAT: Deallocating occnum failed', 3, MA_ERR)
       if (.not. ma_free_heap(l_moerg1))
      &     call errquit('WFAT: Deallocating erg failed', 3, MA_ERR)
+      if (.not. ma_free_heap(l_modgid1))
+     &     call errquit('WFAT: Deallocating modgid1 failed', 3, MA_ERR)
+      if (.not. ma_free_heap(l_modgn1))
+     &     call errquit('WFAT: Deallocating modgn1 failed', 3, MA_ERR)
+      if (.not. ma_free_heap(l_norbdg1))
+     &     call errquit('WFAT: Deallocating norb_dg1 failed', 3, MA_ERR)
       
       
 c     ==== Geometry ====
