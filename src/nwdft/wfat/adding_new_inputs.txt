@@ -1,0 +1,14 @@
+
+General steps to add new inputs for the WFAT module:
+  1) In wfat_read_input subroutine, add
+        newinp_exist = .false.
+        newinp_stat = .false.
+  2) Inside the existing do while, add the input parsing lines. See examples there.
+  3) Move to the wfat_process_input.F file. Inside the wfat_exist_input subroutine,
+     determine what to do when newinp is found or not found from the input file.
+     There are three parts to this: (i) existence checks, (2) format checks, and (3)
+     necessity checks.
+  4) Inside the wfat_sanity_input subroutine, check if the supplied value for newinp
+     make sense, e.g. if it has to be positive, integer, etc. See examples there.
+  5) Inside the wfat_putrtdb_input subroutine, determine whether to put newinp into
+     the RTDB or not based on its necessity determined at step 3) above.

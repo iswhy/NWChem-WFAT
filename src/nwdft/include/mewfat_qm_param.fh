@@ -36,7 +36,8 @@ c     ==== Other data ====
      &     oskel, iolgc, mo0_swapped
 
       integer
-     &     geom_hd, bas_hd, natm, spinx, spiny, nbas, ixcfit
+     &     geom_hd, bas_hd, natm, spinx, spiny, nbas, ixcfit,
+     &     gwf_ovl, gwf_kin, gwf_pot
 
       double precision
      &     tol2e, zion
@@ -59,6 +60,7 @@ c     ---- Integers ----
      &     l_modgid1, k_modgid1, l_modgn1, k_modgn1, l_norbdg1,
      &     k_norbdg1,
      &     geom_hd, bas_hd, natm, spinx, spiny, nbas, ixcfit,
+     &     gwf_ovl, gwf_kin, gwf_pot,
 c     ---- Double precisions ----
      &     charge0, charge1, tol2e, zion
       

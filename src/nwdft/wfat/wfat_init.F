@@ -541,7 +541,6 @@ c     ==== RTDB ====
       ll = rtdb_delete(rtdb, 'wfat:print_yild')
       ll = rtdb_delete(rtdb, 'wfat:print_tmd')
       ll = rtdb_delete(rtdb, 'wfat:print_tmd_atom')
-      ll = rtdb_delete(rtdb, 'wfat:fieldmag')
       ll = rtdb_delete(rtdb, 'wfat:beta_start')
       ll = rtdb_delete(rtdb, 'wfat:beta_last')
       ll = rtdb_delete(rtdb, 'wfat:nbeta')

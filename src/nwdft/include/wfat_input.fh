@@ -7,6 +7,9 @@ c     ==== Input-related variables ====
       character*2
      &     prtb_type, DEF_PRTB_type
 
+      character*2
+     &     def_si_type
+
       integer
      &     MAX_N_ORBID, MAX_MOVEC_FIELDS, MAX_N_NPARA,
      &     MAX_PARAQN_NFIELDS, MAX_PARAQN_MFIELDS,
@@ -22,7 +25,7 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     MAX_PARAQN_NFIELDS=10, MAX_PARAQN_MFIELDS=11,
      &     NMAX_NFIELD=4, NFIELD_FORM='(i3)',
      &     def_nktmd=150, def_wfat_lmax=8, def_gqual=2,
-     &     WFAT_NPRINT=7)
+     &     WFAT_NPRINT=7, def_si_type='none')
 
       character*10
      &     WFAT_PRINT_OPTIONS(WFAT_NPRINT)
@@ -35,6 +38,9 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
       
       character*4096
      &     wfat_intgl_name, wfat_movec_name, wfat_movec1_name
+
+      character*5
+     &     si_type
 
       logical
      &     print_exist, print_stat, 
@@ -56,6 +62,7 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     intgl_exist, intgl_stat,
      &     movec_exist, movec_stat,
      &     movec1_exist, movec1_stat,
+     &     sitype_exist, sitype_stat,
      &     perturb_exist, perturb_stat,
      &     prtb_type_exist, prtb_type_stat,
      &     prtb_ord_exist, prtb_ord_stat,
@@ -75,10 +82,11 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     field_need, dt_need, tmax_need, beta_need, gamma_need, 
      &     beta_tmd_need, gamma_tmd_need, nktmd_need, orbid_need, 
      &     paraqn_need, gqual_need, lmax_need, omgpos_need, intgl_need, 
-     &     movec_need, movec1_need, autopos, prtb_type_need, 
-     &     prtb_ord_need, prtb_bt_need, prtb_gm_need, prtb_dgnthr_need, 
-     &     prtb_offthr_need, prtb_e1thr_need, prtb_itrthr_need, 
-     &     prtb_maxitr_need, prtb_ordthr_need, prtb_maxord_need
+     &     movec_need, movec1_need, sitype_need, autopos, 
+     &     prtb_type_need, prtb_ord_need, prtb_bt_need, prtb_gm_need, 
+     &     prtb_dgnthr_need, prtb_offthr_need, prtb_e1thr_need, 
+     &     prtb_itrthr_need, prtb_maxitr_need, prtb_ordthr_need,
+     &     prtb_maxord_need
       
       integer
      &     wfat_nbeta, wfat_ngamma, g_wfat_bt, g_wfat_gm,
@@ -128,6 +136,7 @@ c     == Logicals ==
      &     intgl_exist, intgl_stat,
      &     movec_exist, movec_stat,
      &     movec1_exist, movec1_stat,
+     &     sitype_exist, sitype_stat,
      &     perturb_exist, perturb_stat,
      &     prtb_type_exist, prtb_type_stat,
      &     prtb_ord_exist, prtb_ord_stat,
@@ -145,11 +154,11 @@ c     == Logicals ==
      &     dt_need, tmax_need,
      &     beta_need, gamma_need, beta_tmd_need, gamma_tmd_need, 
      &     nktmd_need, orbid_need, paraqn_need, gqual_need, lmax_need, 
-     &     omgpos_need, intgl_need, movec_need, movec1_need, autopos,
-     &     prtb_type_need, prtb_ord_need, prtb_bt_need, prtb_gm_need,
-     &     prtb_dgnthr_need, prtb_offthr_need, prtb_e1thr_need, 
-     &     prtb_itrthr_need, prtb_maxitr_need, prtb_ordthr_need, 
-     &     prtb_maxord_need,  
+     &     omgpos_need, intgl_need, movec_need, movec1_need, 
+     &     sitype_need, autopos, prtb_type_need, prtb_ord_need, 
+     &     prtb_bt_need, prtb_gm_need, prtb_dgnthr_need, 
+     &     prtb_offthr_need, prtb_e1thr_need, prtb_itrthr_need, 
+     &     prtb_maxitr_need, prtb_ordthr_need, prtb_maxord_need,  
 c     == Integers ==
      &     wfat_nbeta, wfat_ngamma, g_wfat_bt, g_wfat_gm, wfat_orbid0,
      &     wfat_orbid, n_orbid, wfat_spinid, npara, n_npara, mpara,
@@ -163,7 +172,7 @@ c     == Doubles ==
      &     prtb_itrthr, prtb_ordthr,
 c     == Characters ==
      &     prtb_type, WFAT_PRINT_OPTIONS, wfat_theory, wfat_level,
-     &     wfat_intgl_name, wfat_movec_name, wfat_movec1_name      
+     &     wfat_intgl_name, wfat_movec_name, wfat_movec1_name, si_type
       
 
 

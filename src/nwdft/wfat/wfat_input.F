@@ -109,6 +109,9 @@ c     ==== Initial status of WFAT inputs ====
 
       omgpos_exist = .false.
       omgpos_stat = .false.
+
+      sitype_exist = .false.
+      sitype_stat = .false.
       
       intgl_exist = .false.
       intgl_stat = .false.
@@ -165,7 +168,7 @@ c     ==== Initial status of WFAT inputs ====
 
 c     ========================================================
 c     ==================== INPUTS PARSING ====================
-c     ========================================================     
+c     ========================================================
 
       do while (inp_read()) 
          if (inp_a(field)) then
@@ -293,6 +296,9 @@ c           ==== OPTIONAL INPUTS ====
             else if (inp_compare(.false., 'omgpos', field)) then
                omgpos_exist = .true.
                omgpos_stat = wfat_inp_omgpos(autopos, omgpos)
+            else if (inp_compare(.false., 'si_type', field)) then
+               sitype_exist = .true.
+               sitype_stat = inp_a(si_type)
             else if (inp_compare(.false., 'intgl', field)) then
                intgl_exist = .true.
                intgl_stat = inp_a(wfat_intgl_name)

@@ -48,7 +48,7 @@ c=======================================================
 
 c     ==========================================================
 c     ==================== EXISTENCE CHECKS ====================
-c     ==========================================================      
+c     ==========================================================
 
 c     ==== Checking existence of MANDATORY INPUTS ====
       calc_dc = (print_rate .or. print_tmd .or. print_tmd_atom)
@@ -235,6 +235,12 @@ c     ==== Checking existence of OPTIONAL INPUTS ====
             call wfat_def_movecname('me1', rtdb, wfat_movec1_name)
             movec1_stat = .true.
          endif
+         if (.not. sitype_exist) then
+            si_type = def_si_type
+            sitype_stat = .true.
+         else if (sitype_exist .and. or) then
+            write(luout, 202) 'si_type', 'si_type'
+         endif
       endif
       if (.not. prtb_type_exist) then
          prtb_type = DEF_PRTB_type
@@ -403,6 +409,13 @@ c     ==== Checking format of OPTIONAL INPUTS ====
      &        '<double valuex  double valuey  double valuez>''',
      &        0, INPUT_ERR)
       endif
+      if (.not. sitype_stat) then
+         call errquit('WFAT: Error reading optional input parameter '//
+     &        '''si_type''. Please check if it is specified '//
+     &        'following the format ''si_type <value>'', where '//
+     &        '<value> is any of ''none'', ''mo'', and ''dyson''.',
+     &        0, INPUT_ERR)
+      endif
       if (.not. lmax_stat) then
          call errquit('WFAT: Error reading optional input parameter '//
      &        '''lmax''. Please check if it is specified following '//
@@ -510,8 +523,6 @@ c     ====================================================
       if (wfat_level == 'oe') then
          call wfat_need_input()
       else if (wfat_level == 'me') then 
-         if (print_srfc .or. print_rate) 
-     &        write(luout, '("meneed process  ")')
 cdebug         call mewfat_dummy()
          call mewfat_need_input()
       endif
@@ -620,9 +631,8 @@ c=======================================================
       logical sr, rt, yi, avb, avg, tmd, tmda
       character*1 m
 
-      write(luout, '("mewfat_need1")')
-      
-      field_need = .false.       ! needed when OE or ME
+
+      field_need = .false.      ! needed when OE or ME
       beta_need = .false.           ! needed when OE or ME
       gamma_need = .false.          ! needed when OE or ME
       beta_tmd_need = .false.       ! needed when OE or ME
@@ -636,6 +646,7 @@ c=======================================================
       intgl_need = .false.          ! needed when OE or ME
       movec_need = .false.          ! needed when OE or ME
       movec1_need = .false.         ! needed when ME
+      sitype_need= .false.          ! needed when ME
       prtb_type_need = .false.      ! needed when OE
       prtb_ord_need = .false.       ! needed when OE
       prtb_bt_need = .false.        ! needed when OE
@@ -658,7 +669,6 @@ c=======================================================
       tmda = print_tmd_atom
 
 
-      write(luout, '("mewfat_need2")')
       call wfat_tf_to_yn(print_srfc, .false., m)
       write(luout, '(a)') m
       call wfat_tf_to_yn(print_rate, .false., m)
@@ -674,11 +684,7 @@ c=======================================================
       call wfat_tf_to_yn(print_tmd_atom, .false., m)
       write(luout, '(a)') m
 
-      
-
-      if (print_srfc .or. print_rate) 
-     &     write(luout, '("meneed  ")') 
-      
+            
       call wfat_need_input0(rt, tmd, tmda, yi, avb, avg, .false.,
      &     field_need)
       call wfat_need_input0(yi, avb, avg, .false., .false., .false.,
@@ -710,6 +716,8 @@ c TMD notyet     &     .false., .false., nktmd_need)
      &     movec_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     movec1_need)
+      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+     &     sitype_need)
 
 
       
@@ -776,7 +784,6 @@ c=======================================================
       logical sr, rt, yi, avb, avg, tmd, tmda
       character*1 m
 
-      write(luout, '("wfat_need1")')
       
       field_need = .false.       ! needed when oe or me
       beta_need = .false.           ! needed when oe or me
@@ -1114,6 +1121,13 @@ c=======================================================
      &        '''gridqual''', w, r)
       endif
 
+      if (sitype_need) then
+         if (si_type/='none' .and. si_type/='mo' .and. si_type/='dyson')
+     &        call errquit('WFAT: The value of si_type ('//si_type// 
+     &        ') does not match the available options, which are'//
+     &        '''none'', ''mo'', or ''dyson''.', 31, INPUT_ERR)
+      endif
+
       if (prtb_ord_need) then
          if (prtb_type == 'rs') then
             call wfat_ival_inrange(prtb_ord, 1, 1, 'WFAT', 
@@ -1234,9 +1248,6 @@ c=======================================================
       logical os, oc, or, nosave, td
       integer nt_00, er(2)
       double precision dt_00, tmax_00
-
-c     == The following line is temporary ==
-      character*4096 sitype
 
 
       call util_get_rtdb_state(rtdb, os, oc, or)
@@ -1430,7 +1441,7 @@ c forcheck     &     call errquit('WFAT: Printing rtdb failed', 1, RTDB_ERR)
      &        call errquit('WFAT: Failed writing gqual to rtdb',
      &        1, INPUT_ERR)
       endif
-
+      
       if (omgpos_need .and. os) then
          if (.not. rtdb_put(rtdb, 'wfat:autopos', mt_log, 1, autopos))
      &        call errquit('WFAT: Failed writing autopos to rtdb',
@@ -1583,16 +1594,11 @@ cOLD      if (prtb_ord_need .and. os) then
      &        , 1, INPUT_ERR)
       endif
 
-      if (.true.) then    !! sitype_need=.true.
-c     ====  The following two lines are temporary and should be  ====
-c     ==== removed/changed once the proper input has been set up ====
-         if (.not. rtdb_cget(rtdb, 'mewfat:si', 1, sitype))
-     &        sitype='none'
-         
+      if (sitype_need .and. os) then
          if (.not. rtdb_cput(rtdb, 'mewfat:si', 1,
-     &        trim(adjustl(sitype))))
-     &        call errquit('WFAT: Failed writing si to '//
-     &        'RTDB', 1, RTDB_ERR)
+     &        trim(adjustl(si_type))))
+     &        call errquit('WFAT: Failed writing si to RTDB', 1,
+     &        RTDB_ERR)
       endif
          
       

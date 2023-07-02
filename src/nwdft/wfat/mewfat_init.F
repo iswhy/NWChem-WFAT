@@ -22,6 +22,8 @@ c=================================================
 
       logical int_normalize, nwxc_has_xc, nwxc_has_cam
       external int_normalize, nwxc_has_xc, nwxc_has_cam
+      integer ga_create_atom_blocked
+      external ga_create_atom_blocked
       
       
       ndid = ga_nodeid()
@@ -218,6 +220,18 @@ c     ==== Miscellaneous ====
       ixcfit = 0
       call wfat_reset_lfqlib()     ! Reset Gauss-Laguerre nodes and weights for the calculations of the various U(a,b,z).
 
+
+c     ==== Store the common integrals ====
+      gwf_ovl = ga_create_atom_blocked(geom_hd, bas_hd, 'overlap')
+      call ga_zero(gwf_ovl)
+      call int_1e_ga(bas_hd, bas_hd, gwf_ovl, 'overlap', oskel)
+      gwf_kin = ga_create_atom_blocked(geom_hd, bas_hd, 'kinetic')
+      call ga_zero(gwf_kin)
+      call int_1e_ga(bas_hd, bas_hd, gwf_kin, 'kinetic', oskel)
+      gwf_pot = ga_create_atom_blocked(geom_hd, bas_hd, 'potential')
+      call ga_zero(gwf_pot)
+      call int_1e_ga(bas_hd, bas_hd, gwf_pot, 'potential', oskel)
+      
 
 c     ==== Printing important information ====
       call mewfat_print_info(rtdb)
@@ -581,6 +595,7 @@ c=================================================
       
       character*2 sp
       character*12 fn
+      logical ll
       integer is
 
 
@@ -642,6 +657,35 @@ c     ==== Molecular orbitals ====
 c     ==== Molecular integrals ====
       call int_terminate()
 
+      
+c     ==== Common integrals ====
+      if (.not. ga_destroy(gwf_ovl))
+     $     call errquit ("WFAT: couldnt destroy overlap", 0, GA_ERR)
+      if (.not. ga_destroy(gwf_kin))
+     $     call errquit ("WFAT: couldnt destroy kinetic", 0, GA_ERR)
+      if (.not. ga_destroy(gwf_pot))
+     $     call errquit ("WFAT: couldnt destroy potential", 0, GA_ERR)
+
+
+c     ==== RTDB ====
+      ll = rtdb_delete(rtdb, 'wfat:print_srfc')
+      ll = rtdb_delete(rtdb, 'wfat:print_rate')
+      ll = rtdb_delete(rtdb, 'wfat:print_yild')
+      ll = rtdb_delete(rtdb, 'wfat:print_tmd')
+      ll = rtdb_delete(rtdb, 'wfat:print_tmd_atom')
+      ll = rtdb_delete(rtdb, 'wfat:beta_start')
+      ll = rtdb_delete(rtdb, 'wfat:beta_last')
+      ll = rtdb_delete(rtdb, 'wfat:nbeta')
+      ll = rtdb_delete(rtdb, 'wfat:gamma_start')
+      ll = rtdb_delete(rtdb, 'wfat:gamma_last')
+      ll = rtdb_delete(rtdb, 'wfat:ngamma')
+      ll = rtdb_delete(rtdb, 'wfat:nktmd')
+      ll = rtdb_delete(rtdb, 'wfat:beta_tmd')
+      ll = rtdb_delete(rtdb, 'wfat:gamma_tmd')
+      ll = rtdb_delete(rtdb, 'wfat:intgl_name')
+      ll = rtdb_delete(rtdb, 'wfat:intgl_nosave')
+      ll = rtdb_delete(rtdb, 'wfat:movec_name')
+      
       end
 c=================================================
       
