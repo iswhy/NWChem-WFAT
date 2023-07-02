@@ -217,6 +217,12 @@ c     ==== Checking existence of OPTIONAL INPUTS ====
       else if (omgpos_exist .and. or) then
          write(luout, 202) 'omgpos', 'omgpos'
       endif
+      if (.not. dgnthr_exist) then
+         dgnthr = DEF_DGNTHR
+         dgnthr_stat = .true.
+      else if (dgnthr_exist .and. or) then
+         write(luout, 202) 'degenthr', 'degenthr'
+      endif      
       if (.not. intgl_exist) then
          call wfat_def_intglname(rtdb, wfat_level, wfat_intgl_name)
          intgl_stat = .true.
@@ -349,7 +355,7 @@ c     == beta_tmd ==
      &     (print_tmd .or. print_tmd_atom)) then
          call errquit('WFAT: The format of input directive '//
      &        '''beta_tmd'' is incorrect. The correct format '//
-     &        'should be ''beta_tmd <double value>''.',
+     &        'should be ''beta_tmd <float value>''.',
      &        0, INPUT_ERR)
       endif
 c     == gamma_tmd ==
@@ -357,7 +363,7 @@ c     == gamma_tmd ==
      &     (print_tmd .or. print_tmd_atom)) then
          call errquit('WFAT: The format of input directive '//
      &        '''gamma_tmd'' is incorrect. The correct format '//
-     &        'should be ''gamma_tmd <double value>''.',
+     &        'should be ''gamma_tmd <float value>''.',
      &        0, INPUT_ERR)
       endif
 
@@ -406,7 +412,13 @@ c     ==== Checking format of OPTIONAL INPUTS ====
          call errquit('WFAT: Error reading optional input parameter '//
      &        '''omgpos''. Please check if it is specified '//
      &        'following the format ''omgpos <string ''auto''> || '//
-     &        '<double valuex  double valuey  double valuez>''',
+     &        '<float valuex  float valuey  float valuez>''',
+     &        0, INPUT_ERR)
+      endif
+      if (.not. dgnthr_stat) then
+         call errquit('WFAT: Error reading optional input parameter '//
+     &        '''degenthr''. Please check if it is specified '//
+     &        'following the format ''degenthr <float value>''.',
      &        0, INPUT_ERR)
       endif
       if (.not. sitype_stat) then
@@ -632,7 +644,7 @@ c=======================================================
       character*1 m
 
 
-      field_need = .false.      ! needed when OE or ME
+      field_need = .false.          ! needed when OE or ME
       beta_need = .false.           ! needed when OE or ME
       gamma_need = .false.          ! needed when OE or ME
       beta_tmd_need = .false.       ! needed when OE or ME
@@ -642,6 +654,7 @@ c=======================================================
       paraqn_need = .false.         ! needed when OE or ME
       gqual_need = .false.          ! needed when OE or ME
       omgpos_need = .false.         ! needed when OE or ME
+      dgnthr_need = .false.         ! needed when oe or me
       lmax_need = .false.           ! needed when OE or ME
       intgl_need = .false.          ! needed when OE or ME
       movec_need = .false.          ! needed when OE or ME
@@ -708,6 +721,8 @@ c TMD notyet     &     .false., .false., nktmd_need)
      &     gqual_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     omgpos_need)
+      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+     &     dgnthr_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     lmax_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
@@ -785,7 +800,7 @@ c=======================================================
       character*1 m
 
       
-      field_need = .false.       ! needed when oe or me
+      field_need = .false.          ! needed when oe or me
       beta_need = .false.           ! needed when oe or me
       gamma_need = .false.          ! needed when oe or me
       beta_tmd_need = .false.       ! needed when oe or me
@@ -795,6 +810,7 @@ c=======================================================
       paraqn_need = .false.         ! needed when oe or me
       gqual_need = .false.          ! needed when oe or me
       omgpos_need = .false.         ! needed when oe or me
+      dgnthr_need = .false.         ! needed when oe or me
       lmax_need = .false.           ! needed when oe or me
       intgl_need = .false.          ! needed when oe or me
       movec_need = .false.          ! needed when oe or me
@@ -845,6 +861,8 @@ c=======================================================
      &     gqual_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     omgpos_need)
+      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+     &     dgnthr_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     lmax_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
@@ -1119,6 +1137,11 @@ c=======================================================
       if (gqual_need) then
          call wfat_ival_inrange(wfat_gqual, 1, 4, 'WFAT', 
      &        '''gridqual''', w, r)
+      endif
+
+      if (dgnthr_need) then
+         call wfat_dval_atleast(dgnthr, 0.0d0, 'g', 'WFAT', 
+     &        '''degenthr''', 'e', w, r)
       endif
 
       if (sitype_need) then
@@ -1448,6 +1471,12 @@ c forcheck     &     call errquit('WFAT: Printing rtdb failed', 1, RTDB_ERR)
      &        1, INPUT_ERR)
          if (.not. rtdb_put(rtdb, 'wfat:omgpos', mt_dbl, 3, omgpos))
      &        call errquit('WFAT: Failed writing omgpos to rtdb',
+     &        1, INPUT_ERR)
+      endif
+
+      if (dgnthr_need .and. os) then
+         if (.not. rtdb_put(rtdb, 'wfat:dgnthr', mt_dbl, 1, dgnthr))
+     &        call errquit('WFAT: Failed writing dgnthr to rtdb',
      &        1, INPUT_ERR)
       endif
       

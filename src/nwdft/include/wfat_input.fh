@@ -59,6 +59,7 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     lmax_exist, lmax_stat,
      &     gqual_exist, gqual_stat,
      &     omgpos_exist, omgpos_stat,
+     &     dgnthr_exist, dgnthr_stat,
      &     intgl_exist, intgl_stat,
      &     movec_exist, movec_stat,
      &     movec1_exist, movec1_stat,
@@ -81,8 +82,8 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     print_avgamma, print_tmd, print_tmd_atom, print_need, 
      &     field_need, dt_need, tmax_need, beta_need, gamma_need, 
      &     beta_tmd_need, gamma_tmd_need, nktmd_need, orbid_need, 
-     &     paraqn_need, gqual_need, lmax_need, omgpos_need, intgl_need, 
-     &     movec_need, movec1_need, sitype_need, autopos, 
+     &     paraqn_need, gqual_need, lmax_need, omgpos_need, dgnthr_need,
+     &     intgl_need, movec_need, movec1_need, sitype_need, autopos, 
      &     prtb_type_need, prtb_ord_need, prtb_bt_need, prtb_gm_need, 
      &     prtb_dgnthr_need, prtb_offthr_need, prtb_e1thr_need, 
      &     prtb_itrthr_need, prtb_maxitr_need, prtb_ordthr_need,
@@ -100,11 +101,11 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
       double precision
      &     wfat_beta_start, wfat_beta_last, wfat_beta,
      &     wfat_gamma_start, wfat_gamma_last, wfat_gamma,
-     &     beta_tmd, gamma_tmd, omgpos(3), prtb_bt, prtb_gm,
+     &     beta_tmd, gamma_tmd, omgpos(3), dgnthr, prtb_bt, prtb_gm,
      &     prtb_dgnthr, prtb_offthr, prtb_e1thr, prtb_itrthr,
      &     prtb_ordthr, DEF_PRTB_BT, DEF_PRTB_GM, DEF_PRTB_DGNTHR,
      &     DEF_PRTB_OFFTHR, DEF_PRTB_E1THR, DEF_PRTB_ITRTHR,
-     &     DEF_PRTB_ORDTHR 
+     &     DEF_PRTB_ORDTHR, DEF_DGNTHR
       
 
       parameter
@@ -113,7 +114,7 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     DEF_PRTB_MAXORD=50, DEF_PRTB_BT=0.0d0, DEF_PRTB_GM=0.0d0,
      &     DEF_PRTB_DGNTHR=1.0d-6, DEF_PRTB_OFFTHR=1.0d-10, 
      &     DEF_PRTB_E1THR=1.0d-4, DEF_PRTB_ITRTHR=1.0d-14,
-     &     DEF_PRTB_ORDTHR=1.0d-10)
+     &     DEF_PRTB_ORDTHR=1.0d-10, DEF_DGNTHR=1.0d-6)
       
       common /wfat_input_var/
 c     == Logicals ==
@@ -133,6 +134,7 @@ c     == Logicals ==
      &     lmax_exist, lmax_stat,
      &     gqual_exist, gqual_stat,
      &     omgpos_exist, omgpos_stat,
+     &     dgnthr_exist, dgnthr_stat,
      &     intgl_exist, intgl_stat,
      &     movec_exist, movec_stat,
      &     movec1_exist, movec1_stat,
@@ -154,9 +156,9 @@ c     == Logicals ==
      &     dt_need, tmax_need,
      &     beta_need, gamma_need, beta_tmd_need, gamma_tmd_need, 
      &     nktmd_need, orbid_need, paraqn_need, gqual_need, lmax_need, 
-     &     omgpos_need, intgl_need, movec_need, movec1_need, 
-     &     sitype_need, autopos, prtb_type_need, prtb_ord_need, 
-     &     prtb_bt_need, prtb_gm_need, prtb_dgnthr_need, 
+     &     omgpos_need, dgnthr_need, intgl_need, movec_need, 
+     &     movec1_need, sitype_need, autopos, prtb_type_need, 
+     &     prtb_ord_need, prtb_bt_need, prtb_gm_need, prtb_dgnthr_need, 
      &     prtb_offthr_need, prtb_e1thr_need, prtb_itrthr_need, 
      &     prtb_maxitr_need, prtb_ordthr_need, prtb_maxord_need,  
 c     == Integers ==
@@ -167,7 +169,7 @@ c     == Integers ==
 c     == Doubles ==
      &     wfat_beta_start, wfat_beta_last, 
      &     wfat_gamma_start,  wfat_gamma_last, 
-     &     beta_tmd, gamma_tmd, omgpos, 
+     &     beta_tmd, gamma_tmd, omgpos, dgnthr,
      &     prtb_bt, prtb_gm, prtb_dgnthr, prtb_offthr, prtb_e1thr, 
      &     prtb_itrthr, prtb_ordthr,
 c     == Characters ==

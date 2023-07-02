@@ -112,6 +112,9 @@ c     ==== Initial status of WFAT inputs ====
 
       sitype_exist = .false.
       sitype_stat = .false.
+
+      dgnthr_exist = .false.
+      dgnthr_stat =  .false.
       
       intgl_exist = .false.
       intgl_stat = .false.
@@ -299,6 +302,9 @@ c           ==== OPTIONAL INPUTS ====
             else if (inp_compare(.false., 'si_type', field)) then
                sitype_exist = .true.
                sitype_stat = inp_a(si_type)
+            else if (inp_compare(.false., 'degenthr', field)) then
+               dgnthr_exist = .true.
+               dgnthr_stat = inp_f(dgnthr)
             else if (inp_compare(.false., 'intgl', field)) then
                intgl_exist = .true.
                intgl_stat = inp_a(wfat_intgl_name)
