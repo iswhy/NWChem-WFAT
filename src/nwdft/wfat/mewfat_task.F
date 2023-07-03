@@ -15,7 +15,8 @@ c=================================================
 
       character(len=FLD_TP_LEN) las_env(max_nfield)
       character*4096 fname
-      logical res_mode, td, rtdb_stat, os, oc, or, extf, isthere
+      character*2 td
+      logical res_mode, rtdb_stat, os, oc, or, extf, isthere
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
       integer gqual, lmax
@@ -75,14 +76,16 @@ c     ==== Obtaining print switches ====
 
 
 c     ==== When TD field is true ====
-      if (.not. rtdb_get(rtdb, 'wfat:tdfield', mt_log, 1, td))
-     &     td = .false.
-      if (td) then
+      if (.not. rtdb_cget(rtdb, 'wfat:tdfield', 1, td))
+     &     td = 'no'
+      if (td=='td') then
          call wfat_prep_tdfield(rtdb, nlas, l_al, k_al, las_env,
      &        l_wl, k_wl, l_pl, k_pl, l_tl, k_tl, l_dl, k_dl, ntime,
      &        tmax, extf)
-      else
+      else if (td=='ti') then
          call wfat_prep_field(rtdb, fieldmag)
+      else if (td=='no') then
+         fieldmag = 0.0d0
       endif
 
 
@@ -161,7 +164,7 @@ c     ==== Printings ====
 c        ============================================
 c        ==== Calculate and print key quantities ====
 c        ============================================
-         if (td) then
+         if (td=='td') then
             if (pr_srfc .or. pr_yild .or. pr_avbeta .or. pr_avgamma)
      &           call mewfat_calc_td(rtdb, geom_hd, nel0, natm, pr_srfc,
      &           pr_yild, pr_avbeta, pr_avgamma, nlas, las_env, 
@@ -187,7 +190,8 @@ c        ============================================
 
 c     ==== Deallocations ====
       call wfat_erase_paraqn(l_npa, l_mpa)
-      if (td) call wfat_erase_tdfield(l_al, l_wl, l_pl, l_tl, l_dl)
+      if (td=='td')
+     &     call wfat_erase_tdfield(l_al, l_wl, l_pl, l_tl, l_dl)
       call wfat_erase_channelprop(l_eg, l_ps, l_cmm, l_idp)
       if (.not. ga_destroy(g_il))
      &     call errquit('WFAT: Cannot destroy intgl.', 1, GA_ERR)

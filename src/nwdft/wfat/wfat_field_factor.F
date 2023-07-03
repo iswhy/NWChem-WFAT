@@ -10,11 +10,15 @@ c=======================================================
       double precision fifc
 
       double precision kp
-      
-      kp = sqrt(2 * abs(orberg_))
-      fifc = kp/2 *
-     &       (4*kp**2/fmagn)**(2*zion/kp - 2*nchan - abs(mchan) - 1) *
-     &       exp(-2*kp**3/3/fmagn)
+
+      if (fmagn > 1.0d-13) then
+         kp = sqrt(2 * abs(orberg_))
+         fifc = kp/2 *
+     &        (4*kp**2/fmagn)**(2*zion/kp - 2*nchan - abs(mchan) - 1) *
+     &        exp(-2*kp**3/3/fmagn)
+      else
+         fifc = 0.0d0
+      endif
 
       end
 c=======================================================

@@ -40,7 +40,8 @@ c=======================================================
 #include "stdio.fh"      
       integer rtdb
 
-      logical tdfield, calc_td, calc_dc, pp, gg, os, oc, or
+      character*2 tdfield
+      logical calc_td, calc_dc, pp, gg, os, oc, or
 
       
       call util_get_rtdb_state(rtdb, os, oc, or)
@@ -75,11 +76,11 @@ c     ==== Checking existence of CONDITIONALLY MANDATORY INPUTS ====
          call errquit('INPUT ERROR: Cannot find input directive '//
      &        '''field''.', 0, INPUT_ERR)
       else if (field_exist) then
-         if (calc_dc .and. tdfield) then
+         if (calc_dc .and. tdfield=='td') then
             call errquit('WFAT: When either of ''print_rate'', '//
      &           '''print_tmd'', or ''print_tmd_atom'' is invoked, '//
      &           'the field type must ONLY be ''dc''', 1, INPUT_ERR)
-         else if (calc_td .and. .not. tdfield) then
+         else if (calc_td .and. tdfield=='ti') then
             call errquit('WFAT: When either of ''print_yild'', '//
      &           '''print_avbeta'', or ''print_avgamma'' is invoked, '//
      &           'no field with type ''dc'' is allowed', 1, INPUT_ERR)
@@ -95,18 +96,18 @@ c     ==== Checking existence of CONDITIONALLY MANDATORY INPUTS ====
       endif
 
 c     == dt ==
-      if (.not. dt_exist .and. tdfield) then
+      if (.not. dt_exist .and. tdfield=='td') then
          call errquit('WFAT: Input directive ''dt'' is required when '//
      &        'non-DC fields are used', 1, INPUT_ERR)
-      else if (dt_exist .and. .not. tdfield) then
+      else if (dt_exist .and. (tdfield=='ti' .or. tdfield=='no')) then
          write(luout, 206) 'dt'
       endif
 
 c     == tmax ==
-      if (.not. tmax_exist .and. tdfield) then
+      if (.not. tmax_exist .and. tdfield=='td') then
          call errquit('WFAT: Input directive ''tmax'' is required '//
      &        'when non-DC fields are used', 1, INPUT_ERR)
-      else if (tmax_exist .and. .not. tdfield) then
+      else if (tmax_exist .and. (tdfield=='ti' .or. tdfield=='no')) then
          write(luout, 206) 'tmax' 
       endif
       
@@ -331,11 +332,11 @@ c     ==== Checking format of CONDITIONALLY MANDATORY INPUTS ====
       endif
 
 c     == dt ==
-      if (.not. dt_stat .and. tdfield)
+      if (.not. dt_stat .and. tdfield=='td')
      &     call errquit('WFAT: The format of input directive '//
      &     '''dt'' is incorrect', 0, INPUT_ERR)
 c     == tmax ==
-      if (.not. tmax_stat .and. tdfield)
+      if (.not. tmax_stat .and. tdfield=='td')
      &     call errquit('WFAT: The format of input directive '//
      &     '''tmax'' is incorrect', 0, INPUT_ERR)      
 c     == beta ==
@@ -599,7 +600,8 @@ cdebug         call mewfat_dummy()
 
  206  format(3x, '*** ATTENTION ***', /
      &     3x, 'Input directive ''', a, ''' is found ',
-     &     'but will be ignored because no DC fields are being used.')
+     &     'but will be ignored because either DC fields are being ',
+     &     'used or no fields are specified.')
       
       end
 c=======================================================
@@ -614,17 +616,26 @@ c=======================================================
 #include "wfat_input.fh"
       integer nf                         ! [input],
       character(len=FLD_TP_LEN) tp(nf)   ! [input],
-      logical tdf                        ! [output],
+      character*2 tdf                    ! [output],
 
       integer i
 
-      tdf = .true.
+      tdf = 'no'
       do i = 1, nf
-         if (tp(i) == 'dc') tdf = .false.
-         if (.not. tdf .and. tp(i) /= 'dc')
+         if (tp(i) == 'dc') then
+            tdf = 'ti'
+         endif
+
+         if (tdf=='ti' .and. (tp(i)=='gaussian' .or. tp(i)=='hann' .or.
+     &        tp(i)=='external'))
      &        call errquit('WFAT: When there is a ''dc'' type '//
      &        'field in the ''field'' directive, no other field '//
      &        'types are allowed to coexist', 1, INPUT_ERR)
+         
+         if (tp(i)=='gaussian' .or. tp(i)=='hann' .or.
+     &        tp(i)=='external') then
+            tdf = 'td'
+         endif
       enddo
 
       end
@@ -1283,7 +1294,8 @@ c=======================================================
 #include "mafdecls.fh"      
       integer rtdb
 
-      logical os, oc, or, nosave, td
+      character*2 td
+      logical os, oc, or, nosave
       integer nt_00, er(2)
       double precision dt_00, tmax_00
 
@@ -1326,7 +1338,7 @@ c forcheck     &     call errquit('WFAT: Printing rtdb failed', 1, RTDB_ERR)
       
       if (field_need) then
          call wfat_acdc_field(nfield, fld_tp, td)
-         if (.not. rtdb_put(rtdb, 'wfat:tdfield', mt_log, 1, td))
+         if (.not. rtdb_cput(rtdb, 'wfat:tdfield', 1, td))
      &        call errquit('WFAT: Failed writing field:tdfield '
      &        //'to rtdb', 1, INPUT_ERR)
          if (.not. rtdb_put(rtdb, 'wfat:field:nfield', mt_int, 1,

@@ -14,10 +14,11 @@ c===============================================================
       integer rtdb
 
       character(len=FLD_TP_LEN) las_env(max_nfield)
+      character*2 td
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
       logical rtdb_stat, wfat1, res_mode, os, oc, or, int_nosave
-      logical dd, td, extf, corb_print
+      logical dd, extf, corb_print
       character*32 theory
       character*2 prtb_type
       integer ndid, gqual, i, lmax, nlgl, is, npb, ndpo
@@ -108,19 +109,21 @@ c     ==== Obtaining print switches ====
 
       
 c     ==== Whether using TD field or no ====
-      if (.not. rtdb_get(rtdb, 'wfat:tdfield', mt_log, 1, td))
-     &     td = .false.
-      if (td) then
+      if (.not. rtdb_cget(rtdb, 'wfat:tdfield', 1, td))
+     &     td = 'no'
+      if (td=='td') then
          call wfat_prep_tdfield(rtdb, nlas, l_al, k_al, las_env,
      &        l_wl, k_wl, l_pl, k_pl, l_tl, k_tl, l_dl, k_dl, ntime,
      &        tmax, extf)
-      else
+      else if (td=='ti') then
          call wfat_prep_field(rtdb, fieldmag)
+      else if (td=='no') then
+         fieldmag = 0.0d0
       endif
 
 
 c     ==== Perturbation theory analysis ====
-      if (.not. td) call wfat_calc_perturb(rtdb, fieldmag, pr_rate, 
+      if (td=='ti') call wfat_calc_perturb(rtdb, fieldmag, pr_rate, 
      &     pr_avbeta, pr_avgamma, pr_tmd, pr_tmd_atom, res_mode,
      &     nch, int_mb(k_or), int_mb(k_sp))
 
@@ -232,7 +235,7 @@ c        ==== When WFAT(1) is in use ====
 c        ============================================
 c        ==== Calculate and print key quantities ====
 c        ============================================
-         if (td) then
+         if (td=='td') then
             if (pr_srfc .or. pr_yild .or. pr_avbeta .or. pr_avgamma)
      &           call wfat_calc_td(rtdb, geom_hd, pr_srfc, pr_yild, 
      &           pr_avbeta, pr_avgamma, nlas, las_env,
@@ -276,7 +279,7 @@ c     ==== Deallocations ====
      &     3, MA_ERR)
       call wfat_erase_channels(l_or0, l_sp, l_or)
       call wfat_erase_paraqn(l_npa, l_mpa)
-      if (td) 
+      if (td=='td') 
      &     call wfat_erase_tdfield(l_al, l_wl, l_pl, l_tl, l_dl)
       call wfat_erase_channelprop(l_eg, l_ps, l_cmm, l_idp)
       if (.not. ga_destroy(g_il))

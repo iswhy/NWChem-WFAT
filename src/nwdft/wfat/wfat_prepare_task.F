@@ -557,7 +557,7 @@ c=================================================
       logical extf
 
       character*4096 ext_fname
-      integer ndid, i, ext_range(2)
+      integer ndid, ext_range(2)
 
 
       ndid = ga_nodeid()
@@ -635,15 +635,13 @@ c     ==== Print laser parameters ====
      &        dbl_mb(k_wl), dbl_mb(k_pl), dbl_mb(k_tl), dbl_mb(k_dl),
      &        ntime, tmax)
 
-         
 c        ==== External laser file ====
-         if (las_env(i)=='external') then
-            write(luout, '(5x, "file name = ", a)')
+         if (las_env(1)=='external') then
+            write(luout, '(5x, "File name = ", a)')
      &           trim(adjustl(ext_fname))
             write(luout, '(5x, "Data start and end = ", i6, 2x, i6)')
      &           ext_range(1), ext_range(2)
-         endif         
-
+         endif
          
 c        ==== Print laser ====
          call wfat_print_laser(nlas, las_env, dbl_mb(k_al),

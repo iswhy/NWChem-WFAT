@@ -71,6 +71,7 @@ c     ==== Initial status of WFAT inputs ====
       print_stat = .false.
 
       nfield = 0
+      fld_tp = 'n/a'        ! Initiation.
       field_exist = .false.
       field_stat = .false.
 

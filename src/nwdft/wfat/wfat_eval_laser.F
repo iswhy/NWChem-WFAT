@@ -96,6 +96,7 @@ c=======================================================
 #include "errquit.fh"
 #include "wfat.fh"
 #include "wfat_field_param.fh"
+#include "stdio.fh"
       integer nl
       character(len=FLD_TP_LEN) ftl(nl)       ! Function type of envelope, 'gaussian' or 'hann'         
       double precision al(nl)   ! Peak electric field, in a.u.                              
