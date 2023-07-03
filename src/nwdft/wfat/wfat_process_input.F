@@ -44,7 +44,7 @@ c=======================================================
 
       
       call util_get_rtdb_state(rtdb, os, oc, or)
-      
+
 
 c     ==========================================================
 c     ==================== EXISTENCE CHECKS ====================
@@ -227,6 +227,12 @@ c     ==== Checking existence of OPTIONAL INPUTS ====
          call wfat_def_intglname(rtdb, wfat_level, wfat_intgl_name)
          intgl_stat = .true.
       endif
+      if (.not. wfat1_exist) then
+         wfat1 = DEF_WFAT1
+         wfat1_stat = .true.
+      else if (wfat1_exist .and. or) then
+         write(luout, 202) 'wfat1', 'wfat1'
+      endif
       if (wfat_level == 'oe') then
          if (.not. movec_exist) then
             call wfat_def_movecname('oe', rtdb, wfat_movec_name)
@@ -247,6 +253,10 @@ c     ==== Checking existence of OPTIONAL INPUTS ====
          else if (sitype_exist .and. or) then
             write(luout, 202) 'si_type', 'si_type'
          endif
+         if (wfat1) call errquit('MEWFAT: At the moment, MEWFAT '//
+     &        'cannot be used with the first order correction. '//
+     &        'Please remove the ''wfat1'' keyword from your input '//
+     &        'file.', 62, UERR)
       endif
       if (.not. prtb_type_exist) then
          prtb_type = DEF_PRTB_type
@@ -659,7 +669,8 @@ c=======================================================
       intgl_need = .false.          ! needed when OE or ME
       movec_need = .false.          ! needed when OE or ME
       movec1_need = .false.         ! needed when ME
-      sitype_need= .false.          ! needed when ME
+      sitype_need = .false.         ! needed when ME
+      wfat1_need = .false.          ! needed when OE or ME
       prtb_type_need = .false.      ! needed when OE
       prtb_ord_need = .false.       ! needed when OE
       prtb_bt_need = .false.        ! needed when OE
@@ -733,7 +744,8 @@ c TMD notyet     &     .false., .false., nktmd_need)
      &     movec1_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     sitype_need)
-
+      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+     &     wfat1_need)
 
       
 cOLD      if (print_srfc) then
@@ -814,7 +826,8 @@ c=======================================================
       lmax_need = .false.           ! needed when oe or me
       intgl_need = .false.          ! needed when oe or me
       movec_need = .false.          ! needed when oe or me
-      movec1_need = .false.         ! needed when ME      
+      movec1_need = .false.         ! needed when me
+      wfat1_need = .false.          ! needed when oe or me
       prtb_type_need = .false.      ! needed when oe
       prtb_ord_need = .false.       ! needed when oe
       prtb_bt_need = .false.        ! needed when oe
@@ -869,6 +882,8 @@ c=======================================================
      &     intgl_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     movec_need)
+      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+     &     wfat1_need)
 
       call wfat_need_input0(rt, tmd, tmda, .false., .false., .false., 
      &     .false., prtb_type_need)
@@ -1147,7 +1162,7 @@ c=======================================================
       if (sitype_need) then
          if (si_type/='none' .and. si_type/='mo' .and. si_type/='dyson')
      &        call errquit('WFAT: The value of si_type ('//si_type// 
-     &        ') does not match the available options, which are'//
+     &        ') does not match the available options, which are '//
      &        '''none'', ''mo'', or ''dyson''.', 31, INPUT_ERR)
       endif
 
@@ -1629,7 +1644,12 @@ cOLD      if (prtb_ord_need .and. os) then
      &        call errquit('WFAT: Failed writing si to RTDB', 1,
      &        RTDB_ERR)
       endif
+
+      if (wfat1_need .and. os) then
+         if (.not. rtdb_put(rtdb, 'wfat:wfat1', mt_log, 1, wfat1))
+     &        call errquit('WFAT: Failed writing wfat1 to RTDB', 1,
+     &        RTDB_ERR)
+      endif
          
-      
       end
 c=======================================================

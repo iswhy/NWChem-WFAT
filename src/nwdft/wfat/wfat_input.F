@@ -122,7 +122,10 @@ c     ==== Initial status of WFAT inputs ====
       movec_exist = .false.
       movec_stat = .false.
       movec1_exist = .false.
-      movec1_stat = .false.      
+      movec1_stat = .false.
+
+      wfat1_exist = .false.
+      wfat1_stat = .false.
 
       perturb_exist = .false.
       perturb_stat = .false.
@@ -316,6 +319,10 @@ c           ==== OPTIONAL INPUTS ====
                   movec1_stat = .true.
                endif
                call inp_prev_field()
+            else if (inp_compare(.false., 'wfat1', field)) then
+               wfat1_exist = .true.
+               wfat1_stat = .true.
+               wfat1 = .true.
             else if (inp_compare(.false., 'perturb', field)) then
                perturb_exist = .true.
                perturb_stat = wfat_inp_perturb(

@@ -17,8 +17,8 @@ c=================================================
       character*4096 fname
       logical res_mode, td, rtdb_stat, os, oc, or, extf, isthere
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
-      logical pr_tmd, pr_tmd_atom, wfat1
-      integer gqual, lmax, nlgl
+      logical pr_tmd, pr_tmd_atom
+      integer gqual, lmax
       integer ndid, nqn, nlas, ntime, nsh, nintg
       integer nerg, ncpos, ncmm, niond
       integer l_npa, l_mpa, l_al, l_ftl, l_wl, l_pl, l_tl, l_dl
@@ -59,9 +59,7 @@ c     ==== Obtaining parabolic quantum numbers ====
 
 
 c     ==== Obtaining WFAT(1) information ====
-      call wfat_prep_wfat1(rtdb, wfat1, nlgl)
-      if (wfat1) call errquit('MEWFAT: At the moment, MEWFAT cannot '//
-     &     'be used with the first order correction.', 62, UERR)
+cforlater      call wfat_prep_wfat1(rtdb, wfat1, nlgl)
       
 
 c     ==== Check if research mode is enabled ====

@@ -14,10 +14,11 @@ c=================================================
 #include "wfat_rs.fh"      
       integer rtdb
 
+      character*1 sz
       character*5 si_type
       character*20 basis_name, trans_name
       logical use_nwxc, rtdb_stat, status, reorder, isdft
-      integer ndid, basnormid, noio
+      integer ndid, is, basnormid, noio
       double precision nel0_(2), nel1_(2), zn, rscent0(3), dgnthr
 
       logical int_normalize, nwxc_has_xc, nwxc_has_cam
@@ -39,7 +40,7 @@ c     ====     necessities of inputs    ====
 
 cdebug      if (.not. rtdb_print(rtdb, .false.))
 cdebug     &     call errquit('WFAT: Cannot print RTDB.', 1, RTDB_ERR)
-      call ga_sync()
+cdebug      call ga_sync()
 
 
 c     ==== Geometry ====
@@ -100,31 +101,34 @@ c     ==== No. of bases consistency checks ====
      &     'does not match', 1, UERR)
       
 
-c     ==== Determine no. of electrons ====
-      if (.not. rtdb_get(rtdb, 'mewfat:spinx', mt_int, 1, spinx))
-     &     call errquit('MEWFAT: Failed reading spinx from RTDB.', 1,
-     &     RTDB_ERR)
+c     ==== Determine the ionized spin channel ====
+      nel0 = int(nel0_)
+      nel1 = int(nel1_)
+      do is = 1, 2
+         write(sz, '(i1)') is
+         if (nel0(is)-nel1(is) == 1) then
+            spinx = is
+         else if (nel0(is)-nel1(is) > 1) then
+            if (ndid == 0) call mewfat_nel_error_1(sz, nel0(is),
+     &           nel1(is))
+            call ga_sync()
+            call errquit('MEWFAT: Error in the number of electrons.',
+     &           62, INPUT_ERR)
+         else if (nel0(is) < nel1(is)) then
+            if (ndid == 0) call mewfat_nel_error_2(sz, nel0(is),
+     &           nel1(is))
+            call ga_sync()
+            call errquit('MEWFAT: Error in the number of electrons.',
+     &           64, INPUT_ERR)
+         endif
+      enddo
+      
       if (spinx == 1) then
          spiny = 2
       else if (spinx == 2) then
          spiny = 1
-      else
-cmovetosanitycheck         call errquit('MEWFAT: Unknown value for the argument ''spinx'' '//
-cmovetosanitycheck     &        'of mewfat_calc_pcf.', 1, UERR)
       endif
-      nel0 = int(nel0_)
-      nel1(spinx) = nel0(spinx) - 1
-      nel1(spiny) = nel0(spiny)
-
-      write(luout, '("nel:", 2i4, 3x, 2f8.3, 3x, 2i4)')
-     &     nel1, nel1_, int(nel1_)
       
-      if (nel1(1) /= int(nel1_(1)) .or. nel1(2) /= int(nel1_(2))) then
-         write(luout, 700) nel1, int(nel1_)
-cforlater         call errquit('MEWFAT: Inconsistency in the no. of electrons '//
-cforlater     &        'in the cation.', 1, UERR)
-      endif
-
            
 c     ==== Calculate parent charge ====
       if (.not. geom_nuc_charge(geom_hd, zn))
@@ -688,4 +692,47 @@ c     ==== RTDB ====
       
       end
 c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine mewfat_nel_error_1(sz, nel0, nel1)
+
+      implicit none
+#include "stdio.fh"
+      character*1 sz
+      integer nel0, nel1
+
+      write(luout, '("The difference in the number of electrons in '//
+     &     'the spin channel '//sz//' between the neutral and cation '//
+     &     'exceeds 1: ")')
+      write(luout, '("   - neutral n_elec('//sz//') = ", i4)') nel0
+      write(luout, '("   - cation n_elec('//sz//') = ", i4)') nel1
+      write(luout, '("This is not allowed because WFAT is a single '//
+     &     'ionization theory.")')
+
+      end
+c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine mewfat_nel_error_2(sz, nel0, nel1)
+
+      implicit none
+#include "stdio.fh"
+      character*1 sz
+      integer nel0, nel1
+
+      write(luout, '("There are more electrons in the spin channel '//
+     &     sz//' in the cation than in the neutral:")')
+      write(luout, '("   - neutral n_elec('//sz//') = ", i4)') nel0
+      write(luout, '("   - cation n_elec('//sz//') = ", i4)') nel1
+      write(luout, '("This is not allowed because WFAT is a '//
+     &     'non-relativistic ionization theory.")')
+
+      end
+c=================================================
+      
+      
       
