@@ -49,7 +49,6 @@ c     ==== Ionization energy ====
          ionerg = manip
          if (ga_nodeid()==0) write(luout, '(3x, "Manual IP is used.")')
       endif
-      
 
 
 c     ==== Center, 1st moment, and cation dipole ====
@@ -227,36 +226,8 @@ c     ==== Fock matrices ====
          g_fk0(is) = ga_create_atom_blocked(geom, bas, 'fock0')
          g_fk1(is) = ga_create_atom_blocked(geom, bas, 'fock1')
       enddo
-
-
-
-      ggg = 0
-      jjj = 0
-      if (ndid==0) then
-         if (oskel) ggg = 1
-         if (iolgc) jjj = 1
-         write(luout, '("1 ", 3i5)') geom, bas, nb
-         write(luout, '("2 ", 2i5)') n0
-         write(luout, '("3 ", 3e14.6)') tol2e
-         write(luout, '("4 oskel ", i1)') ggg
-         write(luout, '("5 ", i5)') ixcfit
-         write(luout, '("6 iolgc ", i1)') jjj
-      endif
-
-      
       call wfat_get_fock(rtdb, geom, bas, nb, 2, n0, g_mo0,
      &     chg0, mult0, tol2e, oskel, ixcfit, iolgc, .false., g_fk0)
-cdebug      do is = 1,2
-cdebug         if (ndid==0) write(luout, '("Neutral MO, spin:", i2)') is
-cdebug         call ga_print(g_mo0(is))
-cdebug      enddo
-cdebug      do is = 1,2
-cdebug         if (ndid==0) write(luout, '("Neutral Fock, spin:", i2)') is
-cdebug         call ga_print(g_fk0(is))
-cdebug      enddo
-
-c      write(luout, '("herew0")')
-      
       call wfat_get_fock(rtdb, geom, bas, nb, 2, n1, g_mo1,
      &     chg1, mult1, tol2e, oskel, ixcfit, iolgc, .false., g_fk1)
       nfk = nb * nb * 2
@@ -271,7 +242,6 @@ c      write(luout, '("herew0")')
          call ga_get(g_fk1(is), 1, nb, 1, nb, dbl_mb(i_fk), nb)
       enddo
 
-c      write(luout, '("herew1")')
 
 c     ==== Calculate RDM's ====
       nocmo0 = nb * sum(n0)
@@ -302,14 +272,12 @@ c     ==== Calculate RDM's ====
       call mewfat_calc_rdm(nb, n0, n1, dbl_mb(k_mo0), dbl_mb(k_mo1),
      &     dbl_mb(k_rd0), dbl_mb(k_rd1))
 
-c      write(luout, '("herew2")')
 
 c     ==== GS and ionization energies ====
       call mewfat_calc_ionerg(geom, bas, nb, n0, n1, gq, mcel, 
      &     dbl_mb(k_1e), dbl_mb(k_rd0), dbl_mb(k_rd1), dbl_mb(k_fk0), 
      &     dbl_mb(k_fk1), gserg0, gserg1, ionerg)
 
-c      write(luout, '("herew3")')
 
 c     ==== Deallocations ====
       if (.not. ma_free_heap(l_1e))
@@ -339,6 +307,7 @@ c=================================================
       implicit none
 #include "global.fh"
 #include "stdio.fh"
+#include "geom.fh"
       integer geom
       integer bas
       integer nb                ! [input]
@@ -355,36 +324,15 @@ c=================================================
       double precision gse1            ! [output]
       double precision ionerg          ! [output]
 
+      logical ll
       integer ndid, i, j, ns0, ns1
-      double precision g, xce0, xce1
+      double precision g, xce0, xce1, enuc
 
 
       ndid = ga_nodeid()
 
-
-cfordebug      if (ndid==0) then
-cfordebug         write(luout, '("RDM0 spin 1")')
-cfordebug         call wfat_dprintmat(nb, nb, 'e', rdm0(:,:,1))
-cfordebug         write(luout, '("RDM0 spin 2")')
-cfordebug         call wfat_dprintmat(nb, nb, 'e', rdm0(:,:,2))
-cfordebug         write(luout, '("RDM1 spin 1")')
-cfordebug         call wfat_dprintmat(nb, nb, 'e', rdm1(:,:,1))
-cfordebug         write(luout, '("RDM1 spin 2")')
-cfordebug         call wfat_dprintmat(nb, nb, 'e', rdm1(:,:,2))
-cfordebug      endif
-cfordebug      
-cfordebug      if (ndid==0) then
-cfordebug         write(luout, '("Fock0 spin 1")')
-cfordebug         call wfat_dprintmat(nb, nb, 'e', fock0(:,:,1))
-cfordebug         write(luout, '("Fock0 spin 2")')
-cfordebug         call wfat_dprintmat(nb, nb, 'e', fock0(:,:,2))
-cfordebug         write(luout, '("Fock1 spin 1")')
-cfordebug         call wfat_dprintmat(nb, nb, 'e', fock1(:,:,1))
-cfordebug         write(luout, '("Fock1 spin 2")')
-cfordebug         call wfat_dprintmat(nb, nb, 'e', fock1(:,:,2))
-cfordebug      endif
-
-
+      
+c     ==== Calculate the DFT-XC part of total electronic energy ====
       if (n0(1)==n0(2)) then
          ns0 = 1
       else
@@ -398,10 +346,9 @@ cfordebug      endif
          ns1 = 2
       endif
       call mewfat_dfterg(geom, bas, ns1, gq, mcel, rdm1, xce1)
-
-      if (ga_nodeid()==0) write(luout, '("xcerg:", 2f20.12)') xce0, xce1
       
 
+c     ==== Calculate the HF part of total electronic energy ====
       gse0 = 0.0d0
       gse1 = 0.0d0
       do j = 1, nb
@@ -417,9 +364,12 @@ cfordebug      endif
             gse1 = gse1 + g
          enddo
       enddo
-      if (ga_nodeid()==0) write(luout, '("hferg:", 2f20.12)') gse0, gse1
-      gse0 = gse0 / 2 + xce0
-      gse1 = gse1 / 2 + xce1
+
+      
+c     ==== Calculate the total energy ====
+      ll = geom_nuc_rep_energy(geom, enuc)
+      gse0 = gse0 / 2 + xce0 + enuc
+      gse1 = gse1 / 2 + xce1 + enuc
       ionerg = gse0 - gse1
       
       end

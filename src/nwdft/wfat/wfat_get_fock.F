@@ -136,15 +136,6 @@ c     ==== Calculate Hartree (classical repulsion) matrix ====
      &     g_trd, g_j, .false.)
 cfordebug      if (ndid==0) write(luout, '("HF Hartree matrix (REF)")')
 cfordebug      call ga_print(g_j(1))
-      if (ndid==0) write(luout, '("herex1")')
-      normm = ga_ddot(g_trd(1), g_trd(1))
-      if (ndid==0) write(luout, '("TRD norm = ", es14.6)') normm
-
-      if (ndid==0) write(luout, '("herex2")')
-      normm = ga_ddot(g_j(1), g_j(1))
-      if (ndid==0) write(luout, '("J norm = ", es14.6)') normm
-
-      if (ndid==0) write(luout, '("herex3")')
       
 
 c     ==== Calculate HF exchange matrix ====      
@@ -167,13 +158,6 @@ cfordebug      if (ndid==0) write(luout, '("HF exchange matrix (REF), is=1")')
 cfordebug      call ga_print(g_k(1))      
       if (nwxc_has_cam()) call case_setflags (.false.)
 
-
-
-      normm = ga_ddot(g_k(1), g_k(1))
-      if (ndid==0) write(luout, '("K norm = ", es14.6)') normm
-
-
-      
 
 c     ==== Calculate HF 2e matrix (J+c*K) ====
       chfx = nwxc_wght_hfx()
@@ -214,7 +198,7 @@ cfordebug         call ga_print(g_vxc(1))
       endif
       
 
-c     ==== Calculate (total) Fock matrices and print their eigvals ====
+c     ==== Calculate (total) Fock matrices ====
       do is = 1, ns
          call ga_dadd(one, g_veff(is), one, g_k(is), g_k(is))
          if (doxc) then

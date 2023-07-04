@@ -309,28 +309,38 @@ c=======================================================
       integer dgid(nb,ns)
       integer dgn(nb,ns)
 
-      integer is, i
+      integer is, i, nel(ns)
 
 
-      write(luout, '(2x, "*** Degeneracy Analysis ***")')
-      write(luout, '(2x, "Degenerate threshold = ", es15.6)') thr
+      write(luout, '(5x, "Degenerate threshold = ", es15.6)') thr
+      write(luout, '(5x, "Orbital degeneracies '//
+     &     '(spin-a: 2nd-5th columns, spin-b: 6th-9th columns):")')
       
 
 c     ==== Print column titles ====
-      write(luout, '(a5)', advance='no') 'No.'
+      call wfat_print_repeat(luout, 91, 5, '-')
+      write(luout, '("")')
+      write(luout, '(5x, a5)', advance='no') 'No.'
       do is = 1, ns
-         write(luout, '(a21, a10, 2a5)', advance='no')
+         nel(is) = int( sum(occ(:,is)) )
+         write(luout, '(a23, a10, 2a5)', advance='no')
      &        'Energy (H)', 'Occ.', 'ID', 'Size'
       enddo
       write(luout, '(" ")')
+      call wfat_print_repeat(luout, 91, 5, '-')
+      write(luout, '("")')
 
-      
+            
 c     ==== Print ID's ====
-      do i = 1, nb
-         write(luout, '(i5)', advance='no') i
+      do i = 1, maxval(nel)
+         write(luout, '(5x, i5)', advance='no') i
          do is = 1, ns
-            write(luout, '(es21.12, f10.5, 2i5)', advance='no')
-     &           erg(i,is), occ(i,is), dgid(i,is), dgn(i,is)
+            if (i > nel(is)) then
+               write(luout, '(a43)') ' '
+            else
+               write(luout, '(es23.12, f10.5, 2i5)', advance='no')
+     &              erg(i,is), occ(i,is), dgid(i,is), dgn(i,is)
+            endif
          enddo
          write(luout, '(" ")')
       enddo

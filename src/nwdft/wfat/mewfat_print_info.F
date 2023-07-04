@@ -75,6 +75,7 @@ c=======================================================
 #include "mewfat_qm_param.fh"
 #include "stdio.fh"
       integer ndid
+      character*5 ss
 
 
       ndid = ga_nodeid()
@@ -90,8 +91,12 @@ c=======================================================
      &     nbf1, ns_ion1, nmo1, nel1, multip1, charge1
 
       if (ndid == 0) then
-         write(luout, '(3x, "spinx = ", i3)') spinx
-         write(luout, '(3x, "spiny = ", i3)') spiny
+         if (spinx == 1) then
+            ss = 'alpha'
+         else if (spinx == 2) then
+            ss = 'beta'
+         endif
+         write(luout, '(3x, "Ionized spin channel : ", a)') ss
       endif
       
  900  format(/,

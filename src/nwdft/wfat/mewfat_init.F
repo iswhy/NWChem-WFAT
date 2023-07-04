@@ -38,10 +38,6 @@ c     ====     necessities of inputs    ====
       endif
       call ga_sync()
 
-cdebug      if (.not. rtdb_print(rtdb, .false.))
-cdebug     &     call errquit('WFAT: Cannot print RTDB.', 1, RTDB_ERR)
-cdebug      call ga_sync()
-
 
 c     ==== Geometry ====
       if (.not. geom_create(geom_hd, 'mewfat_geom'))
@@ -447,8 +443,9 @@ c     ==== Detect degeneracies ====
       call wfat_detect_degen(nb, ns, erg, dgnthr,
      &     int_mb(k_dgid), int_mb(k_dgn), int_mb(k_norbdg))
       if (ga_nodeid()==0) then
-         write(luout, '("==== Degeneracy analysis on the '//cs_nm//
-     &        ' ====")')
+         write(luout, '(" ")')
+         write(luout, '(3x, "*** Degeneracy analysis on the '//cs_nm//
+     &        ' MOs ***")')
          call wfat_print_degen(nb, ns, erg, occ, 
      &        dgnthr, int_mb(k_dgid), int_mb(k_dgn))
       endif

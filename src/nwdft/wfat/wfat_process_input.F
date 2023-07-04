@@ -703,22 +703,6 @@ c=======================================================
       tmd = print_tmd
       tmda = print_tmd_atom
 
-
-      call wfat_tf_to_yn(print_srfc, .false., m)
-      write(luout, '(a)') m
-      call wfat_tf_to_yn(print_rate, .false., m)
-      write(luout, '(a)') m
-      call wfat_tf_to_yn(print_yild, .false., m)
-      write(luout, '(a)') m
-      call wfat_tf_to_yn(print_avbeta, .false., m)
-      write(luout, '(a)') m
-      call wfat_tf_to_yn(print_avgamma, .false., m)
-      write(luout, '(a)') m
-      call wfat_tf_to_yn(print_tmd, .false., m)
-      write(luout, '(a)') m
-      call wfat_tf_to_yn(print_tmd_atom, .false., m)
-      write(luout, '(a)') m
-
             
       call wfat_need_input0(rt, tmd, tmda, yi, avb, avg, .false.,
      &     field_need)
@@ -758,56 +742,6 @@ c TMD notyet     &     .false., .false., nktmd_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     wfat1_need)
 
-      
-cOLD      if (print_srfc) then
-cOLD         beta_need = .true.
-cOLD         gamma_need = .true.
-cOLD         paraqn_need = .true.
-cOLD         gqual_need = .true.
-cOLD         omgpos_need = .true.
-cOLD         lmax_need = .true.
-cOLD         intgl_need = .true.
-cOLD         movec_need = .true.
-cOLD         movec1_need = .true.         
-cOLD      endif
-cOLD      if (print_iony .or. print_avbeta .or. print_avgamma) then
-cOLD         fieldmag_need = .true.
-cOLD         beta_need = .true.
-cOLD         gamma_need = .true.
-cOLD         paraqn_need = .true.
-cOLD         gqual_need = .true.
-cOLD         omgpos_need = .true.
-cOLD         lmax_need = .true.
-cOLD         intgl_need = .true.
-cOLD         movec_need = .true.
-cOLD         movec1_need = .true.         
-cOLD      endif
-cOLD      if (print_tmd) then
-cOLD         fieldmag_need = .true.
-cOLD         beta_tmd_need = .true.
-cOLD         gamma_tmd_need = .true.
-cOLD         nktmd_need = .true.
-cOLD         paraqn_need = .true.
-cOLD         gqual_need = .true.
-cOLD         omgpos_need = .true.
-cOLD         lmax_need = .true.
-cOLD         intgl_need = .true.
-cOLD         movec_need = .true.
-cOLD         movec1_need = .true.
-cOLD      endif
-cOLD      if (print_tmd_atom) then
-cOLD         fieldmag_need = .true.
-cOLD         beta_tmd_need = .true.
-cOLD         gamma_tmd_need = .true.
-cOLD         nktmd_need = .true.
-cOLD         paraqn_need = .true.
-cOLD         gqual_need = .true.
-cOLD         omgpos_need = .true.
-cOLD         lmax_need = .true.
-cOLD         intgl_need = .true.
-cOLD         movec_need = .true.
-cOLD         movec1_need = .true.
-cOLD      endif      
       end
 c=======================================================
 

@@ -88,11 +88,9 @@ c     wfat.fh contains: m_emc, nseg
 c     ==== Get radii and no. of angular grids for all segments  ====
       call wfat_get_gridseg(zn, gq, nseg0, atr0(1:nseg), nlang(1:nseg))
       nmax = maxval(nlang)
-      if (ndid==0) write(luout, '("herem0", i6)') nmax
 
       if (.not. MA_alloc_get(MT_DBL, nmax, 'angx', l_ax, k_ax))
      &     call errquit('WFAT: angx allocation failed', 59, MA_ERR)
-      if (ndid==0) write(luout, '("herem1")')
       if (.not. MA_alloc_get(MT_DBL, nmax, 'angy', l_ay, k_ay))
      &     call errquit('WFAT: angy allocation failed', 59, MA_ERR)
       if (.not. MA_alloc_get(MT_DBL, nmax, 'angz', l_az, k_az))
@@ -105,7 +103,7 @@ c     ==== Get radii and no. of angular grids for all segments  ====
 c     ==== Get atom radius and no. of radial points ====
       call wfat_get_atomrad(zn, atr)
       call wfat_get_gridnrad(zn, gq, nrad)
-      if (ndid==0) write(luout, '("herem2")')
+
 
 c     ==== Calculate quadrature points and weights ====
       dq = (qn - q0)/(nrad - 1)
@@ -152,7 +150,6 @@ c        == Calculate Cartesian grid points and weights ==
             gwt(ipt) = rwt * 4 * pi_const * dbl_mb(k_aw+ia-1)
          enddo
       enddo
-      if (ndid==0) write(luout, '("herem3")')
 
       npt = ipt
       
@@ -166,9 +163,7 @@ ccheck         write(luout, '("nseg0 = ", i3)') nseg0
       if (npt > max_npt) then
          call errquit('WFAT: max_npt too small', 59, UERR)
       endif
-      if (ndid==0) write(luout, '("herem4")')
 
-ccheck      write(luout, '("Deallocating...")')
       
       if (.not. MA_free_heap(l_ax))
      &     call errquit('WFAT: angx deallocation failed', 61, MA_ERR)

@@ -47,7 +47,6 @@ c     ==== Get channel properties ====
      &     wf_msm, nel0, nel1, g_mov0, g_mov1, charge0, charge1, 
      &     multip0, multip1, gserg0, gserg1, ionerg, edipm0, edipm1, 
      &     chpos, chmmt, dipm1)
-      if (ndid==0) write(luout, '("herej4")')
 
 
 c     ==== Calculate determinant coefficients and get MO's ====
@@ -56,12 +55,10 @@ c     ==== Calculate determinant coefficients and get MO's ====
       call mewfat_alloc_detcoef(spinx, spiny, nel0, cx, cy, npcf, nrcf, 
      &     nqcf, nscf, l_pcf, k_pcf, l_rcf, k_rcf, l_qcf, k_qcf, 
      &     l_scf, k_scf)
-      if (ndid==0) write(luout, '("herej5")')
       call mewfat_calc_detcoef(geom_hd, bas_hd, nbas, spinx, spiny,
      &     nel0, nel1, cx, cy, g_mov0, g_mov1, oskel, dbl_mb(k_mo0),
      &     dbl_mb(k_mo1), dbl_mb(k_pcf), dbl_mb(k_rcf), dbl_mb(k_qcf),
      &     dbl_mb(k_scf))
-      if (ndid==0) write(luout, '("herej6")')
 
 
 c     ==== Obtaining grid ranges for the current process ====
@@ -77,7 +74,6 @@ c     ==== Allocate grid-related arrays ====
 c     ==== Perform quadrature summation ====
       call wfat_alloc_intgl(lmax_, nqn, 1, natm, nsh, nom, ni0, ni_,
      &     nil, l_om, k_om, l_i0, k_i0, l_i_, k_i_, l_il, k_il)
-      if (ndid==0) write(luout, '("herej7")')
       call mewfat_calc_intgl_qsum(rtdb, geom_hd, bas_hd, nbas, natomp, 
      &     int_mb(k_icp), int_mb(k_ipp), gqual, spinx, spiny, 
      &     nel0, nel1, dbl_mb(k_mo0), dbl_mb(k_mo1), 
@@ -85,7 +81,6 @@ c     ==== Perform quadrature summation ====
      &     zion, chpos, ionerg, max_npt, dbl_mb(k_pt), dbl_mb(k_wt), 
      &     wf_msm, nsh, nqn, nid, mid, lmax_, natm, smh,
      &     dcpl_mb(k_om), dcpl_mb(k_i_), dcpl_mb(k_i0), dcpl_mb(k_il))
-      if (ndid==0) write(luout, '("herej8")')
 
 
 c     ==== Accumulate to global intgl (g_il) ====
@@ -201,7 +196,6 @@ c     ==== Scratch array ====
      &      sum(n1*n0) + nsc_rs                ! 1)
       if (.not. ma_alloc_get(mt_dbl, nsc, 'scratch', l_sc, k_sc))
      &     call errquit('MEWFAT: Cannot allocate scratch', 1, MA_ERR)
-      if (ndid==0) write(luout, '("herek1")')
             
 
 c     ==== BEGIN QUADRATURE SUMMATION ====
