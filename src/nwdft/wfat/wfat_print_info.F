@@ -119,20 +119,45 @@ c=======================================================
       call util_print_centered(luout, 'Previous SCF info', 20, .true.)
       write(luout, '(1x)')
       write(luout, '(5x, a22, " = ", i4)') "no. of spins", nspin0
+
       write(luout, '(5x, a22, " = ", i4)') "alpha electrons", nel(1)
       if (nspin0 == 1) then
          write(luout, '(5x, a22, " = ", i4)') "beta electrons", nel(1)
       else
          write(luout, '(5x, a22, " = ", i4)') "beta electrons", nel(2)
       endif
+
       write(luout, '(5x, a22, " = ", f9.4)') "post-ionization charge",
      &     zion
       if (.not. rtdb_cget(rtdb, 'wfat:movec_name', 1, fname))
      &     call errquit('WFAT: Cannot read wfat:movec_name from RTDB.',
      &     1, RTDB_ERR)
       write(luout, '(5x, a22, " = ", a)')
-     &     "Molecular orbital file", trim(adjustl(fname))
+     &     "MO file", trim(adjustl(fname))
 
+
+cforlater      status = movecs_read_header(movecs, title, basname, scftype,
+cforlater     &         nb, ns_, nmo, 2)
+cforlater
+cforlater      multip = nel(1) - nel(2) + 1
+cforlater      if (ndid == 0)
+cforlater     &     write(luout, 900) 'initial species (neutral)',
+cforlater     &     trim(movecs), trim(title), trim(scftype), trim(basname),
+cforlater     &     nb, ns_, nmo, nel, multip, charge
+cforlater
+cforlater 900  format(/,
+cforlater     &     3x, 'Information about the ', a, ' :', /,
+cforlater     &     5x, '* MO file = ', a, /,
+cforlater     &     5x, '* Job title = ', a, /,
+cforlater     &     5x, '* SCF type = ', a, /,
+cforlater     &     5x, '* Basis set name = ', a, /,
+cforlater     &     5x, '* No. of bases = ', i5, /,
+cforlater     &     5x, '* No. of spin channels = ', i3, /,
+cforlater     &     5x, '* No. of MO''s in each channel = ', 2i5, /,
+cforlater     &     5x, '* No. electrons in each channel = ', 2i4, /,
+cforlater     &     5x, '* Spin multiplicity = ', i3, /,
+cforlater     &     5x, '* Charge state = ', f7.3, /)
+            
       end
 c=======================================================
 
@@ -368,7 +393,7 @@ c=======================================================
 
 
       write(luout, '(2/)')
-      call util_print_centered(luout, 'Other WFAT inputs', 20, .true.)
+      call util_print_centered(luout, 'Other WFAT inputs', 30, .true.)
       write(luout, '(1x)')
 
 cOLDC     ==== Field magnitude ====
@@ -379,6 +404,7 @@ cOLD     &        1, INPUT_ERR)
 cOLD         write(luout, '(5x, a28, " = ", es10.3, " a.u.")')
 cOLD     &        "Field strength ", fieldmag
 cOLD      endif
+
 
 c     ==== No. of points for TMD ====
       if (pr_tmd .or. pr_tmd_atom) then

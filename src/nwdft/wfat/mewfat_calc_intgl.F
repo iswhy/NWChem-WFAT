@@ -59,6 +59,9 @@ c     ==== Calculate determinant coefficients and get MO's ====
      &     nel0, nel1, cx, cy, g_mov0, g_mov1, oskel, dbl_mb(k_mo0),
      &     dbl_mb(k_mo1), dbl_mb(k_pcf), dbl_mb(k_rcf), dbl_mb(k_qcf),
      &     dbl_mb(k_scf))
+      if (ndid == 0)
+     &     call mewfat_print_detcoef(spinx, nel0, cx, cy, dbl_mb(k_pcf),
+     &     dbl_mb(k_rcf), dbl_mb(k_qcf), dbl_mb(k_scf))
 
 
 c     ==== Obtaining grid ranges for the current process ====

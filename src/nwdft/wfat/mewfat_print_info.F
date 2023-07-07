@@ -21,32 +21,6 @@ c=======================================================
 
       rtdb_stat = rtdb_parallel(.false.)
 
-
-c     ==== WFAT module title ====
-      write(luout, '(4/)')
-      call util_print_centered(luout, 'Weak-Field Asymptotic Theory '//
-     &     'Module', 40, .true.)
-
-      
-c     ==== WFAT level info ====
-      call wfat_print_level(rtdb)
-
-
-c     ==== Quantum system info ====
-      call mewfat_print_qmsys()
-
-      
-c     ==== Geometry info ====
-      write(luout, '(/)')
-      if (.not. geom_print(geom_hd))
-     &     call errquit('WFAT: Cannot print geometry info', 1, GEOM_ERR)
-      
-
-c     ==== Basis info ====
-      write(luout, '(/)')
-      if (.not. bas_print(bas_hd))
-     &     call errquit('WFAT: Cannot print basis info', 1, BASIS_ERR)
-
       
 c     ==== Printing info ====
       call wfat_print_printsw(rtdb)      
@@ -79,14 +53,21 @@ c=======================================================
 
 
       ndid = ga_nodeid()
+
+      if (ndid == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 'Previous SCF info', 
+     &        20, .true.)
+         write(luout, '("")')
+      endif
       
       if (ndid == 0)
-     &     write(luout, 900) 'neutral',
+     &     write(luout, 900) 'initial species (neutral)',
      &     trim(movecs0), trim(title0), trim(scftype0), trim(basname0),
      &     nbf0, ns_ion0, nmo0, nel0, multip0, charge0
 
       if (ndid == 0)
-     &     write(luout, 900) 'cation',
+     &     write(luout, 900) 'final species (cation)',
      &     trim(movecs1), trim(title1), trim(scftype1), trim(basname1),
      &     nbf1, ns_ion1, nmo1, nel1, multip1, charge1
 
@@ -99,18 +80,18 @@ c=======================================================
          write(luout, '(3x, "Ionized spin channel : ", a)') ss
       endif
       
- 900  format(/,
-     &     3x, 'Info of the MO''s of ', a, ' :', /,
-     &     6x, 'File name = ', a, /,
-     &     6x, 'Job title = ', a, /,
-     &     6x, 'SCF type = ', a, /,
-     &     6x, 'Basis set name = ', a, /,
-     &     6x, 'No. of bases = ', i6, /,
-     &     6x, 'No. of spin channels = ', i6, /,
-     &     6x, 'No. of MO''s in each channel = ', 2i6, /,
-     &     6x, 'No. electrons in each channel = ', 2i6, /,
-     &     6x, 'Spin multiplicity = ', i6, /,
-     &     6x, 'Charge state = ', f7.3, /)
+ 900  format(
+     &     3x, 'Information about the ', a, ' :', /,
+     &     5x, '* MO file = ', a, /,
+     &     5x, '* Job title = ', a, /,
+     &     5x, '* SCF type = ', a, /,
+     &     5x, '* Basis set name = ', a, /,
+     &     5x, '* No. of bases = ', i5, /,
+     &     5x, '* No. of spin channels = ', i3, /,
+     &     5x, '* No. of MO''s in each channel = ', 2i5, /,
+     &     5x, '* No. electrons in each channel = ', 2i4, /,
+     &     5x, '* Spin multiplicity = ', i3, /,
+     &     5x, '* Charge state = ', f7.3, /)
       
       end
 c=======================================================

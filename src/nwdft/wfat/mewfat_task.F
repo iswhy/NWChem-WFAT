@@ -16,7 +16,7 @@ c=================================================
       character(len=FLD_TP_LEN) las_env(max_nfield)
       character*4096 fname
       character*2 td
-      logical res_mode, rtdb_stat, os, oc, or, extf, isthere
+      logical res_mode, rtdb_stat, os, oc, or, extf, isthere, wfat1
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
       integer gqual, lmax
@@ -28,7 +28,10 @@ c=================================================
       integer k_npa, k_mpa, k_al, k_ftl, k_wl, k_pl, k_tl, k_dl
       integer k_eg, k_ps, k_cmm, k_idp, k_in
       double precision tmax, fieldmag, smh
-cne
+
+      double complex czero
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
+
       
       ndid = ga_nodeid()
       task_mewfat = .false.
@@ -61,6 +64,7 @@ c     ==== Obtaining parabolic quantum numbers ====
 
 c     ==== Obtaining WFAT(1) information ====
 cforlater      call wfat_prep_wfat1(rtdb, wfat1, nlgl)
+      wfat1 = .false.
       
 
 c     ==== Check if research mode is enabled ====
@@ -122,12 +126,6 @@ c     ==== Calculate (or load) WFAT integrals ====
       if (os .and. .not. or) then
 cNEWRESTART      if (.not. isthere .or. os) then
 c        ==== Calculate and store WFAT integrals on 'start' startup mode ====
-         if (isthere) then
-            if (ndid == 0)
-     &           write(luout, '("WARNING: An integral file exist. '//
-     &           'This file will be overwritten.")')
-         endif
-         
          call mewfat_store_intgl(rtdb, nsh, natm, nqn, int_mb(k_npa), 
      &        int_mb(k_mpa), lmax, gqual, smh, res_mode, dbl_mb(k_eg), 
      &        dbl_mb(k_ps), dbl_mb(k_cmm), dbl_mb(k_idp), g_il)
@@ -159,6 +157,8 @@ c     ==== Printings ====
          if (.not. MA_alloc_get(MT_DCPL, nintg, 'intgl', l_in, k_in))
      &        call errquit('WFAT: Cannot allocate intgl.', 2, MA_ERR)
          call ga_get(g_il, 1, nintg, 1, 1, dcpl_mb(k_in), nintg)
+         call wfat_print_integrals(1, nqn, natm, lmax, int_mb(k_npa),
+     &     int_mb(k_mpa), wfat1, dcpl_mb(k_in), czero, czero, czero)
 
 
 c        ============================================

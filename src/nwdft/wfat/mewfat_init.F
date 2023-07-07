@@ -28,6 +28,7 @@ c=================================================
       
       
       ndid = ga_nodeid()
+      
 
 c     ==== Check existence, format, and ====
 c     ====     necessities of inputs    ====
@@ -37,6 +38,19 @@ c     ====     necessities of inputs    ====
          rtdb_stat = rtdb_parallel(.true.)
       endif
       call ga_sync()
+
+
+      if (ndid == 0) then
+c        ==== WFAT module title ====
+         write(luout, '(4/)')
+         call util_print_centered(luout, 'Weak-Field Asymptotic '//
+     &        'Theory Module', 40, .true.)
+         
+c        ==== WFAT level info ====
+         rtdb_stat = rtdb_parallel(.false.)
+         call wfat_print_level(rtdb)
+         rtdb_stat = rtdb_parallel(.true.)
+      endif
 
 
 c     ==== Geometry ====
@@ -52,6 +66,14 @@ c     NOTES: Since there is only one RTDB for a given MEWFAT job, the geometries
 c     the neutral and cation are implicitly assumed to be identical. No checks of
 c     consistency are possible, hence the user is responsible for ensuring that the
 c     geometries are identical in the input file.
+      
+c     ==== Geometry info ====
+      if (ndid == 0) then
+         write(luout, '(/)')
+         if (.not. geom_print(geom_hd))
+     &        call errquit('WFAT: Cannot print geometry info', 1,
+     &        GEOM_ERR)
+      endif
 
 
 c     ==== Basis ====
@@ -77,7 +99,15 @@ c     NOTES: Since there is only one RTDB for a given MEWFAT job, the bases for
 c     the neutral and cation are implicitly assumed to be identical. No checks of
 c     consistency are possible, hence the user is responsible for ensuring that the
 c     bases are identical in the input file.
-      
+
+c     ==== Basis info ====
+      if (ndid == 0) then
+         write(luout, '(/)')
+         if (.not. bas_print(bas_hd))
+     &        call errquit('WFAT: Cannot print basis info', 1,
+     &        BASIS_ERR)
+      endif
+
       
 c     ==== Neutral molecular orbitals ====
       call mewfat_alloc_mo(rtdb, 0, movecs0, title0, basname0, scftype0,
@@ -89,7 +119,7 @@ c     ==== Cation molecular orbitals ====
       call mewfat_alloc_mo(rtdb, 1, movecs1, title1, basname1, scftype1,
      &           nbf1, ns_ion1, nmo1, me_nocc1, me_nerg1, l_moocc1, 
      &           k_moocc1, l_moerg1, k_moerg1, g_mov1, nel1_)
-
+      
 
 c     ==== No. of bases consistency checks ====
       if (nbf0 /= nbf1 .or. nbf0 /= nbas)
@@ -139,7 +169,18 @@ c     ==== Calculate charge state and multiplicity ====
       multip1 = nel1(1) - nel1(2) + 1
 
 
+c     ==== Quantum system info ====
+      call mewfat_print_qmsys()
+      call ga_sync()
+      
+
 c     ==== Detect degeneracies ====
+      if (ndid == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 'Degeneracy analysis', 40,
+     &        .true.)
+         write(luout, '(" ")')
+      endif
       if (.not. rtdb_get(rtdb, 'wfat:dgnthr', mt_dbl, 1, dgnthr))
      &     call errquit('WFAT: Failed reading dgnthr from RTDB.', 1,
      &     RTDB_ERR)
@@ -189,14 +230,19 @@ c     ==== DFT self-interaction ====
          if (.not. rtdb_cget(rtdb, 'mewfat:si', 1, si_type))
      &        call errquit('MEWFAT: Failed reading SI from RTDB.', 1,
      &        RTDB_ERR)
+         call wfat_info_banner(luout, .true.)
          if (ndid == 0)
-     &        write(luout, '(3x, "Self-interaction type : ", a)')
+     &        write(luout, '(5x, "Self-interaction type : ", a)')
      &        si_type
       endif
       
 
 c     ==== Use of CAM functional ====
+      call wfat_info_banner(luout, .true.)
       if (nwxc_has_cam()) then
+         if (ndid==0) write(luout, '(5x, "Coulomb-attenuated method '//
+     &        'will be used in the computation of the exact '//
+     &        'exchange.")')
          if (.not. geom_create(rsgeom, rsgeom_name))
      &        call errquit('WFAT: Cannot create rsgeom', 1, GEOM_ERR)
          rscent0 = (/ 0.0d0, 5.0d0, 0.0d0 /)
@@ -233,7 +279,7 @@ c     ==== Store the common integrals ====
       call int_1e_ga(bas_hd, bas_hd, gwf_pot, 'potential', oskel)
       
 
-c     ==== Printing important information ====
+c     ==== Printing general information ====
       call mewfat_print_info(rtdb)
       
 
@@ -443,11 +489,11 @@ c     ==== Detect degeneracies ====
       call wfat_detect_degen(nb, ns, erg, dgnthr,
      &     int_mb(k_dgid), int_mb(k_dgn), int_mb(k_norbdg))
       if (ga_nodeid()==0) then
-         write(luout, '(" ")')
-         write(luout, '(3x, "*** Degeneracy analysis on the '//cs_nm//
+         write(luout, '(3x, "*** Degeneracy in the '//cs_nm//
      &        ' MOs ***")')
          call wfat_print_degen(nb, ns, erg, occ, 
      &        dgnthr, int_mb(k_dgid), int_mb(k_dgn))
+         write(luout, '(" ")')
       endif
       
       end
@@ -518,24 +564,21 @@ c     ==== Calculate P det. coefficients and reorder ====
       max_p = 0.0d0
       do i = 1, n0(sx)
          pcf = dbl_mb(k_pc+i-1)
-         if (ga_nodeid()==0)
-     &        write(luout, '("pcf: ", i4, es14.6)') i, pcf
          if (abs(pcf) > max_p) then
             max_p = abs(pcf)
             j = i
          endif
       enddo
-      if (ga_nodeid()==0) write(luout, 301) j
- 301  format(3x, 'Max P det. coefficient occurs for neutral occupied ',
-     &     'MO no. ', i4, '.')
-      
 
+      
 c     ==== Reordering ====
       if (.not. ma_alloc_get(mt_dbl, nb, 'ocmo_j', l_j, k_j))
      &     call errquit('MEWFAT: Cannot allocate ocmo_j.', 52, MA_ERR)
       swapped = .false.
+      call wfat_info_banner(luout, .True.)
+      if (ga_nodeid()==0) write(luout, 301) j
       if (j < n0(sx)) then
-         if (ga_nodeid()==0) write(luout, '("REORDERING . . .")')
+         if (ga_nodeid()==0) write(luout, 302)
 c        ==== Swap coefficients ====
          call ga_get(g_mo0(sx), 1, nb, j, j, dbl_mb(k_j), nb)
          call ga_copy_patch('n', g_mo0(sx), 1, nb, n0(sx), n0(sx),
@@ -557,6 +600,11 @@ c        ==== Swap occupation no. ====
          call errquit('MEWFAT: Error in mewfat_reorder_neutmo',
      &        37, UERR)
       endif
+ 301  format(5x, 'The max. of the P determinant coefficient ',
+     &     'occurs for neutral occupied MO no. ', i4, '.')
+ 302  format(5x, 'Since the max. of the P determinant coefficient ',
+     &     'does not correspond to the last occupied neutral ', /,
+     &     5x, 'MO in the list, a reordering will be performed.')
 
 
 c     ==== Deallocations ====

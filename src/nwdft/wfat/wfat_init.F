@@ -16,7 +16,7 @@ c=======================================================
       integer rtdb
 
       logical use_nwxc, rtdb_stat
-      integer is, i, ioc, ieg, basnormid, noio
+      integer is, i, ioc, ieg, basnormid, noio, ndid
       character*20 basis_name, trans_name
       character*2 spin_name
       character*7 mov_name0, mov_name
@@ -30,6 +30,8 @@ c=======================================================
       integer ga_create_atom_blocked
       external ga_create_atom_blocked
 
+
+      ndid = ga_nodeid()
 
       if (.not. rtdb_print(rtdb, .false.))
      &     call errquit('WFAT: Cannot print RTDB.', 1, RTDB_ERR)
@@ -141,6 +143,12 @@ c     ==== Molecular orbitals ====
       enddo
 
 c     ==== Detect degeneracies ====
+      if (ga_nodeid() == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 'Degeneracy analysis', 40,
+     &        .true.)
+         write(luout, '(" ")')
+      endif
       if (.not. ma_alloc_get(mt_int, nbas0*nspin0, 'modgid',
      &     l_modgid, k_modgid))
      &     call errquit('WFAT: Allocating dgid failed', 1, MA_ERR)
@@ -185,7 +193,11 @@ c     ==== XC functionals ====
 
 
 c     ==== Use of CAM functional ====
+      call wfat_info_banner(luout, .true.)
       if (nwxc_has_cam()) then
+         if (ndid==0) write(luout, '(5x, "Coulomb-attenuated method '//
+     &        'will be used in the computation of the exact '//
+     &        'exchange.")')
          if (.not. geom_create(rsgeom, rsgeom_name))
      &        call errquit('WFAT: Cannot create rsgeom', 1, GEOM_ERR)
          rscent0 = (/ 0.0d0, 5.0d0, 0.0d0 /)

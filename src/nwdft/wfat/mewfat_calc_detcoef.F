@@ -32,7 +32,7 @@ c=================================================
       double precision pcf(n0(sx))                ! [output], its elements index neutral MO's.
       double precision rcf                        ! [output], a scalar.
       double precision qcf(n0(sx), n0(sx), cx)    ! [output], 1st and 2nd dimensions index neutral MO's while the 3rd indexes cation MO's.
-      double precision scf(cy, cy)                ! [output], rows of scf index neutral MO's while its columns index nation MO's.
+      double precision scf(cy, cy)                ! [output], rows of scf index neutral MO's while its columns index cation MO's.
 
       integer ndid, is, g_ovl(2), i_ovl, nn, nsc, i1, i2
       integer l_ovl, l_iv, l_sc, k_ovl, k_iv, k_sc
@@ -137,11 +137,6 @@ c     ==== S det. coefficients ====
      &        int_mb(k_iv), scf)
       endif
 
-
-
-      if (ndid==0) write(luout, '("RCF = ", es14.6)') rcf
-
-      
 
 c     ==== Deallocations ====
       do is = 1, 2
@@ -564,3 +559,88 @@ c=================================================
       
       end
 c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine mewfat_print_detcoef(sx, n0, cx, cy, pcf, rcf, qcf,
+     &     scf)
+
+      implicit none
+#include "stdio.fh"
+      integer sx
+      integer n0(2)
+      integer cx                                  ! [input], must be equal to max(1,n0(sx)-1).
+      integer cy                                  ! [input], must be equal to max(1,n0(sy)).
+      double precision pcf(n0(sx))                ! [input], its elements index neutral MO's.
+      double precision rcf                        ! [input], a scalar.
+      double precision qcf(n0(sx), n0(sx), cx)    ! [output], 1st and 2nd dimensions index neutral MO's while the 3rd indexes cation MO's.
+      double precision scf(cy, cy)                ! [input], rows of scf index neutral MO's while its columns index nation MO's.
+
+      integer i, j, g, j_in, j_fin, ng
+
+
+      write(luout, '(2/)')
+      call util_print_centered(luout, 'Determinant coefficients', 40,
+     &     .true.)
+      write(luout, '(" ")')
+
+      
+      write(luout, '("   *** P determinant coefficients ***")')
+      write(luout, '("     ")', advance='no')
+      do i = 1, n0(sx)
+         write(luout, '(i3, ":", f12.8, "  ")', advance='no') i, pcf(i)
+         if (mod(i,5) == 0) then
+            write(luout, '("")')
+            write(luout, '("     ")', advance='no')
+         endif
+         if (i == n0(sx)) write(luout, '("")')
+      enddo
+      write(luout, '("")')
+
+
+      write(luout, '("   *** R determinant coefficients ***")')
+      write(luout, '("     ")', advance='no')
+      write(luout, '(i3, ": ", f13.8, " ")') 1, rcf
+      write(luout, '("")')
+
+
+      write(luout, '("   *** S determinant coefficients ***")')
+      ng = int(cy/5) + 1
+      j_in = 1
+      j_fin = min(j_in + 5 - 1, cy)
+      do g = 1, ng     !Loop over groups
+
+c        ==== Columns title ====
+         write(luout, '(5x, "        ")', advance='no')
+         do j = j_in, j_fin
+            write(luout, '(5x, " col", i3, ":")', advance='no') j
+         enddo
+         write(luout, '(" ")')
+
+c        ==== Determinant values ====
+         do i = 1, cy     ! Loop over rows
+            write(luout, '(5x, " row", i3, ":")', advance='no') i
+            do j = j_in, j_fin     ! Loop over columns
+               write(luout, '(f13.8)', advance='no') scf(i,j)
+            enddo
+            write(luout, '("")')
+         enddo
+         write(luout, '("")')
+
+         j_in = j_in + 5
+         j_fin = min(j_fin + 5, cy)
+      enddo
+
+
+      write(luout, '("   *** Q determinant coefficients ***")')
+      write(luout, '("     The Q determinant coefficients is a 3D '//
+     &     'tensor with many elements. Instead of printing all of '//
+     &     'them, a statistics below is provided.")')
+      write(luout, '(5x, "Max. value = ", f13.8)') maxval(qcf)
+      write(luout, '(5x, "Min. value = ", f13.8)') minval(qcf)
+      write(luout, '("")')
+
+      end
+c=================================================
+      

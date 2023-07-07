@@ -18,7 +18,7 @@ c=================================================
 
 
       if (ndid == 0) then
-         write(luout, '(/)')
+         write(luout, '(2/)')
          call util_print_centered(
      &        luout, '--------------------------------', 40,
      &        .false.)
@@ -177,6 +177,8 @@ c=================================================
       subroutine wfat_prep_paraqn(rtdb, nqn, l_npa, k_npa, l_mpa, k_mpa)
 
       implicit none
+#include "global.fh"
+#include "stdio.fh"
 #include "errquit.fh"
 #include "mafdecls.fh"
 #include "rtdb.fh"
@@ -185,6 +187,9 @@ c=================================================
       integer l_npa, k_npa   ! [output],
       integer l_mpa, k_mpa   ! [output],
 
+      character*6 n_str, m_str
+      integer i, n, m
+      
 
 c     ==== Obtaining nqn, the number of parabolic quantum numbers ====
       if (.not. rtdb_get(rtdb, 'wfat:n_npara', mt_int, 1, nqn))
@@ -209,6 +214,28 @@ c     ==== Obtaining m parabolic quantum numbers from RTDB ====
      &     call errquit('WFAT: Failed reading mpara from rtdb',
      &     1, INPUT_ERR)      
 
+
+c     ==== Printing ====
+      call wfat_info_banner(luout, .true.)
+      if (ga_nodeid() == 0) then
+         write(luout, '(5x, "Parabolic quantum number(s) = ")',
+     &        advance='no')
+         do i = 1, nqn
+            n = int_mb(k_npa + i - 1)
+            m = int_mb(k_mpa + i - 1)
+            write(n_str, '(i5)') n
+            write(m_str, '(sp, i5)') m
+            
+            write(luout, '(a)', advance='no')
+     &           '('//trim(adjustl(n_str))//','//trim(adjustl(m_str))//
+     &           ')'
+            write(luout, '("; ")', advance='no')
+         enddo
+         write(luout, '("")')
+      endif
+      
+      call ga_sync()
+      
       end
 c=================================================
 

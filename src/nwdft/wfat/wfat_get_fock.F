@@ -145,11 +145,6 @@ c     ==== Calculate HF exchange matrix ====
       enddo
       jfac = zero
       kfac = one
-      if (nwxc_has_cam()) then
-         if (ndid==0) write(luout, '("CAM is used")')
-      else
-         if (ndid==0) write(luout, '("CAM is NOT used")')
-      endif
       
       if (nwxc_has_cam()) call case_setflags (.true.)
       call fock_2e(geom, bas, ns, jfac, kfac, tol2e, oskel,

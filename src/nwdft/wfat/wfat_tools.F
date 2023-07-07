@@ -1184,3 +1184,51 @@ c============================================================
 
       end
 c============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_info_banner(u, p0)
+
+      implicit none
+#include "global.fh"
+      integer u     ! [input], Print unit.
+      logical p0    ! [input], If .True., only print on process 0, otherwise, print for all processes.
+
+      if (p0) then
+         if (ga_nodeid() == 0) then
+            write(u, '("")')
+            write(u, '(3x, "*** INFO ***")')
+         endif
+      else
+         write(u, '("")')
+         write(u, '(3x, "*** INFO ***")')
+      endif
+
+      end
+c============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_attention_banner(u, p0)
+
+      implicit none
+#include "global.fh"
+      integer u     ! [input], Print unit.
+      logical p0    ! [input], If .True., only print on process 0, otherwise, print for all processes.
+
+      if (p0) then
+         if (ga_nodeid() == 0) then
+            write(u, '("")')
+            write(u, '(3x, ">>> ATTENTION <<<")')
+         endif
+      else
+         write(u, '("")')
+         write(u, '(3x, ">>> ATTENTION <<<")')
+      endif
+
+      end
+c============================================================
+      
+      

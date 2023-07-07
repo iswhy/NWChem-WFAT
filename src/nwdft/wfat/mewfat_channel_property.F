@@ -116,7 +116,8 @@ c=================================================
       double precision chmmt(3,nch)
       double precision iondip(3,nch)
 
-      integer i, io0, io1, is
+      character*5 ss
+      integer i, io0, io1
       
 
       write(luout, '(2/)')
@@ -128,37 +129,39 @@ c=================================================
       do i = 1, nch
          io0 = state0(i)
          io1 = state1(i)
-         is = spinid(i)
+         if (spinid(i) == 1) then
+            ss = 'alpha'
+         else if (spinid(i) == 2) then
+            ss = 'beta'
+         endif
+         
          write(luout, '(5x, "Channel : ", i6)') i
-         write(luout, '(7x, a17, " = ", i1)')
-     &        "ionized spin     ", is
-         write(luout, '(7x, a24, " = ", i3, " /", i3)')
-     &        "neutral / cation states ", io0, io1
-         write(luout, '(7x, a17, " = ", f20.12, " Hartree")')
-     &        "neutral GS energy", gserg0(i)
-         write(luout, '(7x, a17, " = ", f20.12, " Hartree")')
-     &        "cation GS energy ", gserg1(i)
-         write(luout, '(7x, a17, " = ", f20.12, " Hartree")')
-     &        "ionization energy", ionerg(i)
-         write(luout, '(7x, a47, " = ", 3es14.5)')
-     &        "unshifted neutral e. dipole moment (xyz, Bohr) ",
+         write(luout, '(7x, a15, " = ", a)')
+     &        "* ionized spin ", trim(adjustl(ss))
+         write(luout, '(7x, a26, " = ", i3, " -->", i3)')
+     &        "* neutral --> cation states ", io0, io1
+         write(luout, '(7x, a19, " = ", f18.12, " Hartree")')
+     &        "* neutral GS energy", gserg0(i)
+         write(luout, '(7x, a19, " = ", f18.12, " Hartree")')
+     &        "* cation GS energy ", gserg1(i)
+         write(luout, '(7x, a19, " = ", f18.12, " Hartree")')
+     &        "* ionization energy", ionerg(i)
+         write(luout, '(7x, a49, " = ", 3es14.5)')
+     &        "* unshifted neutral e. dipole moment (xyz, Bohr) ",
      &        edipm0(:, i)
-         write(luout, '(7x, a47, " = ", 3es14.5)')
-     &        "unshifted cation e. dipole moment (xyz, Bohr)  ",
+         write(luout, '(7x, a49, " = ", 3es14.5)')
+     &        "* unshifted cation e. dipole moment (xyz, Bohr)  ",
      &        edipm1(:, i)
-         write(luout, '(7x, a36, " = ", 3es14.5)')
-     &        "channel origin (xyz, Bohr)          ", chcent(:, i)
-         write(luout, '(7x, a36, " = ", 3es14.5)') 
-     &        "unshifted channel moment (xyz, Bohr)",
+         write(luout, '(7x, a38, " = ", 3es14.5)')
+     &        "* channel origin (xyz, Bohr)          ", chcent(:, i)
+         write(luout, '(7x, a38, " = ", 3es14.5)') 
+     &        "* unshifted channel moment (xyz, Bohr)",
      &        chmmt(:, i) + chcent(:, i)
-         write(luout, '(7x, a36, " = ", 3es14.5)') 
-     &        "shifted channel moment (xyz, Bohr)  ", chmmt(:, i)
-         write(luout, '(7x, a36, " = ", 3es14.5)')
-     &        "shifted ion dipole (xyz, e.Bohr)    ", iondip(:, i)
+         write(luout, '(7x, a38, " = ", 3es14.5)') 
+     &        "* shifted channel moment (xyz, Bohr)  ", chmmt(:, i)
+         write(luout, '(7x, a38, " = ", 3es14.5)')
+     &        "* shifted ion dipole (xyz, e.Bohr)    ", iondip(:, i)
       enddo
-
-      write(luout, '(" ")')
-      write(luout, '(" ")')
 
       end
 c=================================================
