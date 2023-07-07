@@ -157,8 +157,13 @@ c     ==== Printings ====
          if (.not. MA_alloc_get(MT_DCPL, nintg, 'intgl', l_in, k_in))
      &        call errquit('WFAT: Cannot allocate intgl.', 2, MA_ERR)
          call ga_get(g_il, 1, nintg, 1, 1, dcpl_mb(k_in), nintg)
-         call wfat_print_integrals(1, nqn, natm, lmax, int_mb(k_npa),
-     &     int_mb(k_mpa), wfat1, dcpl_mb(k_in), czero, czero, czero)
+         if (wfat1) then
+         else
+            call wfat_print_wfat0_ints(1, nqn, natm, lmax, 
+     &           int_mb(k_npa), int_mb(k_mpa), dcpl_mb(k_in))
+         endif
+cOLD         call wfat_print_integrals(1, nqn, natm, lmax, int_mb(k_npa),
+cOLD     &     int_mb(k_mpa), wfat1, dcpl_mb(k_in), czero, czero, czero)
 
 
 c        ============================================

@@ -20,8 +20,13 @@ c============================================================
       integer i, iqn, l, m, i_sh, j
 
 
-      write(luout, '("WFAT Integrals")')      
-      
+      write(luout, '(2/)')
+      call util_print_centered(luout, 'The spherical harmonics '//
+     &     'components of WFAT integrals', 30,
+     &     .true.)
+      write(luout, '(" ")')
+
+         
       do i = 1, nch
          do iqn = 1, nqn
 
@@ -72,6 +77,91 @@ c============================================================
       end
 c============================================================
 
+
+c============================================================
+c============================================================
+      subroutine wfat_print_wfat0_ints(nch, nqn, nat, lmax, nid, mid,
+     &     intl)
+
+      implicit none
+#include "stdio.fh"
+      integer nch
+      integer nqn
+      integer nat
+      integer lmax
+      integer nid(nqn)
+      integer mid(nqn)
+      double complex intl((1+lmax)**2, nat, nqn, nch)       ! [input],
+
+
+      integer i, iqn, l, l_in, l_fin, n_lgroup, ng, g, im, m, i_sh
+      parameter(n_lgroup=4)
+
+      
+      write(luout, '(2/)')
+      call util_print_centered(luout, 'The spherical harmonics '//
+     &     'components of WFAT integrals', 30,
+     &     .true.)
+      write(luout, '(" ")')
+
+         
+      do i = 1, nch
+         do iqn = 1, nqn
+
+            write(luout, '(5x, "Channel = ", i3, ",", 4x, '//
+     &           '"para. quantum numbers = ", 2i3)') i, nid(iqn),
+     &           mid(iqn)
+
+            l_in = abs(mid(iqn))
+            l_fin = min(l_in + n_lgroup - 1, lmax)
+            ng = int((lmax+1)/n_lgroup) + 1
+            do g = 1, ng
+
+c              ==== Column title ====
+               do l = l_in, l_fin
+                  write(luout, '(2a4)', advance='no') 'l', 'm'
+                  write(luout, '(1x, 2a10)', advance='no')
+     &                 'I (Re.)', 'I (Im.)'
+                  if (l < l_fin) then
+                     write(luout, '("   ")', advance='no')    ! hori. space with the next l in the same group.
+                  else if (l == l_fin) then
+                     write(luout, '("")')
+                  endif
+               enddo
+
+c              ==== Integral values ====
+               do im = 1, (2*l_fin+1)
+                  do l = l_in, l_fin
+                     m = im - 1 - l
+                     if (m <= l) then
+                        i_sh = l**2 + l + m + 1
+                        write(luout, '(2i4)', advance='no') l, m
+                        write(luout, '(1x, 2f10.6)', advance='no')
+     &                       sum(intl(i_sh, :, iqn, i))
+                     else
+                        write(luout, '(29x, "")', advance='no')    ! blank space when m exceeds +l.
+                     endif
+
+                     if (l < l_fin) then
+                        write(luout, '("   ")', advance='no')    ! hori. space with the next l in the same group.
+                     else if (l == l_fin) then
+                        write(luout, '("")')      ! move to the next line
+                     endif
+                  enddo
+               enddo
+
+               l_in = l_in + n_lgroup
+               l_fin = min(l_fin + n_lgroup, lmax)
+               write(luout, '("")')      ! vert. space with the next group
+            enddo
+            write(luout, '(/)')    ! vert. space with the next (i,iqn)
+
+         enddo
+      enddo
+
+      end
+c============================================================
+      
 
 c============================================================
 c============================================================
