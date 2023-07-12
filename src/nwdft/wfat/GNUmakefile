@@ -10,6 +10,7 @@
 	wfat_prepare_task.o \
 	wfat_init.o \
 	wfat_init_test.o \
+	wfat_intgl_progress.o \
 	wfat_calc_intgl.o \
 	wfat_calc_structuref.o \
 	wfat_calc_an.o \

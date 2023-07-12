@@ -156,7 +156,6 @@ c=================================================
       double complex intg0(nsh, nqn)                  ! [output/scratch],
       double complex intg(nsh, nqn, nat)              ! [output], 
 
-      character*12 nptx_str, npt_tot_str
       character*5 si_type
       character*16 tag
       logical t1, rs, isdft
@@ -225,22 +224,9 @@ c     ==== Loop over atoms ====
       do ic = 1, natp
          nptp = nptp + ipp(2,ic) - ipp(1,ic) + 1
       enddo
-
-c      call wfat_init_progress()
-      if (.not. ga_create(mt_dbl, 1, 1, 'nptx', 1, 1, g_nptx))
-     &     call errquit('WFAT: Cannot create nptx global array.',
-     &     1, GA_ERR)
-      call ga_zero(g_nptx)
-      if (.not. ga_create(mt_dbl, 1, 1, 'npt_tot', 1, 1, g_npt_tot))
-     &     call errquit('WFAT: Cannot create npt_tot global array.',
-     &     1, GA_ERR)
-      call ga_zero(g_npt_tot)
-      call ga_acc(g_npt_tot, 1, 1, 1, 1, dble(nptp), 1, 1.0d0)
-      call ga_sync()
-      call ga_get(g_npt_tot, 1, 1, 1, 1, npt_tot, 1)
       call wfat_get_intgl_chkpt(nptp, pr_chk)
+      call wfat_init_progress(nptp, g_nptx, npt_tot)
 
-      call ga_sync()
       pr_count = 0
       kk = 1
       intg_ = czero              ! intg_(nsh,nqn,nat)     nch=1
@@ -283,22 +269,11 @@ c           ==== Quadrature summation ====
             call wfat_celf_1pt(geom, icent, qpt(:,i), mcel, celf)
             intg_(:,:,icent) = intg_(:,:,icent) + intg0 * celf * qwt(i)
 
-
-c            call wfat_intgl_progress()
+            
+c           ==== Print progress ====
             pr_count = pr_count + 1
             if (pr_count == pr_chk(kk)) then
-               call ga_zero(g_nptx)
-               call ga_acc(g_nptx, 1, 1, 1, 1, dble(pr_count), 1, 1.0d0)
-               call ga_sync()
-               if (ndid==120) then
-                  call ga_get(g_nptx, 1, 1, 1, 1, nptx, 1)
-                  write(nptx_str, '(i12)') int(nptx)
-                  write(npt_tot_str, '(i12)') int(npt_tot)
-                  write(luout, '(7x, "Progress : ", i3, "% ", a)')
-     &                 kk*10, '('//trim(adjustl(nptx_str))//'/'
-     &                 //trim(adjustl(npt_tot_str))//')'
-               endif
-               call ga_sync()
+               call wfat_intgl_progress(kk, pr_count, g_nptx, nptx)
                kk = kk + 1
             endif
             
@@ -318,10 +293,7 @@ c     ==== Deallocations ====
          if (.not. ma_free_heap(l_rd0))
      &        call errquit('MEWFAT: Cannot deallocate rdm0', 8, MA_ERR)
       endif
-      if (.not. ga_destroy(g_nptx))
-     &     call errquit('WFAT: Cannot destroy nptx.', 1, GA_ERR)
-      if (.not. ga_destroy(g_npt_tot))
-     &     call errquit('WFAT: Cannot destroy npt_tot.', 1, GA_ERR)
+      call wfat_terminate_progress(g_nptx)
       
       end
 c     NOTES:
