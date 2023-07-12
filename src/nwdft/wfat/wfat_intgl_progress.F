@@ -33,18 +33,20 @@ c=================================================
       
 c=================================================
 c=================================================
-      subroutine wfat_intgl_progress(k, pr_count, npt_tot, g_nptx, nptx)
+      subroutine wfat_intgl_progress(k, pr_count, dt, npt_tot,
+     &     g_nptx, nptx)
 
       implicit none
 #include "global.fh"
 #include "stdio.fh"
-      integer k               ! [input]
-      integer pr_count        ! [input]
-      integer npt_tot         ! [input], computed by wfat_init_progress
-      integer g_nptx          ! [in/output]
-      double precision nptx   ! [output]
+      integer k                 ! [input]
+      integer pr_count          ! [input]
+      double precision dt       ! [input]
+      double precision npt_tot  ! [input], computed by wfat_init_progress
+      integer g_nptx            ! [in/output]
+      double precision nptx     ! [output]
 
-      character*12 nptx_str, npt_tot_str
+      character*12 nptx_str, npt_tot_str, dt_str
 
       call ga_zero(g_nptx)
       call ga_acc(g_nptx, 1, 1, 1, 1, dble(pr_count), 1, 1.0d0)
@@ -53,9 +55,11 @@ c=================================================
          call ga_get(g_nptx, 1, 1, 1, 1, nptx, 1)
          write(nptx_str, '(i12)') int(nptx)
          write(npt_tot_str, '(i12)') int(npt_tot)
-         write(luout, '(7x, "Progress : ", i3, "% ", a)')
+         write(dt_str, '(f12.2)') dt
+         write(luout, '(7x, "Progress : ", i3, "% ", a, 3x, '//
+     &        '"delta t = ", a, " s")')
      &        k*10, '('//trim(adjustl(nptx_str))//'/'
-     &        //trim(adjustl(npt_tot_str))//')'
+     &        //trim(adjustl(npt_tot_str))//')', trim(adjustl(dt_str))
       endif
       call ga_sync()
 
@@ -69,7 +73,7 @@ c=================================================
 
       implicit none
 #include "global.fh"
-#inlcude "errquit.fh"
+#include "errquit.fh"
       integer g_nptx    ! [input]
 
       if (.not. ga_destroy(g_nptx))

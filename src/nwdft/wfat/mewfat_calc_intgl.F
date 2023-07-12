@@ -113,6 +113,7 @@ c=================================================
      &     mid, lmax_, nat, smh, omega, intg_, intg0, intg)
 
       implicit none
+#include "util.fh"
 #include "rtdb.fh"
 #include "stdio.fh"
 #include "global.fh"
@@ -157,13 +158,14 @@ c=================================================
       double complex intg(nsh, nqn, nat)              ! [output], 
 
       character*5 si_type
+      character*12 dt_str
       character*16 tag
       logical t1, rs, isdft
       integer ndid, nsc, l_sc, k_sc, l_rd0, k_rd0, npt, ic, icent
       integer i, imf, nsc_rs, nptp, pr_chk(10), pr_count, kk
       integer g_nptx, g_npt_tot
-      double precision nptx, npt_tot
-      double precision atp(3), zn, v_m(3), vcpsi, celf
+      double precision nptx, npt_tot, t_now, t_last, t_start, dt_all
+      double precision atp(3), zn, v_m(3), vcpsi, celf, dt_prog
       double complex czero
 
       parameter (imf = 0)
@@ -226,7 +228,11 @@ c     ==== Loop over atoms ====
       enddo
       call wfat_get_intgl_chkpt(nptp, pr_chk)
       call wfat_init_progress(nptp, g_nptx, npt_tot)
+      if (ndid == 0) write(luout, '(5x, "The total number of grid '//
+     &     'points is ", i9, ".")') int(npt_tot)
 
+      t_last = util_cpusec()
+      t_start = t_last
       pr_count = 0
       kk = 1
       intg_ = czero              ! intg_(nsh,nqn,nat)     nch=1
@@ -273,13 +279,21 @@ c           ==== Quadrature summation ====
 c           ==== Print progress ====
             pr_count = pr_count + 1
             if (pr_count == pr_chk(kk)) then
-               call wfat_intgl_progress(kk, pr_count, g_nptx, nptx)
+               t_now = util_cpusec()
+               dt_prog = t_now - t_last
+               t_last = t_now
+               call wfat_intgl_progress(kk, pr_count, dt_prog, npt_tot, 
+     &              g_nptx, nptx)
                kk = kk + 1
             endif
             
          enddo
       enddo
-
+      dt_all = t_now - t_start
+      write(dt_str, '(f12.2)') dt_all
+      if (ndid == 0) write(luout, '(5x, "The computation of the WFAT '//
+     &     'integrals takes ", a, " s.")') trim(adjustl(dt_str))
+      
 
 c     ==== Reorder elements of intgl ====
       call wfat_reorder_intgl(nsh, nat, nqn, 1, intg_, intg)    ! intg(nsh,nqn,nat)    nch=1
