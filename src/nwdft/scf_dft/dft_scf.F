@@ -2445,19 +2445,6 @@ c     deallocate xdm arrays
       endif
 c     AOR end
 
-c     IMAM start testing ...
-      if(me.eq.0) then
-         write(LuOut, *) "======== IMAM testing WFAT ========"
-c         call wfat_test()
-         write(LuOut, *) "======== IMAM testing WFAT MO ========"
-c         call wfat_test_mo()
-         write(LuOut, *) "======== IMAM start testing ========"
-c         call imam_test()
-         write(LuOut, *) "======== IMAM end testing ========"
-ccc         if (.not. rtdb_print(rtdb, .false.))
-ccc     &        call errquit('IMAM: Cannot print RTDB.', 1, RTDB_ERR)
-         write(luout, *) "======== IMAM testing fock_2e ========"
-      endif      
 
 ccc      call scf_get_fock_param(rtdb, 1.0d-10)
 ccc      call fock_force_direct(rtdb)

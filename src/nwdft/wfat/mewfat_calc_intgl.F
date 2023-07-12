@@ -91,7 +91,7 @@ c     ==== Accumulate to global intgl (g_il) ====
       call ga_sync()
       
       call ga_norm1(g_il, normch)
-      if (ndid==0) write(luout, '("intgl norm = ", es14.6)') normch
+cfordebug      if (ndid==0) write(luout, '("intgl norm = ", es14.6)') normch
 
 
 c     ==== Deallocations ====
@@ -156,11 +156,14 @@ c=================================================
       double complex intg0(nsh, nqn)                  ! [output/scratch],
       double complex intg(nsh, nqn, nat)              ! [output], 
 
+      character*12 nptx_str, npt_tot_str
       character*5 si_type
       character*16 tag
       logical t1, rs, isdft
       integer ndid, nsc, l_sc, k_sc, l_rd0, k_rd0, npt, ic, icent
-      integer i, imf, nsc_rs
+      integer i, imf, nsc_rs, nptp, pr_chk(10), pr_count, kk
+      integer g_nptx, g_npt_tot
+      double precision nptx, npt_tot
       double precision atp(3), zn, v_m(3), vcpsi, celf
       double complex czero
 
@@ -201,12 +204,48 @@ c     ==== Scratch array ====
      &     call errquit('MEWFAT: Cannot allocate scratch', 1, MA_ERR)
             
 
+      if (ndid == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 'Computation the WFAT '//
+     &        'integrals', 30, .true.)
+         write(luout, '("")')
+         write(luout, 901)
+         write(luout, '("")')
+      endif
+ 901  format(
+     &     5x, 'The calculation of the WFAT integrals has started. ',
+     &     'If this is a ''start'' type job, this part can take ', /,
+     &     5x, 'up to several minutes, so please wait. The progress ',
+     &     'of this calculation will be shown below.')
+
+      
 c     ==== BEGIN QUADRATURE SUMMATION ====
 c     ==== Loop over atoms ====
+      nptp = 0
+      do ic = 1, natp
+         nptp = nptp + ipp(2,ic) - ipp(1,ic) + 1
+      enddo
+
+c      call wfat_init_progress()
+      if (.not. ga_create(mt_dbl, 1, 1, 'nptx', 1, 1, g_nptx))
+     &     call errquit('WFAT: Cannot create nptx global array.',
+     &     1, GA_ERR)
+      call ga_zero(g_nptx)
+      if (.not. ga_create(mt_dbl, 1, 1, 'npt_tot', 1, 1, g_npt_tot))
+     &     call errquit('WFAT: Cannot create npt_tot global array.',
+     &     1, GA_ERR)
+      call ga_zero(g_npt_tot)
+      call ga_acc(g_npt_tot, 1, 1, 1, 1, dble(nptp), 1, 1.0d0)
       call ga_sync()
+      call ga_get(g_npt_tot, 1, 1, 1, 1, npt_tot, 1)
+      call wfat_get_intgl_chkpt(nptp, pr_chk)
+
+      call ga_sync()
+      pr_count = 0
+      kk = 1
       intg_ = czero              ! intg_(nsh,nqn,nat)     nch=1
       do ic = 1, natp
-         icent = icp(ic)         ! icp(natp)
+         icent = icp(ic)        ! icp(natp)
          if (.not. geom_cent_get(geom, icent, tag, atp, zn))
      &        call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
          call wfat_get_gridpt(int(zn), gq, max_npt, npt, qpt, qwt)   ! qpt(3,max_npt)   qwt(max_npt)
@@ -243,6 +282,26 @@ cfordebug            endif
 c           ==== Quadrature summation ====
             call wfat_celf_1pt(geom, icent, qpt(:,i), mcel, celf)
             intg_(:,:,icent) = intg_(:,:,icent) + intg0 * celf * qwt(i)
+
+
+c            call wfat_intgl_progress()
+            pr_count = pr_count + 1
+            if (pr_count == pr_chk(kk)) then
+               call ga_zero(g_nptx)
+               call ga_acc(g_nptx, 1, 1, 1, 1, dble(pr_count), 1, 1.0d0)
+               call ga_sync()
+               if (ndid==120) then
+                  call ga_get(g_nptx, 1, 1, 1, 1, nptx, 1)
+                  write(nptx_str, '(i12)') int(nptx)
+                  write(npt_tot_str, '(i12)') int(npt_tot)
+                  write(luout, '(7x, "Progress : ", i3, "% ", a)')
+     &                 kk*10, '('//trim(adjustl(nptx_str))//'/'
+     &                 //trim(adjustl(npt_tot_str))//')'
+               endif
+               call ga_sync()
+               kk = kk + 1
+            endif
+            
          enddo
       enddo
 
@@ -259,6 +318,10 @@ c     ==== Deallocations ====
          if (.not. ma_free_heap(l_rd0))
      &        call errquit('MEWFAT: Cannot deallocate rdm0', 8, MA_ERR)
       endif
+      if (.not. ga_destroy(g_nptx))
+     &     call errquit('WFAT: Cannot destroy nptx.', 1, GA_ERR)
+      if (.not. ga_destroy(g_npt_tot))
+     &     call errquit('WFAT: Cannot destroy npt_tot.', 1, GA_ERR)
       
       end
 c     NOTES:

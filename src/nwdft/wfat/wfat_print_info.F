@@ -1,5 +1,27 @@
 c=======================================================
 c=======================================================
+      subroutine wfat_module_title(un)
+
+      implicit none
+      integer un
+
+      write(un, '(4/)')
+      call util_print_centered(
+     &     un, '-------------------------------------------------',
+     &     40, .false.)
+      call util_print_centered(
+     &     un, '<<<<<< Weak-Field Asymptotic Theory Module >>>>>>',
+     &     40, .false.)
+      call util_print_centered(
+     &     un, '-------------------------------------------------',
+     &     40, .false.)
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
       subroutine wfat_print_info(rtdb)
 
       implicit none
@@ -23,9 +45,7 @@ c=======================================================
 
 
 c     ==== WFAT module title ====
-      write(luout, '(4/)')
-      call util_print_centered(luout, 'Weak-Field Asymptotic Theory '//
-     &     'Module', 40, .true.)
+      call wfat_module_title(luout)
 
       
 c     ==== WFAT level info ====

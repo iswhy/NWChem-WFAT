@@ -218,7 +218,7 @@ c     ==== Obtaining m parabolic quantum numbers from RTDB ====
 c     ==== Printing ====
       call wfat_info_banner(luout, .true.)
       if (ga_nodeid() == 0) then
-         write(luout, '(5x, "Parabolic quantum number(s) = ")',
+         write(luout, '(5x, "Parabolic quantum numbers = ")',
      &        advance='no')
          do i = 1, nqn
             n = int_mb(k_npa + i - 1)

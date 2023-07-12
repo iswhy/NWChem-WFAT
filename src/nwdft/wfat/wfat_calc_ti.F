@@ -113,7 +113,12 @@ c     ==== When WFAT1 is active ====
             enddo
          enddo
       endif
-      
+
+
+      if (ndid == 0)
+     &     call wfat_print_field_factor(fieldm, nch, nqn, erg, nid, mid,
+     &     zi)
+
       
 c     ==== Initializing the printings ====
       if (ndid == 0 .and. pr_srfc) then
@@ -124,9 +129,6 @@ c     ==== Initializing the printings ====
       endif
       if (ndid == 0 .and. pr_rate)
      &     call wfat_initprint_rate(nch, orbid0, spinid, nqn, nid, mid)
-
-
-      call wfat_print_field_factor(fieldm, nch, nqn, erg, nid, mid, zi)
       
       
 c     ==== Calculate and print structure factor and ion yield ====

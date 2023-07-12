@@ -106,10 +106,7 @@ c
 c
 c     Store the dipole moment
 c
-      if (ga_nodeid()==0)
-     &     write(luout, '("IMAM test mpole1", 3es14.5)') totalmoments(2)
-      
-      
+            
       if (.not. rtdb_put(rtdb, 'dft:dipole', mt_dbl, 
      $     3, totalmoments(2))) call errquit('multipole: rtdb?',0,
      &       RTDB_ERR)

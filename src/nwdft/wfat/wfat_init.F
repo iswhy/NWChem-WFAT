@@ -495,6 +495,7 @@ c=======================================================
 #include "geom.fh"
 #include "bas.fh"
 #include "global.fh"
+#include "wfat_rs.fh"
       integer rtdb
       
       character*2 spin_name
@@ -502,6 +503,9 @@ c=======================================================
       parameter(mov_name0='movec')
       logical ll
       integer is
+
+      logical nwxc_has_cam
+      external nwxc_has_cam
       
 
 c     ==== Deallocations ====
@@ -521,12 +525,22 @@ c     ==== Geometry ====
       if (.not. geom_destroy(geom_hd))
      &     call errquit('WFAT: Error in destroying geometry object.',
      &     1, GEOM_ERR)
+      if (nwxc_has_cam()) then
+         if (.not. geom_destroy(rsgeom)) call errquit('WFAT: Error'//
+     &        ' in destroying geometry object for the RS functional.',
+     &        1, GEOM_ERR)
+      endif
 
       
 c     ==== Basis ====
       if (.not. bas_destroy(bas_hd))
      &     call errquit('WFAT: Error in destroying basis object.',
-     &     1, BASIS_ERR)      
+     &     1, BASIS_ERR)
+      if (nwxc_has_cam()) then
+         if (.not. bas_destroy(rsbas)) call errquit('WFAT: Error'//
+     &        ' in destroying basis object for the RS functional.',
+     &        1, BASIS_ERR)
+      endif
 
       
 c     ==== Molecular orbitals ====
@@ -545,7 +559,8 @@ c     ==== Molecular orbitals ====
 
       
 c     ==== Molecular integrals ====
-      call int_terminate()      
+      call int_terminate()
+      call schwarz_tidy()
 
 
 c     ==== Common integrals ====

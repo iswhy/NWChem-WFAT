@@ -455,14 +455,7 @@ c
          write(key,'(a,'':dipole'')') prefix(1:inp_strlen(prefix))
 
 
-         if (ga_nodeid()==0)
-     &        write(luout, '("IMAM test task_energ1", 3x, a)') key
-         
-         
          if (rtdb_get(rtdb, key, mt_dbl, 3, dipole)) then
-            if (ga_nodeid()==0)
-     &           write(luout, '("IMAM test dipole", 3es14.5)') dipole
-            
            if (.not. rtdb_put(rtdb, 'task:dipole', mt_dbl, 3, dipole))
      $          call errquit('task_energy: failed storing dipole',0,
      &       RTDB_ERR)

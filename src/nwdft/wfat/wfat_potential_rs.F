@@ -136,7 +136,8 @@ c=======================================================
      &     call errquit('WFAT: Cannot set RS coeff', 1, BASIS_ERR)
       
 
-      call int_2e3c(rsbas, 1, bas, ish, jsh, lscr, scr, leri, eri)
+      call wfat_int_2e3c(rsbas, 1, bas, ish, jsh, lscr, scr, leri,
+     &     .false., eri)
 cnope      call int_2e3c(rsbas, 1, bas, jsh, ish, lscr, scr, leri, eri)      
       
       end

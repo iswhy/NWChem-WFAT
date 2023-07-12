@@ -24,7 +24,7 @@ c============================================================
       call util_print_centered(luout, 'The spherical harmonics '//
      &     'components of WFAT integrals', 30,
      &     .true.)
-      write(luout, '(" ")')
+      write(luout, '("")')
 
          
       do i = 1, nch
@@ -93,24 +93,37 @@ c============================================================
       integer mid(nqn)
       double complex intl((1+lmax)**2, nat, nqn, nch)       ! [input],
 
-
+      character*6 n_str, m_str
       integer i, iqn, l, l_in, l_fin, n_lgroup, ng, g, im, m, i_sh
       parameter(n_lgroup=4)
 
       
       write(luout, '(2/)')
       call util_print_centered(luout, 'The spherical harmonics '//
-     &     'components of WFAT integrals', 30,
-     &     .true.)
+     &     'components of WFAT integrals', 65, .true.)
       write(luout, '(" ")')
+
+      write(luout, 480)
+ 480  format(
+     &     5x, 'Use the tables below to determine the convergence of ',
+     &     'your WFAT calculation with repsect to the maximum ', /,
+     &     5x, 'angular momentum (lmax). In particular, for a given ',
+     &     'channel and parabolic quantum numbers, the integral ', /,
+     &     5x, 'values in the last table (where l=lmax) must be ',
+     &     'sufficiently small.')
+      write(luout, '("")')
 
          
       do i = 1, nch
          do iqn = 1, nqn
+            write(n_str, '(i5)') nid(iqn)
+            write(m_str, '(sp, i5)') mid(iqn)
 
             write(luout, '(5x, "Channel = ", i3, ",", 4x, '//
-     &           '"para. quantum numbers = ", 2i3)') i, nid(iqn),
-     &           mid(iqn)
+     &           '"para. quantum numbers = ", a)') i,
+     &           '('//trim(adjustl(n_str))//','//trim(adjustl(m_str))//
+     &           ')'
+            write(luout, '("")')
 
             l_in = abs(mid(iqn))
             l_fin = min(l_in + n_lgroup - 1, lmax)
@@ -118,10 +131,22 @@ c============================================================
             do g = 1, ng
 
 c              ==== Column title ====
+               write(luout, '(5x, "")', advance='no')    ! Indentation
                do l = l_in, l_fin
                   write(luout, '(2a4)', advance='no') 'l', 'm'
-                  write(luout, '(1x, 2a10)', advance='no')
+                  write(luout, '(1x, 2a12)', advance='no')
      &                 'I (Re.)', 'I (Im.)'
+                  if (l < l_fin) then
+                     write(luout, '("   ")', advance='no')    ! hori. space with the next l in the same group.
+                  else if (l == l_fin) then
+                     write(luout, '("")')
+                  endif
+               enddo
+
+c              ==== Horizontal lines ====
+               write(luout, '(5x, "")', advance='no')    ! Indentation
+               do l = l_in, l_fin
+                  call wfat_print_repeat(luout, 33, 0, '-')
                   if (l < l_fin) then
                      write(luout, '("   ")', advance='no')    ! hori. space with the next l in the same group.
                   else if (l == l_fin) then
@@ -131,15 +156,16 @@ c              ==== Column title ====
 
 c              ==== Integral values ====
                do im = 1, (2*l_fin+1)
+                  write(luout, '(5x, "")', advance='no')    ! Indentation
                   do l = l_in, l_fin
                      m = im - 1 - l
                      if (m <= l) then
                         i_sh = l**2 + l + m + 1
                         write(luout, '(2i4)', advance='no') l, m
-                        write(luout, '(1x, 2f10.6)', advance='no')
+                        write(luout, '(1x, 2f12.8)', advance='no')
      &                       sum(intl(i_sh, :, iqn, i))
                      else
-                        write(luout, '(29x, "")', advance='no')    ! blank space when m exceeds +l.
+                        write(luout, '(33x, "")', advance='no')    ! blank space when m exceeds +l.
                      endif
 
                      if (l < l_fin) then
@@ -154,7 +180,7 @@ c              ==== Integral values ====
                l_fin = min(l_fin + n_lgroup, lmax)
                write(luout, '("")')      ! vert. space with the next group
             enddo
-            write(luout, '(/)')    ! vert. space with the next (i,iqn)
+            write(luout, '("")')    ! vert. space with the next (i,iqn)
 
          enddo
       enddo

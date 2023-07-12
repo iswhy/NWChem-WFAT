@@ -204,11 +204,12 @@ c     ==== Calculate (total) Fock matrices ====
       enddo
       
 
-c     ==== Deallocations ====      
-      if (.not. ga_destroy(g_k))
-     &     call errquit('wfat_test_hamiltonian: Cannot destroy h_1e.',
-     &     1 , GA_ERR)
+c     ==== Deallocations ====
+      
       do is = 1, ns
+         if (.not. ga_destroy(g_k(is)))
+     &        call errquit('wfat_test_hamiltonian: Cannot destroy '//
+     &        'hfexch_mat', 41 , GA_ERR)
          if (.not. ga_destroy(g_rd(is)))
      &        call errquit('wfat_test_hamiltonian: Cannot destroy '//
      &        'rdm.', 1 , GA_ERR)

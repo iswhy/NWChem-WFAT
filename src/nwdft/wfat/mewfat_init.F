@@ -42,9 +42,7 @@ c     ====     necessities of inputs    ====
 
       if (ndid == 0) then
 c        ==== WFAT module title ====
-         write(luout, '(4/)')
-         call util_print_centered(luout, 'Weak-Field Asymptotic '//
-     &        'Theory Module', 40, .true.)
+         call wfat_module_title(luout)
          
 c        ==== WFAT level info ====
          rtdb_stat = rtdb_parallel(.false.)
@@ -601,7 +599,7 @@ c        ==== Swap occupation no. ====
      &        37, UERR)
       endif
  301  format(5x, 'The max. of the P determinant coefficient ',
-     &     'occurs for neutral occupied MO no. ', i4, '.')
+     &     'occurs for the neutral occupied MO no. ', i4, '.')
  302  format(5x, 'Since the max. of the P determinant coefficient ',
      &     'does not correspond to the last occupied neutral ', /,
      &     5x, 'MO in the list, a reordering will be performed.')
@@ -640,12 +638,16 @@ c=================================================
 #include "geom.fh"
 #include "bas.fh"
 #include "global.fh"
+#include "wfat_rs.fh"
       integer rtdb
       
       character*2 sp
       character*12 fn
       logical ll
       integer is
+
+      logical nwxc_has_cam
+      external nwxc_has_cam
 
 
 c     ==== Neutral deallocations ====
@@ -678,12 +680,22 @@ c     ==== Geometry ====
       if (.not. geom_destroy(geom_hd))
      &     call errquit('MEWFAT: Error in destroying geometry object.',
      &     1, GEOM_ERR)
+      if (nwxc_has_cam()) then
+         if (.not. geom_destroy(rsgeom)) call errquit('MEWFAT: Error'//
+     &        ' in destroying geometry object for the RS functional.',
+     &        1, GEOM_ERR)
+      endif
 
       
 c     ==== Basis ====
       if (.not. bas_destroy(bas_hd))
      &     call errquit('MEWFAT: Error in destroying basis object.',
-     &     1, BASIS_ERR)      
+     &        1, BASIS_ERR)
+      if (nwxc_has_cam()) then
+         if (.not. bas_destroy(rsbas)) call errquit('MEWFAT: Error'//
+     &        ' in destroying basis object for the RS functional.',
+     &        1, BASIS_ERR)
+      endif
 
       
 c     ==== Molecular orbitals ====
@@ -705,6 +717,7 @@ c     ==== Molecular orbitals ====
       
 c     ==== Molecular integrals ====
       call int_terminate()
+      call schwarz_tidy()
 
       
 c     ==== Common integrals ====

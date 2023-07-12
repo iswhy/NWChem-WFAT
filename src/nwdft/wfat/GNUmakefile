@@ -20,6 +20,7 @@
 	wfat_calc_td.o \
 	wfat_field_factor.o \
 	wfat_celf.o \
+	wfat_int_2e3c.o \
 	wfat_chypgeom.o \
 	wfat_chypgeom_u.o \
 	wfat_laguerre.o \
@@ -37,6 +38,7 @@
 	wfat_potential_rs.o \
 	wfat_tools.o \
 	wfat_par_tools.o \
+	wfat_et_det.o \
 	wfat_test.o \
 	wfat_test2.o \
 	wfat_numdens.o \

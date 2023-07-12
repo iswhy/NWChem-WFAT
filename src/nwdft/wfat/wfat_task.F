@@ -34,9 +34,6 @@ c===============================================================
       double precision fieldmag, smh, prtb_bt, prtb_gm, ctr(3)
       double precision tmax
 
-      logical task_mewfat
-      external task_mewfat
-
       
       ndid = ga_nodeid()
 

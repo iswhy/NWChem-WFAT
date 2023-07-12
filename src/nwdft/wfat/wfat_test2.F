@@ -38,7 +38,7 @@ c     ==== Calc. determinant by eigenvalues ====
       g_s = ga_create_atom_blocked(geom, bas, 'overlap')
       call ga_zero(g_s)
       call int_1e_ga(bas, bas, g_s, 'overlap', oskel)
-      call et_det('n', g_s, nb, dets)      
+      call wfat_et_det(g_s, nb, dets)      
       detv0 = 1.0d0
       if (ndid==0)
      &     write(luout, '(/, "Determinant by eigenvalues")')
@@ -64,7 +64,7 @@ c     ==== Calc. determinant explicitly ====
       if (ndid==0)
      &     write(luout, '(/, "Determinant by Gauss elimination")')
       do is = 1, ns
-         call et_det('n', g_fk(is), nb, detv(is))
+         call wfat_et_det(g_fk(is), nb, detv(is))
          if (ndid==0) write(luout, '(i1, ") det. = ", es16.8)') is,
      &        detv(is)
       enddo
@@ -83,7 +83,7 @@ c     ==== Dummy matrix test ====
       call ga_put(g_du, 1, 2, 1, 2, dbl_mb(k_du), 2)
       if (ndid==0) write(luout, '("Dummy matrix:")')
       call ga_print(g_du)
-      call et_det('n', g_du, 2, detv0(1))
+      call wfat_et_det(g_du, 2, detv0(1))
 c      call et_det('t', g_du, 2, detv0(2))
       if (ndid==0) then
          write(luout, '("Determinant A:", es16.8)') detv0(1)

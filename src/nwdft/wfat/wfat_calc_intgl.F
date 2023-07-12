@@ -188,13 +188,15 @@ c     ==== Calculate WFAT(1) Omega ====
      &        gqual, nlgl, zion, dcpl_mb(k_om1), dcpl_mb(k_om2))
       endif
       
-      
+
+      call wfat_info_banner(luout, .true.)
       if (ndid == 0) write(luout, 901)
- 901  format(/,
-     &     3x, '*** INFO ***', /,
-     &     5x, 'Begin calculating WFAT integrals. If this is a ',
-     &     '''start'' type job, this part can take up to ', /,
-     &     5x, 'several minutes. Please wait.')
+ 901  format(
+     &     5x, 'The calculation of the WFAT integrals has started. ',
+     &     'If this is a ''start'' type job, this part can take ', /,
+     &     5x, 'up to several minutes, so please wait. The progress ',
+     &     'of this calculation will be shown below.')
+      write(luout, '("")')
       
       
 c     ==== BEGIN QUADRATURE SUMMATION ====

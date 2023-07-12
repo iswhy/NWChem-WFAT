@@ -1,5 +1,9 @@
 c $Id$
-      subroutine et_det(op,handle,n,detval)
+      subroutine wfat_et_det(handle,n,detval)
+c     DESCRIPTION:
+c     This subroutine is derived from the et_det subroutine where the
+c     argument 'op', which gives the option whether to transpose or
+c     not, has been removed.
 #include "rtdb.fh"
 #include "mafdecls.fh"
 #include "inp.fh"
@@ -9,13 +13,7 @@ c $Id$
 #include "bas.fh"
 #include "geom.fh"
 #include "cscf.fh"
-#include "stdio.fh"      
-c
-c returns the determinant of the square matrix with file handle 'handle'.
-c n is the dimension of the array, detval is the returned value of the
-c determinant. If op='N', a=a. If op='T', a=a'.
-c
-      character*1 op
+#include "stdio.fh"
       integer handle
       integer n,i,j,info
       integer l_ipvt,k_ipvt,l_a,k_a,l_work,k_work
@@ -32,15 +30,8 @@ c
      1  l_work,k_work)) call errquit
      2  ('et_det: failed to allocate work',0,0)
 c
-      do i = 1,n
-      do j = 1,n
-       if(op.eq.'N') call ga_get(handle,i,i,j,j,
-     1 dbl_mb(k_a+i-1+(j-1)*n),1)
-       if(op.eq.'T') call ga_get(handle,j,j,i,i,
-     1 dbl_mb(k_a+i-1+(j-1)*n),1)
-      enddo
-      enddo
-c
+      call ga_get(handle, 1, n, 1, n, dbl_mb(k_a), n)
+      
       call dgefa(dbl_mb(k_a),n,n,int_mb(k_ipvt),info)
       call dgedi(dbl_mb(k_a),n,n,int_mb(k_ipvt),det,dbl_mb(k_work),10)
       detval =  det(1) * ten**det(2)

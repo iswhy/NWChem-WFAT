@@ -283,6 +283,14 @@ c     ==== GS and ionization energies ====
 
 
 c     ==== Deallocations ====
+      if (.not. ga_destroy(g_1e))
+     &     call errquit('MEWFAT: Cannot destroy 1e_opr', 18, GA_ERR)
+      do is = 1, 2
+         if (.not. ga_destroy(g_fk0(is)))
+     &        call errquit('MEWFAT: Cannot destroy fock0', 13, GA_ERR)
+         if (.not. ga_destroy(g_fk1(is)))
+     &        call errquit('MEWFAT: Cannot destroy fock1', 13, GA_ERR)
+      enddo
       if (.not. ma_free_heap(l_1e))
      &     call errquit('MEWFAT: Cannot deallocate 1e_opr', 1, MA_ERR)
       if (.not. ma_free_heap(l_fk0))
@@ -430,6 +438,7 @@ c     ==== Calculating dipole operators ====
       
 
 c     ==== Calculating shifted channel first moment ====
+cc      st = rtdb_get(rtdb, 'dft:dipole', mt_dbl, 3, edipm0)     ! This is for getting dipole moment from RTDB.
       edipm0 = 0.0d0
       edipm1 = 0.0d0
       do is = 1, 2

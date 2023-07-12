@@ -36,8 +36,6 @@ c=================================================
       ndid = ga_nodeid()
       task_mewfat = .false.
 
-      if (ndid==0) write(luout, '("WFAT: Moving to wfat directory")')
-      
       
 c     ================================
 c     ==== Initiate MEWFAT module ====

@@ -7,31 +7,12 @@ c=======================================================
 #include "global.fh"      
       integer rtdb
 
-
-
       if (ga_nodeid() .ne. 0) return      
-
-      write(luout, '(/)')
-      call util_print_centered(
-     &     luout, '-------------------------------------------------',
-     &     40, .false.)
-      call util_print_centered(
-     &     luout, '<<<<<< Begin reading inputs in WFAT block >>>>>>', 
-     &     40, .true.)
-      
       
 c     ==== Read WFAT inputs from input file ====
+      call wfat_info_banner(luout, .true.)
+      write(luout, '(5x, "Reading the WFAT inputs ...")')
       call wfat_read_input(rtdb)
-
-
-
-      write(luout, '(/)')
-      call util_print_centered(
-     &     luout, '-------------------------------------------------',
-     &     40, .false.)
-      call util_print_centered(
-     &     luout, '<<<<<< Finish reading inputs in WFAT block >>>>>>',
-     &     40, .true.)
       
       end
 c=======================================================
@@ -180,14 +161,11 @@ c     ========================================================
       do while (inp_read()) 
          if (inp_a(field)) then
 
-            write(luout, '("input field : ", a)') field
+cfordebug            write(luout, '("input field : ", a)') field
 
 c           ==== ABSOLUTELY MANDATORY INPUTS ====
             if (inp_compare(.false., 'print', field)) then
                print_exist = .true.
-               
-               if (print_exist)
-     &              write(luout, '("Found print directive")')
                
                if (.not. inp_line(ss))
      &              call errquit('WFAT: Error in reading the '//
@@ -357,7 +335,13 @@ c           ==== End ====
 
 c     ==== Obtain the theory of previous task ====
       if (rtdb_cget(rtdb,'scf:scftype', 1, wfat_theory)) then
-         write(luout, '("Previous SCF type : ", a)') trim(wfat_theory)
+         call wfat_info_banner(luout, .true.)
+         write(luout, '(5x, "Previous SCF type = ", a)')
+     &        trim(wfat_theory)
+         write(luout, '(5x, "If this is a ME-WFAT job, then this '//
+     &        'information refers to the last charge state SCF", /,'//
+     &        '5x, "calculation (either the neutral or cation, '//
+     &        'ME-WFAT needs two prior SCF calculations).")')
       else
          call errquit('task: no task input for theory?',0, RTDB_ERR)
       endif
