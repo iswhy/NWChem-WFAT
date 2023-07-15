@@ -228,8 +228,8 @@ c     ==== Loop over atoms ====
       enddo
       call wfat_get_intgl_chkpt(nptp, pr_chk)
       call wfat_init_progress(nptp, g_nptx, npt_tot)
-      if (ndid == 0) write(luout, '(5x, "The total number of grid '//
-     &     'points is ", i9, ".")') int(npt_tot)
+      if (ndid == 0) write(luout, '(5x, "The total number of '//
+     &     'quadrature grid points is ", i9, ".")') int(npt_tot)
 
       t_last = util_cpusec()
       t_start = t_last

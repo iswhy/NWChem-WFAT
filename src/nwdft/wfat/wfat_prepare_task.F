@@ -106,7 +106,9 @@ c=================================================
 #include "errquit.fh"
 #include "mafdecls.fh"
 #include "rtdb.fh"
-      integer rtdb           ! [input],
+#include "stdio.fh"
+#include "global.fh"
+      integer rtdb              ! [input],
       integer n0(2)          ! [input],
       integer nch            ! [output],
       integer l_or0, k_or0   ! [output],
@@ -148,6 +150,13 @@ c     ==== Constructing the MO ID array starting from 1 ====
          int_mb(k_or+i-1) = int_mb(k_or0+i-1) + n0(is)
       enddo      
 
+      
+c     ==== Print channels ====
+      call wfat_info_banner(luout, .true.)
+      if (ga_nodeid() == 0)
+     &     call wfat_print_channels(nch, int_mb(k_sp), int_mb(k_or0))
+      call ga_sync()
+
       end
 c=================================================
 
@@ -187,10 +196,7 @@ c=================================================
       integer l_npa, k_npa   ! [output],
       integer l_mpa, k_mpa   ! [output],
 
-      character*6 n_str, m_str
-      integer i, n, m
       
-
 c     ==== Obtaining nqn, the number of parabolic quantum numbers ====
       if (.not. rtdb_get(rtdb, 'wfat:n_npara', mt_int, 1, nqn))
      &     call errquit('WFAT: Failed reading n_npara from rtdb',
@@ -217,23 +223,8 @@ c     ==== Obtaining m parabolic quantum numbers from RTDB ====
 
 c     ==== Printing ====
       call wfat_info_banner(luout, .true.)
-      if (ga_nodeid() == 0) then
-         write(luout, '(5x, "Parabolic quantum numbers = ")',
-     &        advance='no')
-         do i = 1, nqn
-            n = int_mb(k_npa + i - 1)
-            m = int_mb(k_mpa + i - 1)
-            write(n_str, '(i5)') n
-            write(m_str, '(sp, i5)') m
-            
-            write(luout, '(a)', advance='no')
-     &           '('//trim(adjustl(n_str))//','//trim(adjustl(m_str))//
-     &           ')'
-            write(luout, '("; ")', advance='no')
-         enddo
-         write(luout, '("")')
-      endif
-      
+      if (ga_nodeid() == 0)
+     &     call wfat_print_paraqn(nqn, int_mb(k_npa), int_mb(k_mpa))
       call ga_sync()
       
       end
@@ -535,10 +526,18 @@ c=================================================
 #include "rtdb.fh"
 #include "mafdecls.fh"
 #include "stdio.fh"
-      integer rtdb             ! [input],
+#include "global.fh"
+      integer rtdb              ! [input],
       double precision fieldm  ! [output],
 
       integer l_fl, k_fl, nf
+
+
+      if (ga_nodeid() == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 'External fields', 20, .true.)
+         write(luout, '("")')
+      endif
       
 
       if (.not. rtdb_get(rtdb, 'wfat:field:nfield', mt_int, 1, nf))
@@ -550,7 +549,6 @@ c=================================================
      &     dbl_mb(k_fl)))
      &     call errquit('WFAT: Cannot read field:max', 1, RTDB_ERR)
       fieldm = sum(dbl_mb(k_fl : k_fl+nf-1))
-      write(luout, '(3x, "DC field = ", es14.5)') fieldm
 
       if (.not. ma_free_heap(l_fl))
      &     call errquit('WFAT: Failed deallocating fieldm', 1, MA_ERR)
@@ -589,6 +587,12 @@ c=================================================
 
       ndid = ga_nodeid()
 
+      if (ndid == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 'External fields', 20, .true.)
+         write(luout, '("")')
+      endif
+      
       
 c     ==== Get no. laser colors ====
       if (.not. rtdb_get(rtdb, 'wfat:field:nfield', mt_int, 1, nlas))
@@ -664,10 +668,12 @@ c     ==== Print laser parameters ====
 
 c        ==== External laser file ====
          if (las_env(1)=='external') then
-            write(luout, '(5x, "File name = ", a)')
-     &           trim(adjustl(ext_fname))
-            write(luout, '(5x, "Data start and end = ", i6, 2x, i6)')
-     &           ext_range(1), ext_range(2)
+            write(luout, '(5x, "* ", a10, " = ", a)')
+     &           'File name ', trim(adjustl(ext_fname))
+            write(luout, '(5x, "* ", a10, " = ", i6, 2x, i6)')
+     &           'Data start', ext_range(1)
+            write(luout, '(5x, "* ", a10, " = ", i6, 2x, i6)')
+     &           'Data end  ', ext_range(2)
          endif
          
 c        ==== Print laser ====

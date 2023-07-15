@@ -60,6 +60,7 @@ c=======================================================
       double precision orbmmt(3,nch)
       double precision iondip(3,nch)
 
+      character*5 ss
       integer i, io, is
       
 
@@ -67,31 +68,34 @@ c=======================================================
       call util_print_centered(luout,
      &     'Properties of the user-requested ionization channels',
      &     40, .true.)
-      write(luout, '(" ")')
       
       do i = 1, nch
          io = orbid(i)
          is = spinid(i)
-         write(luout, '(5x, "Channel : ", i6)') i
-         write(luout, '(7x, a17, " = ", i1)')
-     &        "ionized spin     ", is
-         write(luout, '(7x, a17, " = ", i6)')
-     &        "orbital no.      ", io
-         write(luout, '(7x, a17, " = ", es14.5, " Hartree")')
+         if (is == 1) then
+            ss = 'alpha'
+         else if (is == 2) then
+            ss = 'beta'
+         endif
+
+         write(luout, '("")')
+         write(luout, '(3x, "Channel : ", i6)') i
+         write(luout, '(5x, "* ", a13, " = ", a)')
+     &        "ionized spin ", trim(adjustl(ss))
+         write(luout, '(5x, "* ", a13, " = ", i4)')
+     &        "orbital no.  ", io
+         write(luout, '(5x, "* ", a17, " = ", es14.5, " Hartree")')
      &        "ionization energy", erg(i)
-         write(luout, '(7x, a36, " = ", 3es14.5)')
+         write(luout, '(5x, "* ", a36, " = ", 3es14.5)')
      &        "channel position (xyz, Bohr)        ", orbcent(:, i)
-         write(luout, '(7x, a36, " = ", 3es14.5)') 
+         write(luout, '(5x, "* ", a36, " = ", 3es14.5)') 
      &        "unshifted channel moment (xyz, Bohr)",
      &        orbmmt(:, i) + orbcent(:, i)
-         write(luout, '(7x, a36, " = ", 3es14.5)') 
+         write(luout, '(5x, "* ", a36, " = ", 3es14.5)') 
      &        "shifted channel moment (xyz, Bohr)  ", orbmmt(:, i)
-         write(luout, '(7x, a36, " = ", 3es14.5)')
+         write(luout, '(5x, "* ", a36, " = ", 3es14.5)')
      &        "shifted ion dipole (xyz, e.Bohr)    ", iondip(:, i)
       enddo
-
-      write(luout, '(" ")')
-      write(luout, '(" ")')
       
       end
 c=======================================================

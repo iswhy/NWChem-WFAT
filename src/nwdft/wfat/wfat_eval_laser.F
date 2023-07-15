@@ -190,50 +190,51 @@ c     ==== ntime ====
          write(luout, '(" ")')
          write(luout, '(3x, "Field no. ", i2)') i
 c        ==== type ====
-         write(luout, '(5x, a10, " = ", a)') 'type      ', las_env(i)           !byte_mb(k_ftl+(i-1)*FLD_TP_LEN)
+         write(luout, '(5x, "* ", a10, " = ", a)')
+     &        'type      ', las_env(i) !byte_mb(k_ftl+(i-1)*FLD_TP_LEN)
 
          if (las_env(i)=='hann' .or. las_env(i)=='gaussian' .or.
      &        las_env(i)=='dc') then
 c           ==== amplitude ====
-            write(luout, '(5x, a10, " = ", f10.3, " au")')
+            write(luout, '(5x, "* ", a10, " = ", f10.3, " a.u.")')
      &           'amplitude ', al(i)
 c           ==== intensity ====
-            write(luout, '(5x, a10, " = ", f10.3, " TW/cm^2")')
+            write(luout, '(5x, "* ", a10, " = ", f10.3, " TW/cm^2")')
      &           'intensity ', wfat_convert_efield('au', al(i),
      &           'tw/cm2')
          endif
 
          if (las_env(i)=='hann' .or. las_env(i)=='gaussian') then
 c           ==== frequency ====
-            write(luout, '(5x, a10, " = ", f10.3, " au = ", f10.3, '//
-     &           '" THz = ", f10.3, " eV")')
+            write(luout, '(5x, "* ", a10, " = ", f10.3, " a.u. = ", '//
+     &           'f10.3, " THz = ", f10.3, " eV")')
      &           'frequency ',
      &           wl(i),
      &           wfat_convert_freq('au', wl(i), 'thz'),
      &           wfat_convert_freq('au', wl(i), 'ev')
 
 c           ==== wavelength ====
-            write(luout, '(5x, a10, " = ", f10.3, " nm = ", es10.3, '//
-     &           '" Bohr")')
+            write(luout, '(5x, "* ", a10, " = ", f10.3, " nm = ", '//
+     &           'es10.3, " Bohr")')
      &           'wavelength',
      &           wfat_convert_freq('au', wl(i), 'nm'),
      &           wfat_convert_freq('au', wl(i), 'bohr')
             
 c           ==== CEP ====
-            write(luout, '(5x, a10, " = ", f10.3, " rad = ", f10.3, '//
-     &           '" degree")')
+            write(luout, '(5x, "* ", a10, " = ", f10.3, " rad = ", '//
+     &           'f10.3, " degree")')
      &           'CEP       ',
      &           pl(i), wfat_convert_angle('rad', pl(i), 'deg')
 
 c           ==== center ====
-            write(luout, '(5x, a10, " = ", es10.3, " a.u. = ", f10.3,'//
-     &           '" fs")')
+            write(luout, '(5x, "* ", a10, " = ", es10.3, " a.u. = ", '//
+     &           'f10.3, " fs")')
      &           'center    ',
      &           tl(i), wfat_convert_time('au', tl(i), 'fs')
             
 c           ==== width ====
-            write(luout, '(5x, a10, " = ", es10.3, " a.u. = ", f10.3,'//
-     &           '" fs")')
+            write(luout, '(5x, "* ", a10, " = ", es10.3, " a.u. = ", '//
+     &           'f10.3, " fs")')
      &           'width     ',
      &           dl(i), wfat_convert_time('au', dl(i), 'fs')
          endif

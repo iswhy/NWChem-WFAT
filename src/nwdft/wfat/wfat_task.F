@@ -18,7 +18,7 @@ c===============================================================
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
       logical rtdb_stat, wfat1, res_mode, os, oc, or, int_nosave
-      logical dd, extf, corb_print
+      logical dd, extf, corb_print, perturb
       character*32 theory
       character*2 prtb_type
       integer ndid, gqual, i, lmax, nlgl, is, npb, ndpo
@@ -120,7 +120,10 @@ c     ==== Whether using TD field or no ====
 
 
 c     ==== Perturbation theory analysis ====
-      if (td=='ti') call wfat_calc_perturb(rtdb, fieldmag, pr_rate, 
+      if (.not. rtdb_get(rtdb, 'wfat:perturb', mt_log, 1, perturb))
+     &     perturb = .false.
+      if (td=='ti' .and. perturb)
+     &     call wfat_calc_perturb(rtdb, fieldmag, pr_rate,
      &     pr_avbeta, pr_avgamma, pr_tmd, pr_tmd_atom, res_mode,
      &     nch, int_mb(k_or), int_mb(k_sp))
 
@@ -200,8 +203,6 @@ c        ==== Binary-load WFAT integrals on 'restart' startup mode ====
      &        'directive to be either ''start'' or ''restart''.',
      &        1, UERR)
       endif
-      write(luout, '("FINISHED")')
-      
       
 
 c     ==== Printings ====
@@ -210,7 +211,6 @@ c     ==== Printings ====
          if (.not. MA_alloc_get(MT_DCPL, nintg, 'intgl', l_in, k_in))
      &        call errquit('WFAT: Cannot allocate intgl.', 2, MA_ERR)
          call ga_get(g_il, 1, nintg, 1, 1, dcpl_mb(k_in), nintg)
-         write(luout, '("FINISHED1")')
          
 
 c        ==== When WFAT(1) is in use ====
@@ -224,9 +224,15 @@ c        ==== When WFAT(1) is in use ====
             ctr = 0.0d0
             call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
          endif
-         call wfat_print_integrals(nch, nqn, natm, lmax, int_mb(k_npa),
-     &        int_mb(k_mpa), wfat1, dcpl_mb(k_in), dcpl_mb(k_inj),
-     &        dcpl_mb(k_ink1), dcpl_mb(k_ink2))
+
+         if (wfat1) then
+            call wfat_print_integrals(nch, nqn, natm, lmax, 
+     &           int_mb(k_npa), int_mb(k_mpa), wfat1, dcpl_mb(k_in), 
+     &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
+         else
+            call wfat_print_wfat0_ints(nch, nqn, natm, lmax, 
+     &           int_mb(k_npa), int_mb(k_mpa), dcpl_mb(k_in))
+         endif
 
 
 c        ============================================

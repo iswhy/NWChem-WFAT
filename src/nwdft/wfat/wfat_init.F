@@ -16,7 +16,7 @@ c=======================================================
       integer rtdb
 
       logical use_nwxc, rtdb_stat
-      integer is, i, ioc, ieg, basnormid, noio, ndid
+      integer is, i, ioc, ieg, basnormid, noio, ndid, offs
       character*20 basis_name, trans_name
       character*2 spin_name
       character*7 mov_name0, mov_name
@@ -33,8 +33,8 @@ c=======================================================
 
       ndid = ga_nodeid()
 
-      if (.not. rtdb_print(rtdb, .false.))
-     &     call errquit('WFAT: Cannot print RTDB.', 1, RTDB_ERR)
+cfordebug      if (.not. rtdb_print(rtdb, .false.))
+cfordebug     &     call errquit('WFAT: Cannot print RTDB.', 1, RTDB_ERR)
       
       
 c     ==== Check existence, format, and ====
@@ -47,6 +47,17 @@ c     ====     necessities of inputs    ====
       call ga_sync()
       
 
+      if (ndid == 0) then
+c        ==== WFAT module title ====
+         call wfat_module_title(luout)
+         
+c        ==== WFAT level info ====
+         rtdb_stat = rtdb_parallel(.false.)
+         call wfat_print_level(rtdb)
+         rtdb_stat = rtdb_parallel(.true.)
+      endif
+
+      
       WF_SF_PRINT_READY = .false.
       WF_IY_PRINT_READY = .false.
       WF_SF1_PRINT_READY(1:2) = .false.
@@ -62,6 +73,14 @@ c     ==== Geometry ====
      &     2, GEOM_ERR)
       if (.not. geom_ncent(geom_hd, natm))
      &     call errquit('WFAT: Getting natm failed', 51, GEOM_ERR)
+
+c     ==== Geometry info ====
+      if (ndid == 0) then
+         write(luout, '(/)')
+         if (.not. geom_print(geom_hd))
+     &        call errquit('WFAT: Cannot print geometry info', 1,
+     &        GEOM_ERR)
+      endif
 
 
 c      ==== No. of particles and spins ====
@@ -102,6 +121,14 @@ c     ==== Basis ====
       if (.not. bas_norm_get(bas_hd, basnormid))
      &     call errquit('WFAT: Error getting basis norm ID',
      &     1, BASIS_ERR)
+
+c     ==== Basis info ====
+      if (ndid == 0) then
+         write(luout, '(/)')
+         if (.not. bas_print(bas_hd))
+     &        call errquit('WFAT: Cannot print basis info', 1,
+     &        BASIS_ERR)
+      endif
       
 
 c     ==== Molecular orbitals ====
@@ -142,10 +169,27 @@ c     ==== Molecular orbitals ====
      $        call errquit("WFAT: Failed to read movecs data", 0, UERR)
       enddo
 
+      
+c     ==== Calculate charge state and multiplicity ====
+      charge = zn - nelec0
+      if (nspin0 == 1) then
+         multip = 1
+      else if (nspin0 == 2) then
+         multip = nel(1) - nel(2) + 1
+      endif
+      
+
+c     ==== Quantum system info ====
+      call wfat_print_qmsys(rtdb)
+      call ga_sync()
+                  
+      
 c     ==== Detect degeneracies ====
       if (ga_nodeid() == 0) then
          write(luout, '(2/)')
-         call util_print_centered(luout, 'Degeneracy analysis', 40,
+         offs = 0
+         if (nspin0 == 1) offs = 12
+         call util_print_centered(luout, 'Degeneracy analysis', 40-offs,
      &        .true.)
          write(luout, '(" ")')
       endif
@@ -167,11 +211,6 @@ c     ==== Detect degeneracies ====
      &     dbl_mb(k_moerg), dbl_mb(k_moocc), dgnthr, int_mb(k_modgid),
      &     int_mb(k_modgn))
       call ga_sync()
-
-
-c     ==== Calculate charge state and multiplicity ====
-      charge = zn - sum(nel)
-      multip = nel(1) - nel(2) + 1
       
 
 c     ==== Molecular integrals ====
@@ -193,8 +232,8 @@ c     ==== XC functionals ====
 
 
 c     ==== Use of CAM functional ====
-      call wfat_info_banner(luout, .true.)
       if (nwxc_has_cam()) then
+         call wfat_info_banner(luout, .true.)
          if (ndid==0) write(luout, '(5x, "Coulomb-attenuated method '//
      &        'will be used in the computation of the exact '//
      &        'exchange.")')
@@ -330,7 +369,7 @@ c=======================================================
       
 
 c     ==== Print column titles ====
-      call wfat_print_repeat(luout, 91, 5, '-')
+      call wfat_print_repeat(luout, 5+ns*43, 5, '-')
       write(luout, '("")')
       write(luout, '(5x, a5)', advance='no') 'No.'
       do is = 1, ns
@@ -339,7 +378,7 @@ c     ==== Print column titles ====
      &        'Energy (H)', 'Occ.', 'ID', 'Size'
       enddo
       write(luout, '(" ")')
-      call wfat_print_repeat(luout, 91, 5, '-')
+      call wfat_print_repeat(luout, 5+ns*43, 5, '-')
       write(luout, '("")')
 
             

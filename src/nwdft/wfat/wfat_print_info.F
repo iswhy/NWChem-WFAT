@@ -42,34 +42,10 @@ c=======================================================
       if (ndid /= 0) return
 
       rtdb_stat = rtdb_parallel(.false.)
-
-
-c     ==== WFAT module title ====
-      call wfat_module_title(luout)
-
       
-c     ==== WFAT level info ====
-      call wfat_print_level(rtdb)
-      
-
-c     ==== Quantum system info ====
-      call wfat_print_qmsys(rtdb)
-            
-      
-c     ==== Geometry info ====
-      write(luout, '(/)')
-      if (.not. geom_print(geom_hd))
-     &     call errquit('WFAT: Cannot print geometry info', 1, GEOM_ERR)
-      
-
-c     ==== Basis info ====
-      write(luout, '(/)')
-      if (.not. bas_print(bas_hd))
-     &     call errquit('WFAT: Cannot print basis info', 1, BASIS_ERR)
-
       
 c     ==== Channel info ====
-      call wfat_print_channel(rtdb, nel)
+cOLD      call wfat_print_channel(rtdb, nel)
       
 
 c     ==== Printing info ====
@@ -130,53 +106,49 @@ c=======================================================
 #include "stdio.fh"
 #include "rtdb.fh"
 #include "errquit.fh"
+#include "global.fh"
       integer rtdb
 
-      character*255 fname
+      logical status
+      character*255 movecs, scftype, basname, title
+      integer nmo(2), nb, ns
+
+      logical movecs_read_header
+      external movecs_read_header
       
-
-      write(luout, '(2/)')
-      call util_print_centered(luout, 'Previous SCF info', 20, .true.)
-      write(luout, '(1x)')
-      write(luout, '(5x, a22, " = ", i4)') "no. of spins", nspin0
-
-      write(luout, '(5x, a22, " = ", i4)') "alpha electrons", nel(1)
-      if (nspin0 == 1) then
-         write(luout, '(5x, a22, " = ", i4)') "beta electrons", nel(1)
-      else
-         write(luout, '(5x, a22, " = ", i4)') "beta electrons", nel(2)
-      endif
-
-      write(luout, '(5x, a22, " = ", f9.4)') "post-ionization charge",
-     &     zion
-      if (.not. rtdb_cget(rtdb, 'wfat:movec_name', 1, fname))
+      
+      if (.not. rtdb_cget(rtdb, 'wfat:movec_name', 1, movecs))
      &     call errquit('WFAT: Cannot read wfat:movec_name from RTDB.',
      &     1, RTDB_ERR)
-      write(luout, '(5x, a22, " = ", a)')
-     &     "MO file", trim(adjustl(fname))
 
+      status = movecs_read_header(movecs, title, basname, scftype,
+     &         nb, ns, nmo, 2)
 
-cforlater      status = movecs_read_header(movecs, title, basname, scftype,
-cforlater     &         nb, ns_, nmo, 2)
-cforlater
-cforlater      multip = nel(1) - nel(2) + 1
-cforlater      if (ndid == 0)
-cforlater     &     write(luout, 900) 'initial species (neutral)',
-cforlater     &     trim(movecs), trim(title), trim(scftype), trim(basname),
-cforlater     &     nb, ns_, nmo, nel, multip, charge
-cforlater
-cforlater 900  format(/,
-cforlater     &     3x, 'Information about the ', a, ' :', /,
-cforlater     &     5x, '* MO file = ', a, /,
-cforlater     &     5x, '* Job title = ', a, /,
-cforlater     &     5x, '* SCF type = ', a, /,
-cforlater     &     5x, '* Basis set name = ', a, /,
-cforlater     &     5x, '* No. of bases = ', i5, /,
-cforlater     &     5x, '* No. of spin channels = ', i3, /,
-cforlater     &     5x, '* No. of MO''s in each channel = ', 2i5, /,
-cforlater     &     5x, '* No. electrons in each channel = ', 2i4, /,
-cforlater     &     5x, '* Spin multiplicity = ', i3, /,
-cforlater     &     5x, '* Charge state = ', f7.3, /)
+      
+      if (ga_nodeid() == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 'Previous SCF info', 
+     &        20, .true.)
+         write(luout, '("")')
+      endif
+
+      if (ga_nodeid() == 0)
+     &     write(luout, 900) 'initial species (neutral)',
+     &     trim(movecs), trim(title), trim(scftype), trim(basname),
+     &     nbas0, nspin0, nmo, nel, multip, charge
+
+ 900  format(
+     &     3x, 'Information about the ', a, ' :', /,
+     &     5x, '* MO file = ', a, /,
+     &     5x, '* Job title = ', a, /,
+     &     5x, '* SCF type = ', a, /,
+     &     5x, '* Basis set name = ', a, /,
+     &     5x, '* No. of bases = ', i5, /,
+     &     5x, '* No. of spin channels = ', i3, /,
+     &     5x, '* No. of MO''s in each channel = ', 2i5, /,
+     &     5x, '* No. electrons in each channel = ', 2i4, /,
+     &     5x, '* Spin multiplicity = ', i3, /,
+     &     5x, '* Charge state = ', f7.3)
             
       end
 c=======================================================
@@ -184,37 +156,27 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_print_channel(rtdb, n0)
+      subroutine wfat_print_channels(nch, spinid, orbid)
 
       implicit none
 #include "stdio.fh"
-#include "errquit.fh"
-#include "mafdecls.fh"
-      integer rtdb
-      integer n0(2)
-
-      character*5 spinnm(2), i_str
+      integer nch, spinid(nch), orbid(nch)
+      
+      character*5 spinnm(2)
       character*7 io_str
       character*12 hl
-      integer l_sp, l_or0, l_or
-      integer k_sp, k_or0, k_or
-      integer nch, i, is, io
+      integer i, is, io, max_in_row
+
+      parameter(max_in_row=4)
 
       
       spinnm = (/ 'alpha', ' beta' /)      
-
-      write(luout, '(2/)')
-      call util_print_centered(luout, 'Ionized Channels', 20, .true.)
-      write(luout, '(1x)')
-
-      call wfat_prep_channels(rtdb, n0, nch, l_or0, k_or0, l_sp, k_sp,
-     &     l_or, k_or)
       write(luout, '(5x, "No. of channels = ", i6)') nch
+      write(luout, '(5x, "Ionized channels = ")', advance='no')
 
       do i = 1, nch
-         write(i_str, '(i5)') i
-         is = int_mb(k_sp + i - 1)
-         io = int_mb(k_or0 + i - 1)
+         is = spinid(i)
+         io = orbid(i)
          if (io == 0) then
             hl = 'HOMO'
          else if (io < 0) then
@@ -226,12 +188,59 @@ c=======================================================
             write(io_str, '(i7)') abs(io-1)
             hl = "LUMO+"//adjustl(io_str)
          endif
-         write(luout, '(5x, "Channel ", a5, " : ", a5, "/", a12)')
-     &     adjustl(i_str), spinnm(is), adjustl(hl) 
+
+         write(luout, '(a, "/", a)', advance='no')
+     &        trim(adjustl(spinnm(is))), trim(adjustl(hl))
+         if (i < nch) then
+            write(luout, '(", ")', advance='no')
+         else if (i == nch) then
+            write(luout, '("")')
+         endif
+
+         if (mod(i,max_in_row) == 0) then
+            write(luout, '("")')
+            write(luout, '(5x, 19x, "")', advance='no')
+         endif
       enddo
 
-      call wfat_erase_channels(l_or0, l_sp, l_or)
-      
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_print_paraqn(nqn, nid, mid)
+
+      implicit none
+#include "stdio.fh"
+      integer nqn, nid(nqn), mid(nqn)
+
+      character*6 n_str, m_str
+      integer i, max_in_row
+
+      parameter(max_in_row=6)
+
+
+      write(luout, '(5x, "No. of parabolic quantum numbers = ", i6)')
+     &     nqn
+      write(luout, '(5x, "Parabolic quantum numbers = ")',
+     &     advance='no')
+      do i = 1, nqn
+         write(n_str, '(i5)') nid(i)
+         write(m_str, '(sp, i5)') mid(i)
+         
+         write(luout, '(a)', advance='no')
+     &        '('//trim(adjustl(n_str))//','//trim(adjustl(m_str))//
+     &        ')'
+         write(luout, '("; ")', advance='no')
+
+         if (mod(i,max_in_row) == 0) then
+            write(luout, '("")')
+            write(luout, '(5x, 28x, "")', advance='no')
+         endif
+      enddo
+      write(luout, '("")')
+
       end
 c=======================================================
 

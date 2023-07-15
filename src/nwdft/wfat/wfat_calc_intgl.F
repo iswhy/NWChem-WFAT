@@ -7,6 +7,7 @@ c==== Imam ====
      &                           pb, g_il, g_j, g_k)
       
       implicit none
+#include "util.fh"
 #include "rtdb.fh"
 #include "stdio.fh"      
 #include "mafdecls.fh"
@@ -37,7 +38,8 @@ c==== Imam ====
       integer g_il                    ! [output], global array handle for intgl. For structure factors.
       integer g_j                     ! [output], only calculated when wfat1=.true.
       integer g_k(2)                  ! [output], only calculated when wfat1=.true.
-      
+
+      character*12 dt_str
       character*16 tag
       character*9 rdm_name(2)
       logical t1, ismask_g, ismask_j, ismask_k
@@ -58,10 +60,11 @@ c==== Imam ====
       integer k_ik2_0, k_ik2_, k_ik2
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
       integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch), pr_count
-      integer pr_chk(10), kk
-      double precision atp(3), znuc, v_c(3), v_m(3), ef, mask_g(2)
+      integer pr_chk(10), kk, g_nptx, g_npt_tot
+      double precision atp(3), znuc, v_c(3), v_m(3), mask_g(2)
       double precision mask_j(2), mask_k(2), normch, celf, wtcelf
-      double precision numnel
+      double precision numnel, t_now, t_last, t_start, dt_all, dt_prog
+      double precision nptx, npt_tot
       double complex czero
       
       parameter (imf = 0)
@@ -71,8 +74,6 @@ c==== Imam ====
 
       call ga_sync()
       ndid = ga_nodeid()
-
-      if (ga_nodeid()==0) print *, 'spins = ', spinid
 
       
 c     ==== Get number of atoms ====
@@ -94,7 +95,6 @@ c     ==== Get number of bases ====
       ismask_k = .false.
       if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_k', mt_dbl, 2, mask_k))
      &     ismask_k = .true.
-      call wfat_prep_field(rtdb, ef)
 
       if (ismask_g) write(luout, '("Masking g")')
       if (ismask_j) write(luout, '("Masking j")')
@@ -189,20 +189,31 @@ c     ==== Calculate WFAT(1) Omega ====
       endif
       
 
-      call wfat_info_banner(luout, .true.)
-      if (ndid == 0) write(luout, 901)
+      if (ndid == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 'Computation the WFAT '//
+     &        'integrals', 30, .true.)
+         write(luout, '("")')
+         write(luout, 901)
+         write(luout, '("")')
+      endif
  901  format(
      &     5x, 'The calculation of the WFAT integrals has started. ',
      &     'If this is a ''start'' type job, this part can take ', /,
      &     5x, 'up to several minutes, so please wait. The progress ',
      &     'of this calculation will be shown below.')
-      write(luout, '("")')
       
       
 c     ==== BEGIN QUADRATURE SUMMATION ====
 c     ==== Loop over atoms ====
       call ga_sync()
       call wfat_get_intgl_chkpt(nptp, pr_chk)
+      call wfat_init_progress(nptp, g_nptx, npt_tot)
+      if (ndid == 0) write(luout, '(5x, "The total number of '//
+     &     'quadrature grid points is ", i9, ".")') int(npt_tot)
+
+      t_last = util_cpusec()
+      t_start = t_last
       jpt = 0
       pr_count = 0
       kk = 1
@@ -272,15 +283,15 @@ c              =====           and K^{(n,m)}_{l,m'}                ====
 
             
             if (ismask_g) call wfat_mask_intd(geom_hd, natom, nch, erg, 
-     &           nqn, nsh, v_m, mask_g, ef, dcpl_mb(k_i0))
+     &           nqn, nsh, v_m, mask_g, dcpl_mb(k_i0))
             if (ismask_j .and. wfat1) call wfat_mask_intd(geom_hd, 
-     &           natom, 3*nch, erg, nqn, nsh, v_m, mask_j, ef,
+     &           natom, 3*nch, erg, nqn, nsh, v_m, mask_j,
      &           dcpl_mb(k_ij0))
             if (ismask_k .and. wfat1) then
                call wfat_mask_intd(geom_hd, natom, nch, erg, nqn, nsh,
-     &              v_m, mask_k, ef, dcpl_mb(k_ik1_0))
+     &              v_m, mask_k, dcpl_mb(k_ik1_0))
                call wfat_mask_intd(geom_hd, natom, nch, erg, nqn, nsh,
-     &              v_m, mask_k, ef, dcpl_mb(k_ik2_0))
+     &              v_m, mask_k, dcpl_mb(k_ik2_0))
             endif
                
             
@@ -314,14 +325,23 @@ c           ==== Quadrature summation ====
      &                            wtcelf
             endif
 
+c           ==== Print progress ====
             pr_count = pr_count + 1
             if (pr_count == pr_chk(kk)) then
-               if (ndid==0) write(luout, '(4x, "Progress : ", i3, "%")')
-     &              kk*10
+               t_now = util_cpusec()
+               dt_prog = t_now - t_last
+               t_last = t_now
+               call wfat_intgl_progress(kk, pr_count, dt_prog, npt_tot, 
+     &              g_nptx, nptx)
                kk = kk + 1
             endif
+            
          enddo
       enddo
+      dt_all = t_now - t_start
+      write(dt_str, '(f12.2)') dt_all
+      if (ndid == 0) write(luout, '(5x, "The computation of the WFAT '//
+     &     'integrals takes ", a, " s.")') trim(adjustl(dt_str))
       
 
 c     ==== Reorder elements of intgl ====      
@@ -346,7 +366,7 @@ c     ==== Accumulate to global intgl (g_il) ====
       call ga_acc(g_il, 1, nil, 1, 1, dcpl_mb(k_il), nil, 1.0d0)
       call ga_sync()
       call ga_norm1(g_il, normch)
-      if (ndid==0) write(luout, '("intgl norm = ", es14.6)') normch
+cfordebug      if (ndid==0) write(luout, '("intgl norm = ", es14.6)') normch
 
       if (wfat1) then
          call ga_acc(g_j, 1, nij, 1, 1, dcpl_mb(k_ij), nij, 1.0d0)
@@ -469,7 +489,7 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_mask_intd(geom, natom, nch, erg, nqn, nsh, v_m,
-     &     mask, ef, intd)
+     &     mask, intd)
 
       implicit none
       integer geom
@@ -480,7 +500,6 @@ c=======================================================
       integer nsh
       double precision v_m(3)                 ! [input], the Cartesian coordinate of the point in molecular-frame
       double precision mask(2)
-      double precision ef
       double complex intd(nsh, nqn, nch)
 
       logical t1

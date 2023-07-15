@@ -432,7 +432,7 @@ c     ==== Checking format of OPTIONAL INPUTS ====
      &        'following the format ''degenthr <float value>''.',
      &        0, INPUT_ERR)
       endif
-      if (.not. sitype_stat) then
+      if (.not. sitype_stat .and. wfat_level == 'me') then
          call errquit('WFAT: Error reading optional input parameter '//
      &        '''si_type''. Please check if it is specified '//
      &        'following the format ''si_type <value>'', where '//
