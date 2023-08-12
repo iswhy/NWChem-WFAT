@@ -87,21 +87,7 @@ c     ==== Filling bas_cent_info and bas_cset_info ====
 c     ==== Calculating basis at the input point ====
       if (.not. bas_numbf(bhan, nbas))
      &     call errquit('WFAT: Getting nbas failed', 53, BASIS_ERR)
-c      call xc_eval_basis(bhan, maxder, 
-c     &                   bval(1:nbas),
-c     &                   d1bval(1:3, 1:nbas),
-c     &                   d2bval(1:6, 1:nbas),
-c     &                   d3bval(1:10, 1:nbas),      
-c     &                   dbl_mb(irq),
-c     &                   vpt, dbl_mb(iac), npoint, natom,
-c     &                   int_mb(inz), log_mb(ids),
-c     &                   int_mb(ibcent_info),
-c     &                   int_mb(ibcset_info))
-
-      slas = .false.
-      rsl = 5.0d0
-      kp = sqrt(2*abs(dbl_mb(k_moerg)))
-      call wfat_eval_basis_slater(bhan, maxder, 
+      call xc_eval_basis(bhan, maxder, 
      &                   bval(1:nbas),
      &                   d1bval(1:3, 1:nbas),
      &                   d2bval(1:6, 1:nbas),
@@ -110,7 +96,21 @@ c     &                   int_mb(ibcset_info))
      &                   vpt, dbl_mb(iac), npoint, natom,
      &                   int_mb(inz), log_mb(ids),
      &                   int_mb(ibcent_info),
-     &                   int_mb(ibcset_info), slas, kp, rsl)
+     &                   int_mb(ibcset_info))
+
+cdebug      slas = .false.
+cdebug      rsl = 5.0d0
+cdebug      kp = sqrt(2*abs(dbl_mb(k_moerg)))
+cdebug      call wfat_eval_basis_slater(bhan, maxder, 
+cdebug     &                   bval(1:nbas),
+cdebug     &                   d1bval(1:3, 1:nbas),
+cdebug     &                   d2bval(1:6, 1:nbas),
+cdebug     &                   d3bval(1:10, 1:nbas),      
+cdebug     &                   dbl_mb(irq),
+cdebug     &                   vpt, dbl_mb(iac), npoint, natom,
+cdebug     &                   int_mb(inz), log_mb(ids),
+cdebug     &                   int_mb(ibcent_info),
+cdebug     &                   int_mb(ibcset_info), slas, kp, rsl)
 
       
 c     ==== Deallocations ====

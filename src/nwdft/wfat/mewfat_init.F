@@ -9,7 +9,8 @@ c=================================================
 #include "global.fh"
 #include "mafdecls.fh"      
 #include "geom.fh"
-#include "bas.fh"      
+#include "bas.fh"
+#include "sym.fh"
 #include "mewfat_qm_param.fh"
 #include "wfat_rs.fh"      
       integer rtdb
@@ -204,8 +205,7 @@ c     ==== Molecular integrals ====
 c     ==== Reorder neutral MO's ====
       mo0_swapped = .false.
       if (.not. rtdb_get(rtdb, 'dft:skeleton', mt_log, 1, oskel))
-     &     call errquit('WFAT: Failed reading oskel from RTDB.', 1,
-     &     RTDB_ERR)
+     &     oskel = sym_number_ops(geom_hd) .gt. 0
 cOLD      if (.not. rtdb_get(rtdb, 'mewfat:reord', mt_log, 1, reorder))
 cOLD     &     reorder = .false.
 cOLD      if (reorder)

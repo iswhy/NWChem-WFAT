@@ -182,6 +182,12 @@ c     ==== Accumulate ====
       
 
 c     ==== Deallocations ====
+      if (.not. ga_destroy(g_de))
+     &     call errquit('WFAT: Cannot destroy dens.', 1, GA_ERR)
+      if (.not. MA_free_heap(l_icp))
+     &     call errquit('WFAT: icent_p deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_ipp))
+     &     call errquit('WFAT: ipt_p deallocation failed', 61, MA_ERR)
       if (.not. MA_free_heap(l_pt))
      &     call errquit('WFAT: gpt deallocation failed', 61, MA_ERR)
       if (.not. MA_free_heap(l_wt))

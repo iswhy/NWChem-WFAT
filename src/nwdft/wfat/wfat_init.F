@@ -8,6 +8,7 @@ c=======================================================
 #include "rtdb.fh"      
 #include "geom.fh"
 #include "bas.fh"
+#include "sym.fh"
 #include "errquit.fh"
 #include "stdio.fh"      
 #include "wfat.fh"      
@@ -254,8 +255,7 @@ c     ==== Use of CAM functional ====
 c     ==== Miscellaneous ====
 cOLD      call wfat_set_fockreplicate(1)
       if (.not. rtdb_get(rtdb, 'dft:skeleton', mt_log, 1, oskel))
-     &     call errquit('WFAT: Failed reading oskel from RTDB.', 1,
-     &     RTDB_ERR)
+     &     oskel = sym_number_ops(geom_hd) .gt. 0
       if (.not. rtdb_get(rtdb, 'dft:noio', mt_int, 1, noio))
      &     call errquit('WFAT: Failed reading noio from RTDB.', 1,
      &     RTDB_ERR)

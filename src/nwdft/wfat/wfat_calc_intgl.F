@@ -410,6 +410,7 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: spinid1 deallocation failed', 61, MA_ERR)
       if (.not. MA_free_heap(l_pos))
      &     call errquit('WFAT: chpos1 deallocation failed', 61, MA_ERR)
+      call wfat_terminate_progress(g_nptx)
       
       
       end subroutine wfat_calc_intgl
