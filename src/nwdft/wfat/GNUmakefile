@@ -25,6 +25,8 @@
 	wfat_chypgeom.o \
 	wfat_chypgeom_u.o \
 	wfat_laguerre.o \
+	wfat_legendre.o \
+	wfat_lobatto.o \
 	wfat_density.o \
 	wfat_eval_basis.o \
 	wfat_eval_basis_slater.o \
@@ -87,6 +89,7 @@
 	wfat_test_tau.o \
 	wfat_test_o.o \
 	wfat_test_erfc.o \
+	wfat_test_assocleg.o \
 	mewfat_task.o \
 	mewfat_init.o \
 	mewfat_print_info.o \

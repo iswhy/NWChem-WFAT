@@ -100,8 +100,6 @@ c     ==== Get number of bases ====
       if (ismask_j) write(luout, '("Masking j")')
       if (ismask_k) write(luout, '("Masking k")')
 
-
-
       
       
 c     ==== Obtain properties of each channel ====
@@ -1271,6 +1269,7 @@ c=======================================================
       integer ndid
       integer l_chgtest(2), l_r1test(2), l_qtest(2)
       integer l_phi1test(2), l_tautest(2), l_otest(2)
+      integer l_altest(2)
       double precision d_chgutest(2), d_erfctest(5)
 
 
@@ -1314,6 +1313,10 @@ c=======================================================
      &                            d_erfctest(3),
      &                            d_erfctest(4),
      &                            idnint(d_erfctest(5)))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_assocleg', mt_int, 2, l_altest))
+     &     then
+         if (ndid==0) call wfat_test_assocleg(l_altest(1), l_altest(2))
       endif
 
 

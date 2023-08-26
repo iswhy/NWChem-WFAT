@@ -550,6 +550,12 @@ c=================================================
      &     call errquit('WFAT: Cannot read field:max', 1, RTDB_ERR)
       fieldm = sum(dbl_mb(k_fl : k_fl+nf-1))
 
+      if (ga_nodeid() == 0) then
+         write(luout, '(5x, "* ", a10, " = ", a)') 'type      ', 'DC'
+         write(luout, '(5x, "* ", a10, " = ", f10.3, " a.u.")')
+     &        'strength  ', fieldm
+      endif
+
       if (.not. ma_free_heap(l_fl))
      &     call errquit('WFAT: Failed deallocating fieldm', 1, MA_ERR)
       end
