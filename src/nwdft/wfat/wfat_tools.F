@@ -962,6 +962,53 @@ c=======================================================
 
 c=======================================================
 c=======================================================
+      integer function delkron(i,j)
+c     DESCRIPTION:
+c     Kronecker delta function for integer arguments.
+      
+      implicit none
+      integer i, j
+
+      if (i == j) then
+         delkron = 1
+      else
+         delkron = 0
+      endif
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      double precision function double_fact(n)
+
+      implicit none
+      integer n
+
+      integer k
+      double precision f
+      
+
+      if (mod(n,2) == 0) then
+         f = 1.0d0
+         do k = 1, n/2
+            f = f * (2*k)
+         enddo
+      else if (mod(n,2) == 1) then
+         f = 1.0d0
+         do k = 1, (n+1)/2
+            f = f * (2*(k-1))
+         enddo
+      endif
+      double_fact = f
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
       double precision function rise_fact(x, n)
       implicit none
       double precision x
@@ -988,7 +1035,9 @@ c=======================================================
 c=======================================================
 c=======================================================
       double precision function binom_cf(p, n)
-
+c     DESCRIPTION:
+C     This subroutine calculates the binomial coefficient defined in eq. (6)
+c     in Ref. [1].
       implicit none
 #include "errquit.fh"
       double precision p
@@ -1011,6 +1060,10 @@ c=======================================================
      &        'be negative' , 90, UERR)
       endif
 
+c     REFERENCES:
+c     [1] T. M. Rassias and H. M. Srivastava, The Orthogonality Property of the 
+c         Classical Laguerre Polynomials, APPLIED MATHEMATICS AND COMPUTATION 50:167-173
+c         (1992).
       end
 c=======================================================
 

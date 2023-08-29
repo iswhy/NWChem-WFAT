@@ -82,6 +82,7 @@
 	wfat_calc_tau.o \
 	wfat_calc_phixi.o \
 	wfat_sumyield_lebedev.o \
+	wfat_2a1e.o \
 	wfat_test_chg.o \
 	wfat_test_r1.o \
 	wfat_test_q.o \
@@ -90,6 +91,7 @@
 	wfat_test_o.o \
 	wfat_test_erfc.o \
 	wfat_test_assocleg.o \
+	wfat_test_d2lag.o \
 	mewfat_task.o \
 	mewfat_init.o \
 	mewfat_print_info.o \

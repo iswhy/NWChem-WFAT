@@ -1,3 +1,153 @@
+c================================================
+c================================================
+      subroutine wfat_lagfun_norm(m, n, alpha, x, cx)
+
+      implicit none
+#include "errquit.fh"      
+      integer ( kind = 4 )  m, n
+      real ( kind = 8 )  alpha
+      real ( kind = 8 )  x(m)
+      real ( kind = 8 )  cx(m,0:n)
+      
+      integer i
+      double precision gg, fc, norm
+      double precision factorial
+      external factorial
+      
+      
+      if (alpha < -1.0d0) then
+         call errquit('WFAT: Argument alpha of wfat_lagfun_norm'//
+     &       'cannot be less than -1.', 1, UERR) 
+      end if
+      
+      call wfat_lagfun(m, n, alpha, x, cx)
+      
+      !!==== Normalization ====!!
+      do i = 0, n
+         call wfat_gammaf(i + alpha + 1, gg)
+         fc = factorial(i)
+         norm = gg / fc
+         cx(:, i) = cx(:, i) / sqrt(norm)
+      end do
+                
+      end
+c================================================
+
+      
+c================================================
+c================================================
+      subroutine wfat_lagfun( m, n, alpha, x, cx )
+c*****************************************************************************
+c
+c! LF_FUNCTION evaluates the Laguerre function Lf(n,alpha,x).
+c
+c  Recursion:
+c
+c    Lf(0,ALPHA,X) = 1
+c    Lf(1,ALPHA,X) = 1+ALPHA-X
+c
+c    Lf(N,ALPHA,X) = (2*N-1+ALPHA-X)/N * Lf(N-1,ALPHA,X) 
+c                      - (N-1+ALPHA)/N * Lf(N-2,ALPHA,X)
+c
+c  Restrictions:
+c
+c    -1 < ALPHA
+c
+c  Special values:
+c
+c    Lf(N,0,X) = L(N,X).
+c    Lf(N,ALPHA,X) = LM(N,ALPHA,X) for ALPHA integral.
+c
+c  Norm:
+c
+c    Integral ( 0 <= X < +oo ) exp ( - X ) * Lf(N,ALPHA,X)^2 dX
+c    = Gamma ( N + ALPHA + 1 ) / N!
+c
+c  Licensing:
+c
+c    This code is distributed under the GNU LGPL license. 
+c
+c  Modified:
+c
+c    10 March 2012
+c
+c  Author:
+c
+c    John Burkardt
+c
+c  Modified by:
+c
+c    Imam Wahyutama, on February 9 2021
+c  
+c  Reference:
+c
+c    Milton Abramowitz, Irene Stegun,
+c    Handbook of Mathematical Functions,
+c    National Bureau of Standards, 1964,
+c    ISBN: 0-486-61272-4,
+c    LC: QA47.A34.
+c
+c  Parameters:
+c
+c    Input, integer ( kind = 4 ) M, the number of evaluation points.
+c
+c    Input, integer ( kind = 4 ) N, the highest order function to compute.
+c
+c    Input, real ( kind = 8 ) ALPHA, the parameter.  -1 < ALPHA is required.
+c
+c    Input, real ( kind = 8 ) X(M), the evaluation points.
+c
+c    Output, real ( kind = 8 ) CX(1:M,0:N), the functions of 
+c    degrees 0 through N evaluated at the points X.
+c
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"      
+      integer ( kind = 4 ) m
+      integer ( kind = 4 ) n
+      real ( kind = 8 )  alpha
+      real ( kind = 8 )  x(1:m)
+      real ( kind = 8 )  cx(1:m,0:n)
+      integer ( kind = 4 ) i
+      
+     
+      if ( alpha <= -1.0D+00 ) then
+        write ( luout, '(a)' ) ' '
+        write ( luout, '(a)' ) 'LF_FUNCTION - Fatal error!'
+        write ( luout, '(a,g14.6)' ) '  The input value of ALPHA is ',
+     &          alpha
+        write ( luout, '(a)' ) '  but ALPHA must be greater than -1.'
+        call errquit('WFAT: An error encountered during a call to '//
+     &               'wfat_lagfun', 1, UERR)
+      end if
+     
+      if ( n < 0 ) then
+        return
+      end if
+     
+      cx(1:m,0) = 1.0D+00
+     
+      if ( n == 0 ) then
+        return
+      end if
+     
+      cx(1:m,1) = 1.0D+00 + alpha - x(1:m)
+     
+      do i = 2, n
+        cx(1:m,i) = ( 
+     &              ( real ( 2*i - 1, kind=8 ) + alpha - x(1:m) ) *
+     &                cx(1:m,i-1) +
+     &              ( real (  -i + 1, kind=8 ) - alpha          ) *
+     &                cx(1:m,i-2)
+     &              ) /
+     &              real (i, kind=8 )
+      end do
+     
+      return
+      end
+c================================================
+
+
 c=======================================================
 c=======================================================
       subroutine wfat_lf_quadrature_rule ( n, alpha, x, w )
@@ -506,3 +656,91 @@ c    !
       return
       end      
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_laguerre_intg1(a, b, c, m, n, v)
+c     DESCRIPTION:
+c     Calculate the integral of eq. (19) in Ref. [1].
+      implicit none
+#include "errquit.fh"
+      double precision a
+      double precision b
+      double precision c
+      integer m
+      integer n
+      double precision v
+
+      integer k
+      double precision s, g, factorial, binom_cf
+      external factorial, binom_cf
+
+
+      if (c <= -1.0d0) call errquit('WFAT: The input argument c of '//
+     &     'wfat_laguerre_intg1 must be such that c > -1', 58, UERR)
+      
+
+      s = 0.0d0
+      do k = 0, min(m,n)
+         s = s + binom_cf(c-a,m-k) * binom_cf(c-b,n-k) * binom_cf(c+k,k)
+      enddo
+
+      if (abs(g-idnint(g)) <= 1.0d-12) then
+         g = factorial(c)
+      else
+         call wfat_gammaf(c+1, g)
+      endif
+      
+      v = (-1)**(m+n) * g * s
+
+      end
+c     REFERENCES:
+c     [1] T. M. Rassias and H. M. Srivastava, The Orthogonality Property of the 
+c         Classical Laguerre Polynomials, APPLIED MATHEMATICS AND COMPUTATION 50:167-173
+c         (1992).
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
+      double precision function laguerre_norm_i(n, m)
+
+      implicit none
+      integer n, m
+
+      double precision factorial, binom_cf
+      external factorial, binom_cf
+
+      if (m < 0) call errquit('WFAT: The input argument m of '//
+     &     'laguerre_norm_i must be such that m >= 0', 58, UERR)
+      
+      laguerre_norm = factorial(m) * binom_cf(dble(m+n), n)
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      double precision function laguerre_norm_d(n, a)
+
+      implicit none
+#include "errquit.fh"
+      integer n
+      double precision a
+
+      double precision binom_cf, g
+      external binom_cf
+
+      if (a <= -1.0d0) call errquit('WFAT: The input argument a of '//
+     &     'laguerre_norm_d must be such that a > -1', 58, UERR)
+      
+      call wfat_gammaf(a+1, g)
+      laguerre_norm = g * binom_cf(a+n, n)
+
+      end
+c=======================================================
+      
+      
+    

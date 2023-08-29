@@ -1,29 +1,112 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_assocleg_quad(a, b, m, n, pt, wt)
+      double precision function assocleg_norm(l, m)
 
+      implicit none
+      integer l
+      integer m
+
+      double precision factorial
+      external factorial
+
+      assocleg_norm = 2.0d0 * factorial(l+m) / (2*l+1) / factorial(l-m)
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_assocleg_fixm(m, lmax, x, pl)
+
+      implicit none
+      integer m
+      integer lmax
+      double precision x
+      double precision pl(abs(m):lmax)
+
+      integer l
+      double precision l_, pl_1, pl_2, double_fact
+      external double_fact
+
+      
+c     l = |m|, m = |m|
+      l = abs(m)
+      p(l) = (-1)**l * double_fact(2*l-1) * (1-x**2)**(dble(l)/2)
+      
+c     l = |m| + 1, m = |m|
+      l = abs(m) + 1
+      p(l) = x * (2*(l-1)+1) * p(l-1)
+      
+c     If m < 0, convert the above first two functions with positive m.
+      if (m < 0) then
+         call wfat_assocleg_convert_negm(m, l, pl(abs(m)))
+         call wfat_assocleg_convert_negm(m, l, pl(abs(m)+1))
+      endif
+
+c     Obtain the functions with l > |m|+1
+      pl_2 = p(abs(m))
+      pl_1 = p(abs(m)+1)
+      do l = abs(m)+2, lmax
+         l_ = dble(l)
+         pl(l) = ((2*l_-1)*x*pl_1 - (l_-1+m)*pl_2) / (l_-m)
+         pl_2 = pl_1
+         pl_1 = pl(l)
+      enddo
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_assocleg_convert_negm(m, l, pl)
+c     DESCRIPTION:
+c     Convert from P_{l,m}(x) to P_{l,-m}(x).
+      implicit none
+      integer m
+      integer l
+      double precision pl   ![in/output]
+
+      double precision factorial
+      external factorial
+
+      pl = (-1)**m * factorial(l-m)/factorial(l+m) * pl
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_assocleg_quad(a, b, m, n, pt, wt)
+c     DESCRIPTION:
+c     This subroutine computes the quadrature nodes and weights of the
+c     Gauss-associated-Legendre quadrature. The nodes are calculated as
+c     the zeros of P_{m+n,m}(x).
       implicit none
 #include "stdio.fh"
 #include "mafdecls.fh"      
 #include "errquit.fh"
       double precision a         ![input], left interval boundary.
       double precision b         ![input], right interval boundary.
-      integer m                  ![input], the m parameter in P_{l,m}(x).
+      integer m                  ![input], the m parameter in P_{l,m}(x) and m >= 0.
       integer n                  ![input], the no. of quadrature nodes.
       double precision pt(n)     ![output], quadrature nodes.
       double precision wt(n)     ![output], quadrature weights.
 
-      integer i, j, j_, l_dm, k_dm, l_nd, k_nd, i_dm, i_dm_, lmax
+      integer i, j, j_, l_dm, k_dm, l_nd, k_nd, i_dm, i_dm_
       double precision wt0, factorial
       external factorial
       
       
       if (m < 0)
      &     call errquit('WFAT: The input m of wfat_assocleg_quad '//
-     &     'cannot be negative.', 42, UERR)
+     &     'cannot be negative. The quadrature nodes and weights '//
+     &     'for a negative value of m are identical to those of '//
+     &     'the corresponding positive m. So, pass the absolute '//
+     &     'value instead.', 42, UERR)
 
-      lmax = m + n      ! We will solve for the zeros of P_{lmax,m}(x).
-      
 
 c     ==== Construct the dipole moment matrix ====
       if (.not. MA_alloc_get(MT_DBL, n**2, 'DM', l_dm, k_dm))

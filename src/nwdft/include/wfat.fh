@@ -26,7 +26,7 @@ c     ==== IO ====
      &     WF_QTEST_UNIT, WF_TAUTEST_UNIT, WF_PHI1TEST_UNIT,
      &     WF_UTEST_UNIT, WF_TAUTEST2_UNIT, WF_OTEST_UNIT,
      &     WF_SF1_UNIT(2), WF_JN_UNIT, WF_KN_UNIT, WF_ERFCTEST_UNIT,
-     &     WF_CORB_UNIT
+     &     WF_CORB_UNIT, WF_D2LAGFUNTEST_UNIT
 
       parameter
      &     (WF_ORBGAP='("      ")', WF_QNTGAP='("   ")',
@@ -46,7 +46,7 @@ c     ==== IO ====
      &     WF_QTEST_UNIT=211, WF_TAUTEST_UNIT=212, WF_PHI1TEST_UNIT=213,
      &     WF_UTEST_UNIT=214, WF_TAUTEST2_UNIT=215, WF_OTEST_UNIT=216,
      &     WF_JN_UNIT=217, WF_KN_UNIT=218, WF_ERFCTEST_UNIT=219,
-     &     WF_CORB_UNIT=220)
+     &     WF_CORB_UNIT=220, WF_D2LAGFUNTEST_UNIT=221)
       
 
 c     ==== Calculations ====
