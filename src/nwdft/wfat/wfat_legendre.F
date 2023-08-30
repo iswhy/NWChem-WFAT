@@ -32,11 +32,11 @@ c=======================================================
       
 c     l = |m|, m = |m|
       l = abs(m)
-      p(l) = (-1)**l * double_fact(2*l-1) * (1-x**2)**(dble(l)/2)
+      pl(l) = (-1)**l * double_fact(2*l-1) * (1-x**2)**(dble(l)/2)
       
 c     l = |m| + 1, m = |m|
       l = abs(m) + 1
-      p(l) = x * (2*(l-1)+1) * p(l-1)
+      pl(l) = x * (2*(l-1)+1) * pl(l-1)
       
 c     If m < 0, convert the above first two functions with positive m.
       if (m < 0) then
@@ -45,8 +45,8 @@ c     If m < 0, convert the above first two functions with positive m.
       endif
 
 c     Obtain the functions with l > |m|+1
-      pl_2 = p(abs(m))
-      pl_1 = p(abs(m)+1)
+      pl_2 = pl(abs(m))
+      pl_1 = pl(abs(m)+1)
       do l = abs(m)+2, lmax
          l_ = dble(l)
          pl(l) = ((2*l_-1)*x*pl_1 - (l_-1+m)*pl_2) / (l_-m)

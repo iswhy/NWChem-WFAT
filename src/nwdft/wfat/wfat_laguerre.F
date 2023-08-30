@@ -707,6 +707,7 @@ c=======================================================
       double precision function laguerre_norm_i(n, m)
 
       implicit none
+#include "errquit.fh"
       integer n, m
 
       double precision factorial, binom_cf
@@ -715,7 +716,7 @@ c=======================================================
       if (m < 0) call errquit('WFAT: The input argument m of '//
      &     'laguerre_norm_i must be such that m >= 0', 58, UERR)
       
-      laguerre_norm = factorial(m) * binom_cf(dble(m+n), n)
+      laguerre_norm_i = factorial(m) * binom_cf(dble(m+n), n)
 
       end
 c=======================================================
@@ -737,7 +738,7 @@ c=======================================================
      &     'laguerre_norm_d must be such that a > -1', 58, UERR)
       
       call wfat_gammaf(a+1, g)
-      laguerre_norm = g * binom_cf(a+n, n)
+      laguerre_norm_d = g * binom_cf(a+n, n)
 
       end
 c=======================================================
