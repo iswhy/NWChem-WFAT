@@ -34,7 +34,7 @@ c     ==== Radial part ====
      &     call errquit('WFAT: Cannot allocate g_r', 1, MA_ERR)
       
       call wfat_laplr_fbrr(nr, abs(m), dbl_mb(k_lr))
-      call wfat_dvr_fbr_r(m, nr, dbl_mb(k_ur))
+      call wfat_dvr_fbr_r(abs(m), nr, dbl_mb(k_ur))
 c     transpose(U_r) . T_r . U_r
       call wfat_represent_sym(nr, nr, dbl_mb(k_ur), dbl_mb(k_lr),
      &     dbl_mb(k_gr))
@@ -43,6 +43,8 @@ c     transpose(U_r) . T_r . U_r
 c     ==== Get the radial quadrature nodes ====
       if (.not. ma_alloc_get(MT_DBL, nr, 'xquad', l_x, k_x))
      &     call errquit('WFAT: Cannot allocate xquad', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nr, 'xweight', l_rw, k_rw))
+     &     call errquit('WFAT: Cannot allocate xweight', 1, MA_ERR)
       call wfat_lf_quadrature_rule(nr, abs(dble(m)), dbl_mb(k_x),
      &     dbl_mb(k_rw))
       
@@ -60,7 +62,7 @@ c     ==== Theta part ====
       do j = 1, nt
          dbl_mb(k_lt+j-1) = dble((abs(m)+j-1) * (abs(m)+j))
       enddo
-      call wfat_dvr_fbr_t(m, nt, dbl_mb(k_ut))
+      call wfat_dvr_fbr_t(abs(m), nt, dbl_mb(k_ut))
 c     transpose(U_t) . T_t . U_t
       call wfat_represent_diag(nt, nt, dbl_mb(k_ut), dbl_mb(k_lt),
      &     dbl_mb(k_gt))
@@ -69,6 +71,8 @@ c     transpose(U_t) . T_t . U_t
 c     ==== Get the polar quadrature nodes ====
       if (.not. ma_alloc_get(MT_DBL, nt, 'tquad', l_t, k_t))
      &     call errquit('WFAT: Cannot allocate tquad', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nt, 'tweight', l_tw, k_tw))
+     &     call errquit('WFAT: Cannot allocate tweight', 1, MA_ERR)
       call wfat_assocleg_quad(-1.0d0, 1.0d0, abs(m), nt, dbl_mb(k_t),
      &     dbl_mb(k_tw))
 
@@ -106,6 +110,8 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: Cannot deallocate g_r', 1, MA_ERR)
       if (.not. ma_free_heap(l_x))
      &     call errquit('WFAT: Cannot deallocate xquad', 1, MA_ERR)
+      if (.not. ma_free_heap(l_rw))
+     &     call errquit('WFAT: Cannot deallocate xweight', 1, MA_ERR)
 
       if (.not. ma_free_heap(l_lt))
      &     call errquit('WFAT: Cannot deallocate lapt', 1, MA_ERR)
@@ -117,6 +123,8 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: Cannot deallocate g_t', 1, MA_ERR)
       if (.not. ma_free_heap(l_t))
      &     call errquit('WFAT: Cannot deallocate tquad', 1, MA_ERR)
+      if (.not. ma_free_heap(l_tw))
+     &     call errquit('WFAT: Cannot deallocate tweight', 1, MA_ERR)
 
       if (.not. ma_free_heap(l_hm))
      &     call errquit('WFAT: Cannot deallocate hm', 1, MA_ERR)
@@ -216,9 +224,10 @@ c        R_i^{|m|}(x) = 1/\sqrt{h_{i-1,m}} x^{|m|/2} \exp(-x/2) L_{i-1}^{|m|}(x)
 c        h_{i,m} = \Gamma(|m|+1) \binom{|m|+i}{i} .
       implicit none
 #include "errquit.fh"
-      integer n
-      integer m
-      double precision lapr(n,n)
+      integer n                    ! [input], the size of the FBR bases, n >= 1.
+      integer m                    ! [input], the generalization parameter of the Laguerre polynomials, m >= 0.
+      double precision lapr(n,n)   ! [output], the matrix representation of radial derivative part of the
+                                   !           Laplacian operator in the FBR basis.
 
       integer i, j, delkron
       double precision mm, v, normi, normj, laguerre_norm_i
@@ -265,18 +274,20 @@ c     Evaluates the radial FBR basis based on the associated Laguerre functions.
       double precision mm, laguerre_norm_i
       external laguerre_norm_i
 
+      if (m < 0) call errquit('WFAT: The input argument m of '//
+     &     'wfat_eval_fbrr must be such that m >= 0', 58, UERR)
       if (x < 0.0d0)
      &     call errquit('WFAT: The input argument r of '//
      &     'wfat_eval_fbrr must be such that r >= 0.', 80, UERR)
       
       mm = dble(m)
-      call wfat_lagfun(1, nr-1, abs(mm), x, rfun)
+      call wfat_lagfun(1, nr-1, mm, x, rfun)
 c     At this point, rfun(1:nr) contains the generalized Laguerre polynomials
 c     L_n^{|m|} from n=0 to n=nr-1.
 
       do i = 1, nr
-         rfun(i) = 1/sqrt(laguerre_norm_i(i-1, abs(m))) *
-     &        x**(abs(mm)/2) * exp(-x/2) * rfun(i)
+         rfun(i) = 1/sqrt(laguerre_norm_i(i-1, m)) * x**(mm/2) * 
+     &        exp(-x/2) * rfun(i)
       enddo
 
       end
@@ -290,7 +301,7 @@ c     DESCRIPTION:
 c     Evaluates the theta FBR basis based on the associated Legendre functions.
       implicit none
 #include "errquit.fh"
-      integer m                     ![input], the magnetic quantum number.
+      integer m                     ![input], the magnetic quantum number, m >= 0
       integer nt                    ![input], the number of theta FBR basis states.
       double precision theta        ![input], polar angle in degrees to evaluate tfun.
       double precision tfun(1:nt)   ![output], the theta FBR basis states.
@@ -301,6 +312,8 @@ c     Evaluates the theta FBR basis based on the associated Legendre functions.
       external assocleg_norm
 
 
+      if (m < 0) call errquit('WFAT: The input argument m of '//
+     &     'wfat_eval_fbrt must be such that m >= 0', 58, UERR)
       if (theta < 0.0d0 .or. theta > 180.0d0)
      &     call errquit('WFAT: The input argument theta of '//
      &     'wfat_eval_fbrt must be such that 0 <= theta <= 180.',
@@ -308,11 +321,11 @@ c     Evaluates the theta FBR basis based on the associated Legendre functions.
 
       th = theta * deg2rad
       x = cos(th)
-      call wfat_assocleg_fixm(abs(m), abs(m)+nt-1, x, tfun)
+      call wfat_assocleg_fixm(m, m+nt-1, x, tfun)
 
       do i = 1, nt
-         l = abs(m) + i - 1
-         tfun(i) = tfun(i) / sqrt(assocleg_norm(l, abs(m)))
+         l = m + i - 1
+         tfun(i) = tfun(i) / sqrt(assocleg_norm(l, m))
       enddo
 
       end
@@ -335,7 +348,9 @@ c     FBR basis.
 
       integer l_pt, k_pt, l_wt, k_wt, l_fb, k_fb, j, i
       double precision mm, w, x, fbrr
-      
+
+      if (m < 0) call errquit('WFAT: The input argument m of '//
+     &     'wfat_dvr_fbr_r must be such that m >= 0', 58, UERR)
 
       mm = dble(m)
       if (.not. MA_alloc_get(MT_DBL, nr, 'pt', l_pt, k_pt))
@@ -347,7 +362,7 @@ c     FBR basis.
 
 
 c     ==== Get the quadrature nodes and weights ====
-      call wfat_lf_quadrature_rule(nr, abs(mm), dbl_mb(k_pt),
+      call wfat_lf_quadrature_rule(nr, mm, dbl_mb(k_pt),
      &     dbl_mb(k_wt))
 
       
@@ -358,7 +373,7 @@ c     ==== Compute the transformation matrix elements ====
          call wfat_eval_fbrr(m, nr, x, dbl_mb(k_fb))
          do i = 1, nr   ! Loop over FBR bases.
             fbrr = dbl_mb(k_fb+i-1)
-            u(i,j) = sqrt(w) * x**(-abs(mm)/2) * exp(x/2) * fbrr
+            u(i,j) = sqrt(w) * x**(-mm/2) * exp(x/2) * fbrr
          enddo
       enddo
 
@@ -393,6 +408,10 @@ c     FBR basis.
       double precision mm, w, x, fbrt, deg2rad
       parameter (deg2rad=0.01745329251994d0)
 
+      
+      if (m < 0) call errquit('WFAT: The input argument m of '//
+     &     'wfat_dvr_fbr_t must be such that m >= 0', 58, UERR)
+      mm = dble(m)
 
       if (.not. MA_alloc_get(MT_DBL, nt, 'pt', l_pt, k_pt))
      &     call errquit('WFAT: pt allocation failed', 59, MA_ERR)
@@ -403,19 +422,18 @@ c     FBR basis.
 
       
 c     ==== Get the quadrature nodes and weights ====
-      call wfat_assocleg_quad(-1.0d0, 1.0d0, abs(m), nt, dbl_mb(k_pt),
+      call wfat_assocleg_quad(-1.0d0, 1.0d0, m, nt, dbl_mb(k_pt),
      &     dbl_mb(k_wt))
 
 
 c     ==== Compute the transformation matrix elements ====
-      mm = dble(m)
       do j = 1, nt              ! Loop over FBR bases.
          w = dbl_mb(k_wt+j-1)
          x = dbl_mb(k_pt+j-1)
          call wfat_eval_fbrt(m, nt, acos(x)/deg2rad, dbl_mb(k_fb))
          do i = 1, nt           ! Loop over DVR bases.
             fbrt = dbl_mb(k_fb+i-1)
-            u(i,j) = sqrt(w) * (1-x**2)**(-abs(mm)/2) * fbrt
+            u(i,j) = sqrt(w) * (1-x**2)**(-mm/2) * fbrt
          enddo
       enddo
 
