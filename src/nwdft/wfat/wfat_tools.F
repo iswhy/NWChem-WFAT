@@ -589,6 +589,43 @@ c===============================================================
 
 c===============================================================
 c===============================================================
+      subroutine wfat_represent_diag(m, n, v, a, b)
+c     b = v^T . a . v
+c     where a is a diagonal matrix.
+      implicit none
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer m
+      integer n
+      double precision v(m,n)
+      double precision a(m)       ! a is symmetric
+      double precision b(n,n)
+
+      integer l_tm, k_tm, i, j, i_tm
+      
+
+      if (.not. ma_alloc_get(MT_DBL, m*n, 'tmp', l_tm, k_tm))
+     &     call errquit('WFAT: Cannot allocate tmp', 1, MA_ERR)
+
+      do j = 1, n
+         do i = 1, m
+            i_tm = k_tm + (j-1)*m + (i-1)
+            dbl_mb(i_tm) = a(i) * v(i,j)
+         enddo
+      enddo
+
+      call wfat_dgemm_wrap('t', 'n', m, n, m, n, 1.0d0, v, dbl_mb(k_tm),
+     &     0.0d0, b)
+
+      if (.not. ma_free_heap(l_tm))
+     &     call errquit('WFAT: Cannot deallocate tmp', 1, MA_ERR)
+
+      end
+c===============================================================
+
+
+c===============================================================
+c===============================================================
       subroutine wfat_represent(m, n, v, a, t, b)
 
       implicit none
@@ -981,6 +1018,25 @@ c=======================================================
 
 c=======================================================
 c=======================================================
+      subroutine wfat_get_identity(n, e)
+
+      implicit none
+      integer n
+      double precision e(n,n)
+
+      integer i
+
+      e = 0.0d0
+      do i = 1, n
+         e(i,i) = 1.0d0
+      enddo
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
       double precision function double_fact(n)
 
       implicit none
@@ -1136,6 +1192,38 @@ c============================================================
       do j = 1, n
          do i = 1, m
             b(i,j) = a( irow(i), icol(j) )
+         enddo
+      enddo
+
+      end
+c============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_kron_prod(ma, na, mb, nb, a, b, c)
+
+      implicit none
+      integer ma
+      integer na
+      integer mb
+      integer nb
+      double precision a(ma,na)
+      double precision b(mb,nb)
+      double precision c(ma*mb, na*nb)
+
+      integer m, n, i, j, ic1, ic2, jc1, jc2
+
+      m = ma * mb
+      n = na * nb
+      do j = 1, na
+         jc1 = (j-1)*nb + 1
+         jc2 = jc1 + nb - 1
+         do i = 1, ma
+            ic1 = (i-1)*mb + 1
+            ic2 = ic1 + mb - 1
+            
+            c(ic1:ic2, jc1:jc2) = a(i,j) * b
          enddo
       enddo
 
