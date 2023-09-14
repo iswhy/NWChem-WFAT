@@ -1267,9 +1267,9 @@ c=======================================================
       double precision chmmt(3, nch)
 
       integer ndid
-      integer l_chgtest(2), l_r1test(2), l_qtest(2)
-      integer l_phi1test(2), l_tautest(2), l_otest(2)
-      integer l_altest(2), l_d2lagtest(2)
+      integer l_chgtest(2), l_r1test(2), l_qtest(2), l_dvrttest(3)
+      integer l_phi1test(2), l_tautest(2), l_otest(2), l_fbrrtest(3)
+      integer l_altest(2), l_d2lagtest(2), l_2a1etest(3), l_dvrrtest(3)
       double precision d_chgutest(2), d_erfctest(5)
 
 
@@ -1322,6 +1322,30 @@ c=======================================================
      &     then
          if (ndid==0)
      &        call wfat_test_d2lag(l_d2lagtest(1), l_d2lagtest(2))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_fbrr', mt_int, 3, l_fbrrtest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_fbrr(l_fbrrtest(1), l_fbrrtest(2),
+     &        l_fbrrtest(3))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_dvrr', mt_int, 3, l_dvrrtest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_dvrr(l_dvrrtest(1), l_dvrrtest(2),
+     &        l_dvrrtest(3))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_dvrt', mt_int, 3, l_dvrttest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_dvrt(l_dvrttest(1), l_dvrttest(2),
+     &        l_dvrttest(3))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_2a1e', mt_int, 3, l_2a1etest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_2a1e(l_2a1etest(1), l_2a1etest(2),
+     &        l_2a1etest(3))
       endif
 
 

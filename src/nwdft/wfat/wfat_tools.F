@@ -1046,16 +1046,26 @@ c=======================================================
       double precision f
       
 
-      if (mod(n,2) == 0) then
-         f = 1.0d0
-         do k = 1, n/2
-            f = f * (2*k)
-         enddo
-      else if (mod(n,2) == 1) then
-         f = 1.0d0
-         do k = 1, (n+1)/2
-            f = f * (2*(k-1))
-         enddo
+      if (n >= 0) then
+         if (mod(n,2) == 0) then
+            f = 1.0d0
+            do k = 1, n/2
+               f = f * (2*k)
+            enddo
+         else if (mod(n,2) == 1) then
+            f = 1.0d0
+            do k = 1, (n+1)/2
+               f = f * (2*k-1)
+            enddo
+         endif
+      else
+         if (mod(abs(n),2) == 1) then  ! negative odd integer n.
+            f = 1.0d0
+            do k = 1, (n+1)/2
+               f = f * (2*k-1)
+            enddo
+            f = (-1)**((abs(n)-1)/2) * abs(n) / f
+         endif
       endif
       double_fact = f
 
@@ -1301,5 +1311,40 @@ c============================================================
 
       end
 c============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_num_derivative2(n, dx, f, d2f)
+
+      implicit none
+      integer n
+      double precision dx
+      double precision f(n)
+      double precision d2f(n)
+
+      integer i
+
+
+      do i = 1, n
+         if (i == 1) then
+c           ==== 3-point forward ====
+            d2f(i) = (f(i+2) - 2*f(i+1) + f(i)) / dx**2
+         else if (i == 2 .or. i == n-1) then
+c           ==== 3-point central ====
+            d2f(i) = (f(i+1) - 2*f(i) + f(i-1)) / dx**2
+         else if (i == n) then
+c           ==== 3-point backward ====
+            d2f(i) = (f(i) - 2*f(i-1) + f(i-2)) / dx**2
+         else
+c           ==== 5-point central ====
+            d2f(i) = (-f(i+2) + 16*f(i+1) - 30*f(i) + 16*f(i-1) 
+     &           - f(i-2)) / (12*dx**2)
+         endif
+      enddo
+
+      end
+c============================================================
+      
       
       

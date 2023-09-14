@@ -20,6 +20,7 @@ c=======================================================
       subroutine wfat_assocleg_fixm(m, lmax, x, pl)
 
       implicit none
+#include "stdio.fh"
       integer m
       integer lmax
       double precision x
@@ -33,10 +34,12 @@ c=======================================================
 c     l = |m|, m = |m|
       l = abs(m)
       pl(l) = (-1)**l * double_fact(2*l-1) * (1-x**2)**(dble(l)/2)
+c      write(luout, '("P_m = ", f16.8)') pl(l)
       
 c     l = |m| + 1, m = |m|
       l = abs(m) + 1
       pl(l) = x * (2*(l-1)+1) * pl(l-1)
+c      write(luout, '("P_m+1 = ", f16.8)') pl(l)
       
 c     If m < 0, convert the above first two functions with positive m.
       if (m < 0) then
@@ -54,6 +57,8 @@ c     Obtain the functions with l > |m|+1
          pl_1 = pl(l)
       enddo
 
+c      write(luout, '("P_l:")')
+c      call wfat_dprintmat(lmax-abs(m)+1, 1, 'f', pl)
       end
 c=======================================================
 

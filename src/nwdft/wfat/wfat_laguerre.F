@@ -665,6 +665,7 @@ c     DESCRIPTION:
 c     Calculate the integral of eq. (19) in Ref. [1].
       implicit none
 #include "errquit.fh"
+#include "stdio.fh"
       double precision a
       double precision b
       double precision c
@@ -686,8 +687,8 @@ c     Calculate the integral of eq. (19) in Ref. [1].
          s = s + binom_cf(c-a,m-k) * binom_cf(c-b,n-k) * binom_cf(c+k,k)
       enddo
 
-      if (abs(g-idnint(g)) <= 1.0d-12) then
-         g = factorial(c)
+      if (abs(c-idnint(c)) <= 1.0d-12) then
+         g = factorial(idnint(c))
       else
          call wfat_gammaf(c+1, g)
       endif

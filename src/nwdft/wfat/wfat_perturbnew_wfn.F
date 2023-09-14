@@ -122,7 +122,15 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_calc_polb(nch, orbid, spinid, dpmo, pb)
-
+c     DESCRIPTION:
+c     Computes the molecular frame static polarizability tensor for the MOs whose index
+c     are contained in orbid. The tensor $\alpha$ is calculated as
+c     $$
+c     alpha_{ij} = \sum_n \langle u_m | x_i | u_n \rangle \langle u_n | x_j | u_m \rangle
+c                  \frac{1}{e_m - e_n} .
+c     $$
+c     where u_n is the MO for which the polarizability tensor is computed, u_m is the MOs
+c     (including u_n), and e_n is the orbital energy. i = 1,2,3.
       implicit none
 #include "wfat_qm_param.fh"
 #include "mafdecls.fh"
@@ -136,16 +144,16 @@ c=======================================================
       double precision derg, pb0
 
 
-      do i = 1, nch
-         io = orbid(i)
+      do i = 1, nch      ! Loop over ionization channels.
+         io = orbid(i) 
          is = spinid(i)
-         do j2 = 1, 3
-            do j1 = 1, 3
+         do j2 = 1, 3         ! Loop over Cartesian coordinates.
+            do j1 = 1, 3         ! Loop over Cartesian coordinates.
 
                pb(j1,j2,i) = 0.0d0
-               do m = 1, nbas0
-                  id0 = int_mb(k_modgid + (is-1)*nbas0 + (io-1))
-                  idm = int_mb(k_modgid + (is-1)*nbas0 + (m-1))
+               do m = 1, nbas0      ! Loop over the MOs.
+                  id0 = int_mb(k_modgid + (is-1)*nbas0 + (io-1))    ! Index of the reference MO.
+                  idm = int_mb(k_modgid + (is-1)*nbas0 + (m-1))     ! Index of the scanned MOs.
                   if (id0 /= idm) then
                      ieg0 = k_moerg + (is-1)*nbas0 + (io-1)
                      iegm = k_moerg + (is-1)*nbas0 + (m-1)
