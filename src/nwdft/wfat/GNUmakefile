@@ -96,6 +96,7 @@
 	wfat_test_2a1e.o \
 	wfat_test_dvrr.o \
 	wfat_test_dvrt.o \
+	wfat_test_3j.o \
 	mewfat_task.o \
 	mewfat_init.o \
 	mewfat_print_info.o \

@@ -1270,6 +1270,7 @@ c=======================================================
       integer l_chgtest(2), l_r1test(2), l_qtest(2), l_dvrttest(3)
       integer l_phi1test(2), l_tautest(2), l_otest(2), l_fbrrtest(3)
       integer l_altest(2), l_d2lagtest(2), l_2a1etest(3), l_dvrrtest(3)
+      integer l_3jtest(4), l_3j0test(2)
       double precision d_chgutest(2), d_erfctest(5)
 
 
@@ -1341,13 +1342,24 @@ c=======================================================
      &        call wfat_test_dvrt(l_dvrttest(1), l_dvrttest(2),
      &        l_dvrttest(3))
       endif
+      if (rtdb_get(rtdb, 'wfat:test_3j', mt_int, 4, l_3jtest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_3j(l_3jtest(1), l_3jtest(2), l_3jtest(3),
+     &        l_3jtest(4))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_3j000', mt_int, 2, l_3j0test))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_3j000(l_3j0test(1), l_3j0test(2))
+      endif
       if (rtdb_get(rtdb, 'wfat:test_2a1e', mt_int, 3, l_2a1etest))
      &     then
          if (ndid==0)
      &        call wfat_test_2a1e(l_2a1etest(1), l_2a1etest(2),
      &        l_2a1etest(3))
       endif
-
+      
 
       call ga_sync()
       
