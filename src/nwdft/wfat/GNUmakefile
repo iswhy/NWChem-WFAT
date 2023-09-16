@@ -84,6 +84,7 @@
 	wfat_sumyield_lebedev.o \
 	wfat_2a1e.o \
 	wfat_3j.o \
+	wfat_gaunt.o \
 	wfat_test_chg.o \
 	wfat_test_r1.o \
 	wfat_test_q.o \
@@ -97,6 +98,7 @@
 	wfat_test_dvrr.o \
 	wfat_test_dvrt.o \
 	wfat_test_3j.o \
+	wfat_test_gaunt.o \
 	mewfat_task.o \
 	mewfat_init.o \
 	mewfat_print_info.o \

@@ -4,7 +4,7 @@
 c     / j1  j2      j3   \
 c     \ m1  m2  -(m1+m2) /
 c     for j3 = [j_min, j1+j2], where
-c     j_min = max(|j1-j2|,|m1+m2|)
+c     j_min = max(|j1-j2|,|m1+m2|).
       implicit none
       integer tj1
       integer tm1
@@ -59,7 +59,9 @@ c     ==== Begin the recurrence ====
 !==================================================
 !==================================================
       subroutine wfat_3j_jscan000(j1, j2, cf)
-
+c     / j1  j2  j3 \
+c     \  0   0   0 /
+c     for j3 = [|j1-j2|, j1+j2].
       implicit none
       integer j1
       integer j2
