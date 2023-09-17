@@ -1,10 +1,12 @@
 !==================================================
 !==================================================
       subroutine wfat_3j_jscan(tj1, tm1, tj2, tm2, cf)
-c     / j1  j2      j3   \
-c     \ m1  m2  -(m1+m2) /
-c     for j3 = [j_min, j1+j2], where
-c     j_min = max(|j1-j2|,|m1+m2|).
+c     DESCRIPTION:
+c     Calculates the Wigner 3-j coefficients
+c       / j1  j2      j3   \
+c       \ m1  m2  -(m1+m2) /
+c     for $j3 = [j_min, j1+j2]$, where
+c     $j_min = max(|j1-j2|,|m1+m2|)$.
       implicit none
       integer tj1
       integer tm1
@@ -59,9 +61,11 @@ c     ==== Begin the recurrence ====
 !==================================================
 !==================================================
       subroutine wfat_3j_jscan000(j1, j2, cf)
-c     / j1  j2  j3 \
-c     \  0   0   0 /
-c     for j3 = [|j1-j2|, j1+j2].
+c     DESCRIPTION:
+c     Calculates the Wigner 3-j coefficients
+c       / j1  j2  j3 \
+c       \  0   0   0 /
+c     for $j3 = [|j1-j2|, j1+j2]$.
       implicit none
       integer j1
       integer j2
@@ -94,7 +98,7 @@ c     ==== Begin the recurrence ====
 !==================================================
 !==================================================
       subroutine wfat_3j_special_type1(tj1, tm1, tj2, tm2, cf)
-c     Calculate the 3-j symbol:
+c     Calculates the 3-j coefficients:
 c     / j1  j2   |j1-j2| \
 c     \ m1  m2  -(m1+m2) /
       implicit none 
@@ -103,7 +107,7 @@ c     \ m1  m2  -(m1+m2) /
       integer tm1    ! [input], 2*m1
       integer tj2    ! [input], 2*j2
       integer tm2    ! [input], 2*m2
-      double precision cf     ! [output], the 3-j symbol
+      double precision cf     ! [output], the 3-j coefficients
 
       integer i, n, j
       double precision f, j1, m1, j2, m2, j3, v(9), j1_, m1_, j2_, m2_
@@ -192,7 +196,7 @@ c         Theory of Angular Momentum (World Scientific, Singapore, 1988).
 !==================================================
 !==================================================
       subroutine wfat_3j_special_type2(tj1, tm1, tj2, tm2, tm3, cf)
-c     Calculate the 3-j symbol:
+c     Calculates the 3-j coefficients:
 c     / j1  j2  |m3| \  or  / j1  j2  |m3| \
 c     \ m1  m2   m3  /      \ m1  m2   -m3 /
       implicit none 
@@ -202,7 +206,7 @@ c     \ m1  m2   m3  /      \ m1  m2   -m3 /
       integer tj2    ! [input], 2*j2
       integer tm2    ! [input], 2*m2
       integer tm3    ! [input], 2*m3
-      double precision cf     ! [output], the 3-j symbol
+      double precision cf     ! [output], the 3-j coefficients
 
       integer i, n, j
       double precision f, j1, m1, j2, m2, j3, v(9)
@@ -298,7 +302,7 @@ c     \ m1  m2   -(m1+m2) /
       integer tm1    ! [input], 2*m1
       integer tj2    ! [input], 2*j2
       integer tm2    ! [input], 2*m2
-      double precision cf     ! [output], the 3-j symbol
+      double precision cf     ! [output], the 3-j coefficients
 
       integer i, n, j
       double precision f, j1, m1, j2, m2, j3, v0, v(9), j1_, m1_, j2_
@@ -390,7 +394,7 @@ c         Theory of Angular Momentum (World Scientific, Singapore, 1988).
 !==================================================
 !==================================================
       subroutine wfat_3j_special_type4(tj1, tm1, tj2, tm2, tm3, cf)
-c     Calculate the 3-j symbol:
+c     Calculates the 3-j coefficients:
 c     / j1  j2  |m3|+1 \  or  / j1  j2  |m3|+1 \
 c     \ m1  m2    m3   /      \ m1  m2    -m3  /
       implicit none
@@ -400,7 +404,7 @@ c     \ m1  m2    m3   /      \ m1  m2    -m3  /
       integer tj2    ! [input], 2*j2
       integer tm2    ! [input], 2*m2
       integer tm3    ! [input], 2*m3
-      double precision cf     ! [output], the 3-j symbol
+      double precision cf     ! [output], the 3-j coefficients
 
       integer i, n, j
       double precision f, j1, m1, j2, m2, j3, c, v0, v(9)
@@ -490,7 +494,7 @@ c         Theory of Angular Momentum (World Scientific, Singapore, 1988).
 !==================================================
 !==================================================
       subroutine wfat_3j_special_type5(j1, j2, cf)
-c     Calculate the 3-j symbol:
+c     Calculates the 3-j coefficients:
 c     / j1  j2   |j1-j2| \
 c     \  0   0      0    /
       implicit none

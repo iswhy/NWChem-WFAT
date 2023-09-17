@@ -1,19 +1,34 @@
 !==================================================
 !==================================================
-      subroutine wfat_gaunt_lscan(l1, m1, l2, m2, gn)
-
+      subroutine wfat_gauntp_lscan(l1, m1, l2, m2, gn)
+c     DESCRIPTION:
+c     Calculates Gaunt's integral defined as
+c     $$
+c       I(l1,m2,l2,m2,l3,m3) = \int_{-1}^1 dx P_{l1,m1}(x) P_{l2,m2}(x) P_{l3,m3}(x)
+c     $$
+c     for $l3=[l_min, l1+l2]$, where $l_min=max(|l1-l2|,|m1+m2|)$ and $P_{lm}(x)$ 
+c     is a NORMALIZED associated Legendre function, that is,
+c     $$
+c       \int_{-1}^1 dx (P_{lm}(x))^2 = 1 .
+c     $$
       implicit none
 #include "stdio.fh"      
 #include "mafdecls.fh"
 #include "errquit.fh"
-      integer l1
-      integer m1
-      integer l2
-      integer m2
-      double precision gn(1:*)
+      integer l1                ! [input], l1
+      integer m1                ! [input], m1
+      integer l2                ! [input], l2
+      integer m2                ! [input], m2
+      double precision gn(1:*)  ! [output], Gaunt's integrals, the minimum size should be l1+l2 - max(abs(l1-l2),abs(m1+m2)) + 1.
 
       integer l_min, n, n0, l_3j, k_3j, l_3j0, k_3j0, i, l3, i0
       double precision f
+
+
+      if (l1<0 .or. l2<0 .or. l3<0)
+     &     call errquit('WFAT: The argument l1, l2, and l3 of '//
+     &     'wfat_gauntp_lscan and wfat_gaunty_lscan must be zero '//
+     &     'or positive integers.', 63, UERR)
 
       
 c     / l1  l2      l3   \
@@ -33,10 +48,6 @@ c     where l3 = [|l1-l2|,l1+l2].
       if (.not. MA_alloc_get(MT_DBL, n0, '3j_000', l_3j0, k_3j0))
      &     call errquit('WFAT: 3j_000 allocation failed', 59, MA_ERR)
       call wfat_3j_jscan000(l1, l2, dbl_mb(k_3j0))
-cOLD      do i = 1, n0
-cOLD         write(luout, '("000 ", i5, f12.8)')
-cOLD     &        abs(l1-l2)+i-1, dbl_mb(k_3j0+i-1)
-cOLD      enddo
 
       
       gn(1:n) = 0.0d0
@@ -44,12 +55,10 @@ cOLD      enddo
          l3 = l_min + i - 1
          i0 = i + l_min - abs(l1-l2)
          if (mod(l1+l2+l3,2) == 0) then
-            call wfat_gaunt_f(l1, m1, l2, m2, l3, f)
+            f = (2*l1+1) * (2*l2+1) * (2*l3+1) / 2.0d0
             gn(i) = dbl_mb(k_3j0+i0-1) * dbl_mb(k_3j+i-1)
-            gn(i) = 2 * (-1)**(m1+m2) * sqrt(f) * gn(i)
+            gn(i) = (-1)**(m1+m2) * sqrt(f) * gn(i)
          endif
-cc         write(luout, '(i5, es16.8, 2f12.8)')
-cc     &        l3, f, dbl_mb(k_3j0+i0-1), dbl_mb(k_3j+i-1)
       enddo
 
 
@@ -63,43 +72,32 @@ cc     &        l3, f, dbl_mb(k_3j0+i0-1), dbl_mb(k_3j+i-1)
 
 !==================================================
 !==================================================
-      subroutine wfat_gaunt_f(l1, m1, l2, m2, l3, f)
-
+      subroutine wfat_gaunty_lscan(l1, m1, l2, m2, gn)
+c     DESCRIPTION:
+c     Calculates Gaunt's integral defined as
+c     $$
+c       I(l1,m2,l2,m2,l3,m3) = \int_{-1}^1 dx Y_{l1,m1}(x) Y_{l2,m2}(x) Y_{l3,m3}(x)
+c     $$
+c     for $l3=[l_min, l1+l2]$, where $l_min=max(|l1-l2|,|m1+m2|)$.
       implicit none
-#include "stdio.fh"
-      integer l1
-      integer m1
-      integer l2
-      integer m2
-      integer l3
-      double precision f
+      integer l1                ! [input], l1
+      integer m1                ! [input], m1
+      integer l2                ! [input], l2
+      integer m2                ! [input], m2
+      double precision gn(1:*)  ! [output], Gaunt's integrals, the minimum size should be l1+l2 - max(abs(l1-l2),abs(m1+m2)) + 1.
 
-      integer i, j, nv
-      double precision v(6)
+      integer l_min, n, i
+      double precision pi_const
+      parameter (pi_const=3.14159265359d0)
 
+      call wfat_gauntp_lscan(l1, m1, l2, m2, gn)
 
-      v(1) = l1 + m1
-      v(2) = l2 + m2
-      v(3) = l3 + m1 + m2
-      v(4) = l1 - m1
-      v(5) = l2 - m2
-      v(6) = l3 - m1 - m2
-      do i = 1, 6
-         if (abs(v(i)) < 1.0d-12) v(i) = 1.0d0
-      enddo
-      
-      nv = idnint(maxval(v))
-      f = 1.0d0
-      do i = 1, nv
-c         write(luout, '("v = ", 6f12.8, 5x, es16.8)') v, f
-         f = f * v(1) * v(2) * v(3) / v(4) / v(5) / v(6)
-         do j = 1, 6
-            v(j) = v(j) - 1
-            if (idnint(v(j)) < 1) v(j) = 1.0d0
-         enddo
+      l_min = max(abs(l1-l2), abs(m1+m2))
+      n = (l1+l2) - l_min + 1
+      do i = 1, n
+         gn(i) = gn(i)/(-1)**(m1+m2)/sqrt(2*pi_const)
       enddo
 
       end
 !==================================================
-      
       
