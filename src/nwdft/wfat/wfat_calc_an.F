@@ -93,7 +93,7 @@ c           ==== Get the degenerate manifold ID ====
             dgtest = (nn > 1)
             isdiag = .true.
             if (dgtest) then
-c              ==== Construct the H_int within the degenerate MO's ====
+c              ==== Construct H_int within the degenerate MO's ====
                scr(p_ht0:p_ht0+nn**2-1) = 0.0d0
                do k = 1, 3
                   call wfat_submatrix(nb, nb, dpmo(:,:,is,k), nn, 
@@ -387,7 +387,14 @@ c============================================================
 c============================================================
       subroutine wfat_setorder_polb(nch, n, mfid, orbid0, ispin, nb, ns,
      &     dpmo, cf, pbd)
-
+c     DESCRIPTION:
+c     This subroutine reorders the diagonalizing degenerate channels such that
+c     they are ordered in the inreasing sum of the diagonal elements of their 
+c     respective polarizability tensors. This is done because the (coefficients 
+c     of the) diagonalizing degenerate channels change with the orientation angles.
+c     Without some sort of standard to fix the ordering of the columns of cf, the
+c     angular dependence of, e.g., structure factors and ionization rates will
+c     screwed up by ambiguities.
       implicit none
 #include "mafdecls.fh"
 #include "errquit.fh"

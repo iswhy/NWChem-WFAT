@@ -83,6 +83,7 @@
 	wfat_calc_phixi.o \
 	wfat_sumyield_lebedev.o \
 	wfat_2a1e.o \
+	wfat_2a1e_dipole.o \
 	wfat_3j.o \
 	wfat_gaunt.o \
 	wfat_test_chg.o \

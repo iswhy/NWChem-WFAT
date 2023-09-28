@@ -1,7 +1,7 @@
 c==========================================================
 c==========================================================
       subroutine wfat_2a1e_solve(m, nr, nt, q1, q2, z1, z2, ke,
-     &     adapt_ke, maxiter, coef, erg)
+     &     adapt_ke, maxiter, id_target, eps, coef, erg)
 
       implicit none
 #include "stdio.fh"
@@ -17,6 +17,8 @@ c==========================================================
       double precision ke                    ! [in/output]
       logical adapt_ke
       integer maxiter                        ! [input], only used when adapt_ke=.true.
+      integer id_target                      ! [input], only used when adapt_ke=.true.
+      double precision eps                   ! [input], smooth Coulomb parameter.
       double precision coef(nr*nt, nr*nt)    ! [output],
       double precision erg(nr*nt)            ! [output],
       
@@ -117,16 +119,16 @@ c     ==== Hamiltonian construction ====
       do iter = 1, maxiter_
          call wfat_2a1e_hamiltonian(nr, nt, dbl_mb(k_x), dbl_mb(k_t),
      &        dbl_mb(k_gr), dbl_mb(k_ht), dbl_mb(k_hr), dbl_mb(k_gt), 
-     &        ke, q1, q2, z1, z2, coef)
+     &        ke, q1, q2, z1, z2, eps, coef)
       
 c        ==== Hamiltonian diagonalization ====
          call wfat_dsyev_wrap(nr*nt, coef, erg)
 
          if (adapt_ke) then
             write(luout, '(i5, ") energy, delta energy = ", 2f15.8)')
-     &           iter, erg(1), erg(1) - e0
-            e0 = erg(1)
-            ke = sqrt( 2 * abs(erg(1)) )
+     &           iter, erg(id_target), erg(id_target) - e0
+            e0 = erg(id_target)
+            ke = sqrt( 2 * abs(erg(id_target)) )
          endif
       enddo
       
@@ -165,7 +167,7 @@ c==========================================================
 c==========================================================
 c==========================================================
       subroutine wfat_2a1e_hamiltonian(nr, nt, xquad, tquad, gr, ht, hr,
-     &     gt, ke, q1, q2, z1, z2, hm)
+     &     gt, ke, q1, q2, z1, z2, eps, hm)
 
       implicit none
 #include "mafdecls.fh"      
@@ -184,6 +186,7 @@ c==========================================================
       double precision q2
       double precision z1
       double precision z2
+      double precision eps
       double precision hm(nr*nt, nr*nt)
 
       integer i, j, n, i_tm1, i_tm2, l_tm1, k_tm1, l_tm2, k_tm2, i_r
@@ -222,8 +225,8 @@ c     ==== Nuclear attraction part ====
 
             vdist1 = (/ x/ke*sin(t), x/ke*cos(t) - z1 /)
             vdist2 = (/ x/ke*sin(t), x/ke*cos(t) - z2 /)
-            dist1 = sqrt(sum(vdist1 * vdist1))
-            dist2 = sqrt(sum(vdist2 * vdist2))
+            dist1 = sqrt(sum(vdist1 * vdist1) + eps)
+            dist2 = sqrt(sum(vdist2 * vdist2) + eps)
             pot = - (q1/dist1 + q2/dist2)
 
 c            pot = - (1/x) * ke
@@ -317,20 +320,22 @@ c==========================================================
 
 c==========================================================
 c==========================================================
-      subroutine wfat_eval_fbrr(m, nr, x, rfun)
+      subroutine wfat_eval_fbrr(m, nr, ke, r, rfun)
 c     DESCRIPTION:
 c     Evaluates the radial FBR basis based on the associated Laguerre functions.
       implicit none
 #include "errquit.fh"
       integer m
       integer nr
-      double precision x
+      double precision ke
+      double precision r
       double precision rfun(nr)
 
       integer i
-      double precision mm, laguerre_norm_i
+      double precision mm, x, laguerre_norm_i
       external laguerre_norm_i
 
+      x = ke * r
       if (m < 0) call errquit('WFAT: The input argument m of '//
      &     'wfat_eval_fbrr must be such that m >= 0', 58, UERR)
       if (x < 0.0d0)
@@ -343,8 +348,8 @@ c     At this point, rfun(1:nr) contains the generalized Laguerre polynomials
 c     L_n^{|m|+2} from n=0 to n=nr-1 evaluated at x.
 
       do i = 1, nr
-         rfun(i) = 1/sqrt(laguerre_norm_i(i-1, m+2)) * x**(mm/2) * 
-     &        exp(-x/2) * rfun(i)
+         rfun(i) = sqrt(ke**3) * 1/sqrt(laguerre_norm_i(i-1, m+2)) * 
+     &        x**(mm/2) * exp(-x/2) * rfun(i)
       enddo
 
       end
@@ -358,7 +363,7 @@ c     DESCRIPTION:
 c     Evaluates the theta FBR basis based on the associated Legendre functions.
       implicit none
 #include "errquit.fh"
-      integer m                     ![input], the magnetic quantum number, m >= 0
+      integer m                     ![input], the magnetic quantum number, m >= 0.
       integer nt                    ![input], the number of theta FBR basis states.
       double precision theta        ![input], polar angle in degrees to evaluate tfun.
       double precision tfun(1:nt)   ![output], the theta FBR basis states.
@@ -391,7 +396,7 @@ c==========================================================
 
 c==========================================================
 c==========================================================
-      subroutine wfat_eval_dvrr(m, nr, x, dvrr)
+      subroutine wfat_eval_dvrr(m, nr, ke, r, dvrr)
 
       implicit none
 #include "stdio.fh"
@@ -399,7 +404,8 @@ c==========================================================
 #include "errquit.fh"
       integer m
       integer nr
-      double precision x
+      double precision ke
+      double precision r
       double precision dvrr(nr)
 
       integer i, l_fb, k_fb, l_u, k_u, i_u
@@ -415,7 +421,7 @@ c==========================================================
 
 
       call wfat_dvr_fbr_r(m, nr, dbl_mb(k_u))
-      call wfat_eval_fbrr(m, nr, x, dbl_mb(k_fb))
+      call wfat_eval_fbrr(m, nr, ke, r, dbl_mb(k_fb))
 
       do i = 1, nr
          i_u = k_u + (i-1)*nr
@@ -427,6 +433,48 @@ c==========================================================
      &     call errquit('WFAT: Cannot deallocate fbrr', 1, MA_ERR)
       if (.not. ma_free_heap(l_u))
      &     call errquit('WFAT: Cannot deallocate u_r', 1, MA_ERR)
+
+      end
+c==========================================================
+
+
+c==========================================================
+c==========================================================
+      subroutine wfat_eval_dvrt(m, nt, theta, dvrt)
+
+      implicit none
+#include "mafdecls.fh"      
+#include "errquit.fh"
+      integer m                  ![input], the magnetic quantum number, m >= 0.
+      integer nt                 ![input], the number of theta DVR basis states.
+      double precision theta     ![input], polar angle in degrees to evaluate dvrt.
+      double precision dvrt(nt)  ![output], the theta DVR basis states.
+
+      integer i, l_fb, k_fb, l_u, k_u, i_u
+
+
+      if (m < 0) call errquit('WFAT: The input argument m of '//
+     &     'wfat_eval_dvrt must be such that m >= 0', 58, UERR)
+
+      if (.not. ma_alloc_get(MT_DBL, nt, 'fbrt', l_fb, k_fb))
+     &     call errquit('WFAT: Cannot allocate fbrt', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nt*nt, 'u_t', l_u, k_u))
+     &     call errquit('WFAT: Cannot allocate u_t', 1, MA_ERR)
+      
+
+      call wfat_dvr_fbr_t(m, nt, dbl_mb(k_u))
+      call wfat_eval_fbrt(m, nt, theta, dbl_mb(k_fb))
+
+      do i = 1, nt
+         i_u = k_u + (i-1)*nt
+         dvrt(i) = sum(dbl_mb(i_u:i_u+nt-1) * dbl_mb(k_fb:k_fb+nt-1))
+      enddo
+
+      
+      if (.not. ma_free_heap(l_fb))
+     &     call errquit('WFAT: Cannot deallocate fbrt', 1, MA_ERR)
+      if (.not. ma_free_heap(l_u))
+     &     call errquit('WFAT: Cannot deallocate u_t', 1, MA_ERR)
 
       end
 c==========================================================

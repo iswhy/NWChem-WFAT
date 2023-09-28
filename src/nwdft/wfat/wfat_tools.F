@@ -1106,6 +1106,7 @@ C     This subroutine calculates the binomial coefficient defined in eq. (6)
 c     in Ref. [1].
       implicit none
 #include "errquit.fh"
+#include "stdio.fh"
       double precision p
       integer n
 
@@ -1113,11 +1114,13 @@ c     in Ref. [1].
       double precision f
 
 
+c      write(luout, '("bn1")') 
       if (n == 0) then
          binom_cf = 1.0d0
       else if (n > 0) then
          f = 1.0d0
          do i = 1, n
+c            write(luout, '("bn2", i6)') i
             f = f * (p-i+1)/dble(i)
          enddo
          binom_cf = f

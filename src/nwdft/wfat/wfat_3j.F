@@ -30,6 +30,7 @@ c     ==== Determine the type of the first 3-j symbol ====
 c        / j1  j2   |j1-j2| \
 c        \ m1  m2  -(m1+m2) /
          call wfat_3j_special_type1(tj1, tm1, tj2, tm2, cf(1))
+         if (abs(tj1-tj2) == tj1+tj2) return
 c        / j1  j2  |j1-j2|+1 \
 c        \ m1  m2   -(m1+m2) /
          call wfat_3j_special_type3(tj1, tm1, tj2, tm2, cf(2))
@@ -38,6 +39,7 @@ c        / j1  j2   |m1+m2| \
 c        \ m1  m2  -(m1+m2) /
          call wfat_3j_special_type2(tj1, tm1, tj2, tm2, -(tm1+tm2),
      &        cf(1))
+         if (abs(tm1+tm2) == tj1+tj2) return
 c        / j1  j2   |m1+m2|+1 \
 c        \ m1  m2    -(m1+m2) /
          call wfat_3j_special_type4(tj1, tm1, tj2, tm2, -(tm1+tm2),

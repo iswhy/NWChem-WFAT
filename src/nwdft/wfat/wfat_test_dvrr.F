@@ -3,12 +3,20 @@ c==========================================================
       subroutine wfat_test_dvrr(m, nr, ntpz)
 
       implicit none
+#include "errquit.fh"
       integer m
       integer nr
       integer ntpz
+
+      double precision ke
+
+
+      call errquit('WFAT: The wfat_test_dvrr subroutine has not '//
+     &     'been revised following the debugging related to ke. First'//
+     &     ' fix this before using this routine.', 32, UERR)
       
-      call wfat_test_ovl_dvr(m, nr, ntpz)
-      call wfat_test_laplr_dvr(m, nr, ntpz)
+      call wfat_test_ovl_dvr(m, nr, ke, ntpz)
+      call wfat_test_laplr_dvr(m, nr, ke, ntpz)
 
       end
 c==========================================================
@@ -16,7 +24,7 @@ c==========================================================
       
 c==========================================================
 c==========================================================
-      subroutine wfat_test_ovl_dvr(m, nr, ntpz)
+      subroutine wfat_test_ovl_dvr(m, nr, ke, ntpz)
 
       implicit none
 #include "stdio.fh"
@@ -24,6 +32,7 @@ c==========================================================
 #include "errquit.fh"
       integer m
       integer nr
+      double precision ke
       integer ntpz
 
       integer i, j, k, l_tm, k_tm, l_s, k_s, i_s, i_tm0, i_tmn, i_tm
@@ -31,6 +40,11 @@ c==========================================================
       double precision x0, xn, dx, x, s, s1, sn, w
 
 
+      call errquit('WFAT: The wfat_test_ovl_dvr subroutine has not '//
+     &     'been revised following the debugging related to ke. First'//
+     &     ' fix this before using this routine.', 32, UERR)
+
+      ke = 1.0d0
       write(luout, '("Testing radial DVR overlap ...")')
       
       if (.not. ma_alloc_get(MT_DBL, ntpz*nr, 'tmp', l_tm, k_tm))
@@ -48,7 +62,7 @@ c     == Construct the trapezoid points ==
          x = x0 + (i-1)*dx
          i_tm0 = k_tm + (1-1)*ntpz + (i-1)      ! The first DVR at x.
          i_tmn = k_tm + (nr-1)*ntpz + (i-1)     ! The last DVR at x.
-         call wfat_eval_dvrr(m, nr, x, dbl_mb(i_tm0:i_tmn:ntpz))   ! 1)
+         call wfat_eval_dvrr(m, nr, ke, x/ke, dbl_mb(i_tm0:i_tmn:ntpz))   ! 1)
       enddo
 c     Notes:
 c     1) The row of tmp are the trapezoid points, the columns are the DVR functions.
@@ -100,7 +114,7 @@ c     ==== Check the values of the DVR functions at the quadrature points ====
       do i = 1, nr              ! Loop over radial quadrature points
          x = dbl_mb(k_x + i - 1)
          i_dv = k_dv + (i-1)*nr
-         call wfat_eval_dvrr(abs(m), nr, x, dbl_mb(i_dv))
+         call wfat_eval_dvrr(abs(m), nr, ke, x/ke, dbl_mb(i_dv))
          w = dbl_mb(k_rw + i - 1)
          write(luout, '(f10.5)', advance='no')
      &        exp(-x/2) * x**(abs(dble(m))/2) / sqrt(w)
@@ -141,10 +155,15 @@ c==========================================================
 
       integer i, j, k, l_tm, k_tm, l_s, k_s, i_s, i_tm0, i_tmn, i_tm
       integer j_tm
-      double precision x0, xn, dx, x, s, s1, sn
+      double precision x0, xn, dx, x, s, s1, sn, ke
 
 
+      call errquit('WFAT: The wfat_test_fbrr subroutine has not been '//
+     &     'revised following the debugging related to ke. First fix '//
+     &     'this before using this routine.', 32, UERR)
+      
       write(luout, '("Testing radial FBR overlap ...")')
+      ke = 1.0d0
       
       if (.not. ma_alloc_get(MT_DBL, ntpz*nr, 'tmp', l_tm, k_tm))
      &     call errquit('WFAT: Cannot allocate tmp', 1, MA_ERR)
@@ -161,7 +180,7 @@ c     == Construct the trapezoid points ==
          x = x0 + (i-1)*dx
          i_tm0 = k_tm + (1-1)*ntpz + (i-1)      ! The first FBR at x.
          i_tmn = k_tm + (nr-1)*ntpz + (i-1)     ! The last FBR at x.
-         call wfat_eval_fbrr(m, nr, x, dbl_mb(i_tm0:i_tmn:ntpz))
+         call wfat_eval_fbrr(m, nr, ke, x/ke, dbl_mb(i_tm0:i_tmn:ntpz))
       enddo
       
 
@@ -197,7 +216,7 @@ c==========================================================
 
 c==========================================================
 c==========================================================
-      subroutine wfat_test_laplr_dvr(m, nr, ntpz)
+      subroutine wfat_test_laplr_dvr(m, nr, ke, ntpz)
 
       implicit none
 #include "stdio.fh"
@@ -206,6 +225,7 @@ c==========================================================
       integer m
       integer nr
       integer ntpz
+      double precision ke
 
       integer l_dv, l_dv2, l_lr, l_fb, l_ur
       integer k_dv, k_dv2, k_lr, k_fb, k_ur
@@ -213,6 +233,10 @@ c==========================================================
       double precision x0, xn, dx, x, s, s1, sn
 
 
+      call errquit('WFAT: The wfat_test_laplr_dvr subroutine has not '//
+     &     'been revised following the debugging related to ke. First'//
+     &     ' fix this before using this routine.', 32, UERR)
+      
       write(luout, '("Testing r-Laplacian in DVR basis ...")')
       
       
@@ -226,7 +250,7 @@ c     ==== Calculate the DVR at the trapezoid points ==
          x = x0 + (i-1)*dx
          i_dv0 = k_dv + (1-1)*ntpz + (i-1)      ! The first DVR at x.
          i_dvn = k_dv + (nr-1)*ntpz + (i-1)     ! The last DVR at x.
-         call wfat_eval_dvrr(m, nr, x, dbl_mb(i_dv0:i_dvn:ntpz))   ! 1)
+         call wfat_eval_dvrr(m, nr, ke, x/ke, dbl_mb(i_dv0:i_dvn:ntpz))   ! 1)
          dbl_mb(i_dv0:i_dvn:ntpz) = x * dbl_mb(i_dv0:i_dvn:ntpz)   ! x \rho_i^{|m|}(x), for i = 1,2,...,nr.
       enddo
 c     Notes:

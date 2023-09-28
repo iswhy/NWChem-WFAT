@@ -4,7 +4,7 @@
 c     DESCRIPTION:
 c     Calculates Gaunt's integral defined as
 c     $$
-c       I(l1,m2,l2,m2,l3,m3) = \int_{-1}^1 dx P_{l1,m1}(x) P_{l2,m2}(x) P_{l3,m3}(x)
+c       I(l1,m2,l2,m2,l3) = \int_{-1}^1 dx P_{l1,m1}(x) P_{l2,m2}(x) P_{l3,m1+m2}(x)
 c     $$
 c     for $l3=[l_min, l1+l2]$, where $l_min=max(|l1-l2|,|m1+m2|)$ and $P_{lm}(x)$ 
 c     is a NORMALIZED associated Legendre function, that is,

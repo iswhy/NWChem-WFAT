@@ -709,6 +709,7 @@ c=======================================================
 
       implicit none
 #include "errquit.fh"
+#include "stdio.fh"
       integer n, m
 
       double precision factorial, binom_cf
@@ -716,7 +717,8 @@ c=======================================================
 
       if (m < 0) call errquit('WFAT: The input argument m of '//
      &     'laguerre_norm_i must be such that m >= 0', 58, UERR)
-      
+
+c      write(luout, '("lagn1")')
       laguerre_norm_i = factorial(m) * binom_cf(dble(m+n), n)
 
       end

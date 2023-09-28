@@ -1,51 +1,135 @@
 c==========================================================
 c==========================================================
-      subroutine wfat_test_2a1e(m, nr, nt)
+      subroutine wfat_test_2a1e(m, nr1, nt1, nr2, nt2, nr3, nt3)
 
       implicit none
 #include "stdio.fh"
 #include "mafdecls.fh"      
 #include "errquit.fh"
       integer m
-      integer nr
-      integer nt
+      integer nr1
+      integer nt1
+      integer nr2
+      integer nt2
+      integer nr3
+      integer nt3
 
-      integer i, maxiter, l_cf, k_cf, l_eg, k_eg
-      double precision q1, q2, z1, z2, ke
+      logical numz
+      integer l_cf1, l_eg1, l_cf2, l_eg2, l_cf3, l_eg3, l_dr, l_dt
+      integer k_cf1, k_eg1, k_cf2, k_eg2, k_cf3, k_eg3, k_dr, k_dt
+      integer nr1_, nt1_, i, maxiter, orbid, i_cf2, sphi
+      double precision q1, q2, z1, z2, ke, polb(3), eps, dipole(3)
 
 
       ke = sqrt(2 * 0.5d0)
+      ke = 1.0d0
       write(luout, '("Initial ke = ", f18.8, " /Bohr")') ke
-      call wfat_test_dvr_l0(nr, ke)
-      call wfat_test_fbr_l0(nr, ke)
+      call wfat_test_dvr_l0(nr2, ke)
+      call wfat_test_fbr_l0(nr2, ke)
       
       write(luout, '(a)') 'Testing 2a1e ...'
 
-      if (.not. ma_alloc_get(MT_DBL, (nr*nt)**2, 'hm', l_cf, k_cf))
-     &     call errquit('WFAT: Cannot allocate hm', 1, MA_ERR)
-      if (.not. ma_alloc_get(MT_DBL, nr*nt, 'erg', l_eg, k_eg))
-     &     call errquit('WFAT: Cannot allocate erg', 1, MA_ERR)
-
-c     ==== Adapt ke ====
+c     ==== H_2^+ ====
       q1 = 1.0d0
       q2 = 1.0d0
       z1 = 1.0d0
       z2 = -1.0d0
+      orbid = 1
+      eps = 0.09d0
+      sphi = 2
+
+c     ==== HeH^{2+} ====
+c      q1 = 1.0d0
+c      q2 = 2.0d0
+c      z1 = 3.112d0
+c      z2 = -0.778d0
+c      orbid = 2
+c      eps = 0.1d0
+c      sphi = 1
+      
+      
+c     ==== Obtain eigenstates with m'=m ====
       maxiter = 10
-      call wfat_2a1e_solve(m, nr, nt, q1, q2, z1, z2, ke, .true.,
-     &     maxiter, dbl_mb(k_cf), dbl_mb(k_eg))
+      if (.not. ma_alloc_get(MT_DBL, (nr2*nt2)**2, 'hm2', l_cf2, k_cf2))
+     &     call errquit('WFAT: Cannot allocate hm2', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nr2*nt2, 'erg2', l_eg2, k_eg2))
+     &     call errquit('WFAT: Cannot allocate erg2', 1, MA_ERR)
+      call wfat_2a1e_solve(m, nr2, nt2, q1, q2, z1, z2, ke, .true.,
+     &     maxiter, orbid, eps, dbl_mb(k_cf2), dbl_mb(k_eg2))
+
 
 c     ==== Print eigenvalues ====
       write(luout, '("Output ke = ", f18.8, " /Bohr")') ke
-      write(luout, '("Eigenvalues for m = ", i3, " and with ke '
-     &     //'adaptation:")') m
-      do i = 1, nr*nt
-         if (dbl_mb(k_eg+i-1) < 0.0d0)
-     &        write(luout, '(i4, f18.8)') i, dbl_mb(k_eg+i-1)
+      write(luout, '("First 10 eigenvalues for m = ", i3, " and with '
+     &     //'ke adaptation:")') m
+      do i = 1, 10
+         write(luout, '(i4, f18.8)') i, dbl_mb(k_eg2+i-1)
       enddo
       write(luout, '("Eigenvalue range = ", f18.8, " H")')
-     &     dbl_mb(k_eg+nr*nt-1) - dbl_mb(k_eg)
+     &     dbl_mb(k_eg2+nr2*nt2-1) - dbl_mb(k_eg2)
 
+      dipole = 0.0d0
+      i_cf2 = k_cf2 + (orbid-1)*nr2*nt2
+      if (.not. ma_alloc_get(MT_DBL, (nr2*nr2)**2, 'dr', l_dr, k_dr))
+     &     call errquit('WFAT: Cannot allocate dr', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, (nt2*nt2)**2, 'dt', l_dt, k_dt))
+     &     call errquit('WFAT: Cannot allocate dt', 1, MA_ERR)
+      call wfat_2a1e_dpo('z', m, 0, nr2, nt2, nr2, nt2, sphi, sphi, ke,
+     &     dbl_mb(i_cf2), dbl_mb(i_cf2), .False., dbl_mb(k_dr), .False.,
+     &     dbl_mb(k_dt), .True., dipole(3))
+      write(luout, '("Dipole moment = ", 3es17.8)') dipole
+
+      
+c     ==== Obtain eigenstates with m'=m-1 ====
+      if (m == 0) then
+         nr1_ = 1
+         nt1_ = 1
+      else if (m >= 1) then
+         nr1_ = nr1
+         nt1_ = nt1
+      endif
+      if (.not. ma_alloc_get(MT_DBL, (nr1_*nt1_)**2, 'hm1', l_cf1,
+     &     k_cf1))
+     &     call errquit('WFAT: Cannot allocate hm1', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nr1_*nt1_, 'erg1', l_eg1, k_eg1))
+     &     call errquit('WFAT: Cannot allocate erg1', 1, MA_ERR)
+      if (m >= 1) then
+         write(luout, '("Input ke = ", es17.8)') ke
+         call wfat_2a1e_solve(m-1, nr1_, nt1_, q1, q2, z1, z2, ke, 
+     &        .False., 1, 1, eps, dbl_mb(k_cf1), dbl_mb(k_eg1))
+         write(luout, '("Output ke = ", es17.8)') ke
+         write(luout, '("First 10 eigenvalues for m = ", i3, " :")') m-1
+         do i = 1, 10
+            write(luout, '(i4, f18.8)') i, dbl_mb(k_eg1+i-1)
+         enddo
+      endif
+
+      
+c     ==== Obtain eigenstates with m'=m+1 ====
+      if (.not. ma_alloc_get(MT_DBL, (nr3*nt3)**2, 'hm3', l_cf3, k_cf3))
+     &     call errquit('WFAT: Cannot allocate hm3', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nr3*nt3, 'erg3', l_eg3, k_eg3))
+     &     call errquit('WFAT: Cannot allocate erg3', 1, MA_ERR)
+      write(luout, '("Input ke = ", es17.8)') ke
+      call wfat_2a1e_solve(m+1, nr3, nt3, q1, q2, z1, z2, ke, .False.,
+     &     1, 1, eps, dbl_mb(k_cf3), dbl_mb(k_eg3))
+      write(luout, '("Output ke = ", es17.8)') ke
+      write(luout, '("First 10 eigenvalues for m = ", i3, " :")') m+1
+      do i = 1, 10
+         write(luout, '(i4, f18.8)') i, dbl_mb(k_eg3+i-1)
+      enddo
+
+
+c     ==== Calculate the static polarizability ====
+      numz = .false.
+cOLD      call wfat_2a1e_polb('c', m, 1, nr, nt, ke, dbl_mb(k_eg),
+cOLD     &     dbl_mb(k_cf), numz, polb)
+      call wfat_2a1e_polb(m, sphi, orbid, nr1_, nt1_, nr2, nt2, nr3, 
+     &     nt3, ke, dbl_mb(k_eg1), dbl_mb(k_eg2), dbl_mb(k_eg3), 
+     &     dbl_mb(k_cf1), dbl_mb(k_cf2), dbl_mb(k_cf3), numz, polb)
+      write(luout, '("MF static polarizability = ", 3es17.8)') polb
+
+      
 
 c     ==== Don't adapt ke ====
       q1 = 1.0d0
@@ -53,17 +137,31 @@ c     ==== Don't adapt ke ====
       z1 = 1.0d0
       z2 = -1.0d0
       maxiter = 10
-      call wfat_2a1e_solve(0, nr, nt, q1, q2, z1, z2, ke, .false.,
-     &     0, dbl_mb(k_cf), dbl_mb(k_eg))
+      call wfat_2a1e_solve(0, nr2, nt2, q1, q2, z1, z2, ke, .false.,
+     &     0, 1, eps, dbl_mb(k_cf2), dbl_mb(k_eg2))
       write(luout, '("The lowest eigenvalue for m = 0 and without ke '//
-     &     'adaptation = ", f18.8, " H")') dbl_mb(k_eg)
+     &     'adaptation = ", f18.8, " H")') dbl_mb(k_eg2)
 
       
 c     ==== Deallocations ====
-      if (.not. ma_free_heap(l_cf))
-     &     call errquit('WFAT: Cannot deallocate hm', 1, MA_ERR)
-      if (.not. ma_free_heap(l_eg))
-     &     call errquit('WFAT: Cannot deallocate erg', 1, MA_ERR)
+      if (m >= 1) then
+         if (.not. ma_free_heap(l_cf1))
+     &        call errquit('WFAT: Cannot deallocate hm1', 1, MA_ERR)
+         if (.not. ma_free_heap(l_eg1))
+     &        call errquit('WFAT: Cannot deallocate erg1', 1, MA_ERR)
+      endif
+      if (.not. ma_free_heap(l_cf2))
+     &     call errquit('WFAT: Cannot deallocate hm2', 1, MA_ERR)
+      if (.not. ma_free_heap(l_eg2))
+     &     call errquit('WFAT: Cannot deallocate erg2', 1, MA_ERR)
+      if (.not. ma_free_heap(l_cf3))
+     &     call errquit('WFAT: Cannot deallocate hm3', 1, MA_ERR)
+      if (.not. ma_free_heap(l_eg3))
+     &     call errquit('WFAT: Cannot deallocate erg3', 1, MA_ERR)
+      if (.not. ma_free_heap(l_dr))
+     &     call errquit('WFAT: Cannot deallocate dr', 1, MA_ERR)
+      if (.not. ma_free_heap(l_dt))
+     &     call errquit('WFAT: Cannot deallocate dt', 1, MA_ERR)
       
       end
 c==========================================================
@@ -103,7 +201,7 @@ c     T_r^{DVR} = transpose(U_r) . T_r^{FBR} . U_r
       call wfat_represent_sym(nr, nr, dbl_mb(k_ur), dbl_mb(k_lr),
      &     dbl_mb(k_hm))
       dbl_mb(k_hm:k_hm+nr**2-1) = -0.5d0 * dbl_mb(k_hm:k_hm+nr**2-1)
-     &     / ke
+     &     * ke**2
 c      write(luout, '("Kinetic energy matrix:")')
 c      call wfat_dprintmat(nr, nr, 'f', dbl_mb(k_hm))
 
@@ -120,7 +218,7 @@ c      call wfat_dprintmat(nr, nr, 'f', dbl_mb(k_hm))
      &     dbl_mb(k_rw))
       do i = 1, nr
          x = dbl_mb(k_x+i-1)
-         pot = - 1/x / ke**2
+         pot = - ke / x
          i_hm = k_hm + (i-1)*nr + (i-1)
          dbl_mb(i_hm) = dbl_mb(i_hm) + pot
       enddo
