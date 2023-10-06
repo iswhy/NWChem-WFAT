@@ -8,7 +8,7 @@ c===============================================================
 #include "mafdecls.fh"
 #include "errquit.fh"
       double precision q1
-      double precision q1
+      double precision q2
       double precision z1
       double precision z2
       integer m
@@ -39,7 +39,7 @@ c     ==== Obtain the electronic dipole moment ====
       if (.not. ma_alloc_get(MT_DBL, (nt*nt)**2, 'dt', l_dt, k_dt))
      &     call errquit('WFAT: Cannot allocate dt', 1, MA_ERR)
       call wfat_2a1e_dpo('z', m, 0, nr, nt, nr, nt, sphi, sphi, ke,
-     &     cf(:,target), cf,(:,target), .false., dbl_mb(k_dr), .false.,
+     &     cf(:,target), cf(:,target), .false., dbl_mb(k_dr), .false.,
      &     dbl_mb(k_dt), .false., dipole(3))
 
 

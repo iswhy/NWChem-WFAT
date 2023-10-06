@@ -1,8 +1,8 @@
 c===============================================================
 c===============================================================
       subroutine wfat_2a1e_intgl(rtdb, geom, nqn, nid, mid, lmax_,
-     &     gqual, zi, celm, nr, nt, ke, vcf, erg, chmmt0, eps, chpos,
-     &     chmmt, g_il)
+     &     gqual, zi, celm, mch, nr, nt, ke, vcf, erg, chmmt0, eps, 
+     &     wfat1, chpos, chmmt, g_il)
 
       implicit none
 #include "util.fh"
@@ -21,6 +21,7 @@ c===============================================================
       integer gqual                ! [input],
       double precision zi          ! [input],
       integer celm                 ! [input],
+      integer mch                  ! [input],
       integer nr                   ! [input],
       integer nt                   ! [input],
       double precision ke          ! [input],
@@ -28,6 +29,7 @@ c===============================================================
       double precision erg         ! [input],
       double precision chmmt0(3)   ! [input],
       double precision eps         ! [input],
+      logical wfat1                ! [input],
       double precision chpos(3)    ! [output],
       double precision chmmt(3)    ! [output],
       integer g_il                 ! [output],
@@ -190,7 +192,7 @@ c           ==== Calculate vc|psi> ====
             if (wfat1) then
                call wfat_2a1e_vcpsi_ord1()
             else
-               call wfat_2a1e_vcpsi(geom, nr, nt, ke, eps, zi, vcf,
+               call wfat_2a1e_vcpsi(geom, mch, nr, nt, ke, eps, zi, vcf,
      &              chpos, v_m, dbl_mb(k_sc), vc_psi)
             endif
             
@@ -322,7 +324,7 @@ c===============================================================
       if (.not. geom_ncent(geom, nc))
      &     call errquit('WFAT: Cannot get ncenters.', 40, GEOM_ERR)
       
-      orbcenter = 0.0d0
+      orbcent = 0.0d0
       do i = 1, nc
          if (.not. geom_cent_get(geom, i, t, r, q))
      &        call errquit('WFAT: geom center info failed', 88,

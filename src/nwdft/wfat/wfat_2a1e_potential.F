@@ -34,11 +34,12 @@ c===============================================================
       
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_vcpsi(geom, nr, nt, ke, eps, zi, vcf, chpos, 
-     &     vpt, scr, vc_psi)
+      subroutine wfat_2a1e_vcpsi(geom, m, nr, nt, ke, eps, zi, vcf, 
+     &     chpos, vpt, scr, vc_psi)
 
       implicit none
       integer geom
+      integer m
       integer nr
       integer nt
       double precision ke
