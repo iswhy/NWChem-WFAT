@@ -19,6 +19,7 @@
 	wfat_calc_tmd.o \
 	wfat_calc_ti.o \
 	wfat_calc_td.o \
+	wfat_intgl_io.o \
 	wfat_field_factor.o \
 	wfat_celf.o \
 	wfat_int_2e3c.o \
@@ -84,6 +85,9 @@
 	wfat_sumyield_lebedev.o \
 	wfat_2a1e.o \
 	wfat_2a1e_dipole.o \
+	wfat_2a1e_target.o \
+	wfat_2a1e_intgl.o \
+	wfat_2a1e_potential.o \
 	wfat_3j.o \
 	wfat_gaunt.o \
 	wfat_test_chg.o \

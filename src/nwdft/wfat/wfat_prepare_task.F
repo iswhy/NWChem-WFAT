@@ -6,15 +6,16 @@ c=================================================
 #include "errquit.fh"
 #include "stdio.fh"
 #include "global.fh"
-      character*2 ti   ! [input]
+      character*7 ti   ! [input]
 
       integer ndid
 
       
       ndid = ga_nodeid()
-      if (ti /= 'OE' .and. ti /= 'ME')
+      if (ti /= 'OE' .and. ti /= 'ME' .and. ti /= 'OE-2a1e')
      &     call errquit('wfat_prep_tasktitle: Invalid value for the '//
-     &     'argument ti. Valid value is ''OE'' or ''ME''.', 1, UERR)
+     &     'argument ti. A valid value is ''OE'', ''ME'', or 
+     &     ''OE-2a1e''.', 1, UERR)
 
 
       if (ndid == 0) then
@@ -23,8 +24,8 @@ c=================================================
      &        luout, '--------------------------------', 40,
      &        .false.)
          call util_print_centered(
-     &        luout, '<<<<<< Entering '//ti//'WFAT task >>>>>>', 40,
-     &        .false.)
+     &        luout, '<<<<<< Entering '//trim(adjustl(ti))//
+     &        'WFAT task >>>>>>', 40, .false.)
          call util_print_centered(
      &        luout, '--------------------------------', 40,
      &        .false.)
@@ -48,9 +49,10 @@ c=================================================
 
       
       ndid = ga_nodeid()
-      if (ti /= 'OE' .and. ti /= 'ME')
+      if (ti /= 'OE' .and. ti /= 'ME' .and. ti /= 'OE-2a1e')
      &     call errquit('wfat_close_task: Invalid value for the '//
-     &     'argument ti. Valid value is ''OE'' or ''ME''.', 1, UERR)
+     &     'argument ti. A valid value is ''OE'', ''ME'', or 
+     &     ''OE-2a1e''.', 1, UERR)
       
 
       if (ndid == 0) then
@@ -62,8 +64,8 @@ c=================================================
      &        luout, '-------------------------------', 40,
      &        .false.)
          call util_print_centered(
-     &        luout, '<<<<<< Exiting '//ti//'WFAT task >>>>>>', 40,
-     &        .false.)
+     &        luout, '<<<<<< Exiting '//trim(adjustl(ti))//
+     &        'WFAT task >>>>>>', 40, .false.)
          call util_print_centered(
      &        luout, '-------------------------------', 40,
      &        .false.)

@@ -1,5 +1,128 @@
 c=======================================================
 c=======================================================
+      subroutine wfat_sometests(rtdb, zi, nch, erg, lmax_, chmmt)
+
+      implicit none
+#include "rtdb.fh"      
+#include "global.fh"
+#include "mafdecls.fh"
+      integer rtdb
+      double precision zi
+      integer nch
+      double precision erg(nch)
+      integer lmax_
+      double precision chmmt(3, nch)
+
+      integer ndid
+      integer l_chgtest(2), l_r1test(2), l_qtest(2), l_dvrttest(3)
+      integer l_phi1test(2), l_tautest(2), l_otest(2), l_fbrrtest(3)
+      integer l_altest(2), l_d2lagtest(2), l_2a1etest(7), l_dvrrtest(3)
+      integer l_3jtest(4), l_3j0test(2), l_gntest(4)
+      double precision d_chgutest(2), d_erfctest(5)
+
+
+      ndid = ga_nodeid()
+
+      if (rtdb_get(rtdb, 'wfat:test_chg', mt_int, 2, l_chgtest)) then
+         if (ndid==0) call wfat_test_chg(l_chgtest(1), l_chgtest(2),
+     &        zi, erg(1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_chgu', mt_dbl, 2, d_chgutest)) then
+         if (ndid==0) call wfat_test_chgu(d_chgutest(1), d_chgutest(2))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_r1', mt_int, 2, l_r1test)) then
+         if (ndid==0) call wfat_test_r1(l_r1test(1), l_r1test(2),
+     &        erg(1), zi, chmmt(:,1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_q', mt_int, 2, l_qtest)) then
+         if (ndid==0) call wfat_test_q(l_qtest(1), l_qtest(2),
+     &        erg(1), zi, lmax_, chmmt(:,1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_phi1', mt_int, 2, l_phi1test)) then
+         if (ndid==0) call wfat_test_phi1xi(l_phi1test(1), 
+     &        l_phi1test(2), erg(1), zi, chmmt(:,1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_tau', mt_int, 2, l_tautest)) then
+         if (ndid==0) call wfat_test_tau(l_tautest(1), l_tautest(2),
+     &        erg(1), zi, lmax_, chmmt(:,1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test2_tau', mt_int, 2, l_tautest)) then
+         if (ndid==0) call wfat_test2_tau(l_tautest(1), l_tautest(2),
+     &        erg(1), zi, lmax_, chmmt(:,1))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_o', mt_int, 2, l_otest)) then
+         if (ndid==0) call wfat_test_o(l_otest(1), l_otest(2),
+     &        erg(1), zi)
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_erfc', mt_dbl, 5, d_erfctest)) then
+         if (ndid==0)
+     &        call wfat_test_erfc(d_erfctest(1),
+     &                            d_erfctest(2),
+     &                            d_erfctest(3),
+     &                            d_erfctest(4),
+     &                            idnint(d_erfctest(5)))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_assocleg', mt_int, 2, l_altest))
+     &     then
+         if (ndid==0) call wfat_test_assocleg(l_altest(1), l_altest(2))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_d2lag', mt_int, 2, l_d2lagtest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_d2lag(l_d2lagtest(1), l_d2lagtest(2))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_fbrr', mt_int, 3, l_fbrrtest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_fbrr(l_fbrrtest(1), l_fbrrtest(2),
+     &        l_fbrrtest(3))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_dvrr', mt_int, 3, l_dvrrtest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_dvrr(l_dvrrtest(1), l_dvrrtest(2),
+     &        l_dvrrtest(3))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_dvrt', mt_int, 3, l_dvrttest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_dvrt(l_dvrttest(1), l_dvrttest(2),
+     &        l_dvrttest(3))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_3j', mt_int, 4, l_3jtest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_3j(l_3jtest(1), l_3jtest(2), l_3jtest(3),
+     &        l_3jtest(4))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_3j000', mt_int, 2, l_3j0test))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_3j000(l_3j0test(1), l_3j0test(2))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_gaunt', mt_int, 4, l_gntest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_gaunt(l_gntest(1), l_gntest(2),
+     &        l_gntest(3), l_gntest(4))
+      endif
+      if (rtdb_get(rtdb, 'wfat:test_2a1e', mt_int, 7, l_2a1etest))
+     &     then
+         if (ndid==0)
+     &        call wfat_test_2a1e(l_2a1etest(1), l_2a1etest(2),
+     &        l_2a1etest(3), l_2a1etest(4), l_2a1etest(5),
+     &        l_2a1etest(6), l_2a1etest(7))
+      endif
+      
+
+      call ga_sync()
+      
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
       subroutine wfat_test()
 
       implicit none
@@ -15,31 +138,8 @@ c#include "cscf.fh"
          
       integer nch, nqn, gqual
       parameter ( nch=2, nqn=3, gqual=2 )
-c temp      integer orbid0(nch), orbid(nch), spinid(nch)
-c temp      double precision erg(nch)
-c temp      integer nid(nqn), mid(nqn)
-c temp
-c temp      integer nktmd0
-c temp      double precision bt_tmd, gm_tmd
-c temp      parameter (nktmd0 = 150, bt_tmd=0.0d0, gm_tmd=0.0d0)
-c temp
-c temp      logical gap
       integer l_in, l_cmm, l_nd, l_sf, l_fc, l_iy
       integer k_in, k_cmm, k_nd, k_sf, k_fc, k_iy
-c temp      integer lmax_, ndid
-c temp      integer i, ig, ib
-c temp      integer natom, nsh, ncmm, nintg, nsf, nfc, niy, ngm, nbt
-c temp      double precision gm, bt, ef
-c temp      double precision zion, smh, gm0, gmn, bt0, btn, dgm, dbt, ionyd
-c temp
-c temp      logical tmd_atom
-c temp      integer ntmd, l_tm, k_tm, ix, iy
-c temp      double precision kmax, dk, kx, ky
-c temp
-c temp
-c temp
-c temp      ndid = ga_nodeid()
-c temp
 
 
       write(luout, '("------------")')
@@ -66,171 +166,6 @@ c     ==== Checking numerical density ====
      &     call errquit('WFAT: numden deallocation failed',
      &     3, MA_ERR)
 
-
-      
-c temp
-c temp
-c temp      spinid = (/ 1,  1 /)
-c temp      orbid0 = (/ 0, -1 /)
-c temp      do i = 1, nch
-c temp         if (spinid(i) == 1) orbid(i) = orbid0(i) + nalpha
-c temp         if (spinid(i) == 2) orbid(i) = orbid0(i) + nbeta
-c temp      enddo
-c temp      nid = (/ 0,  0,  0 /)
-c temp      mid = (/ 0, -1, +1 /)
-c temp
-c temp      ngm = 101
-c temp      gm0 = 0.0d0
-c temp      gmn = 360.0d0
-c temp      nbt = 121
-c temp      bt0 = 0.0d0
-c temp      btn = 180.0d0
-c temp
-c temp      ef = 0.07d0
-c temp      zion = 1.0d0
-c temp      lmax_ = 8
-c temp      nsh = (1 + lmax_)**2
-c temp      smh = 0.0d0
-c temp
-c temp      if (.not. geom_ncent(geom, natom))
-c temp     &     call errquit('WFAT: Getting natom failed', 1, GEOM_ERR)
-c temp
-c temp
-c temp      ncmm = 3 * nch
-c temp      if (.not. MA_alloc_get(MT_DBL, ncmm, 'chmmt', l_cmm, k_cmm))
-c temp     &     call errquit('WFAT: chmmt allocation failed', 2, MA_ERR)
-c temp      nintg = nsh * natom * nqn * nch
-c temp      if (.not. MA_alloc_get(MT_DCPL, nintg, 'intgl', l_in, k_in))
-c temp     &     call errquit('WFAT: intgl allocation failed', 2, MA_ERR)
-c temp      
-c temp      call wfat_calc_intgl(nch, orbid, spinid, nqn, nid, mid,
-c temp     &                     lmax_, gqual, smh, erg, dbl_mb(k_cmm),
-c temp     &                     dcpl_mb(k_in:k_in+nintg-1))
-c temp
-c temp
-c temp      call wfat_initprint_structuref(nch, orbid0, spinid, nqn, nid, mid)
-c temp      call wfat_initprint_ionyield(nch, orbid0, spinid, nqn, nid, mid)
-c temp      
-c temp      nsf = natom * nqn * nch
-c temp      if (.not. MA_alloc_get(MT_DCPL, nsf, 'srfc', l_sf, k_sf))
-c temp     &     call errquit('WFAT: srfc allocation failed', 2, MA_ERR)
-c temp      nfc = nqn * nch
-c temp      if (.not. MA_alloc_get(MT_DBL, nfc, 'ffc', l_fc, k_fc))
-c temp     &     call errquit('WFAT: ffc allocation failed', 2, MA_ERR)
-c temp      niy = nqn * nch
-c temp      if (.not. MA_alloc_get(MT_DBL, niy, 'p_ionyd', l_iy, k_iy))
-c temp     &     call errquit('WFAT: p_ionyd allocation failed', 2, MA_ERR)
-c temp
-c temp      if (ngm > 1) then
-c temp         dgm = (gmn - gm0) / (ngm - 1)
-c temp      else
-c temp         dgm = 0.0d0
-c temp      endif
-c temp      
-c temp      if (nbt > 1) then
-c temp         dbt = (btn - bt0) / (nbt - 1)
-c temp      else
-c temp         dbt = 0.0d0
-c temp      endif
-c temp      
-c temp      do ig = 1, ngm
-c temp         gm = gm0 + dgm*(ig-1)
-c temp         do ib = 1, nbt
-c temp            bt = bt0 + dbt*(ib-1)
-c temp            call wfat_calc_structuref(bt, gm, nch, erg, nqn, mid, lmax_, 
-c temp     &                                dbl_mb(k_cmm), dcpl_mb(k_in),
-c temp     &                                dcpl_mb(k_sf))
-c temp            call wfat_calc_rate(ef, nch, erg, nqn, nid, mid,
-c temp     &                              dcpl_mb(k_sf), dbl_mb(k_fc), 
-c temp     &                              dbl_mb(k_iy), ionyd)
-c temp            if (ib /= nbt) then
-c temp               gap = .false.
-c temp            else
-c temp               gap = .true.
-c temp            endif
-c temp
-c temp            if (ndid == 0) then
-c tempc              ==== Print structure factor ====
-c temp               call wfat_print_structuref(bt, gm, nch, nqn, 
-c temp     &                                    dcpl_mb(k_sf), gap)
-c temp               
-c tempc              ==== Print ion yield ====
-c temp               call wfat_print_ionyield(bt, gm, nch, nqn, dbl_mb(k_iy), 
-c temp     &                                  ionyd, gap)
-c temp            endif            
-c temp         enddo
-c temp      enddo
-c temp
-c temp      call wfat_endprint_structuref()
-c temp      call wfat_endprint_ionyield()
-c temp
-c temp
-c temp
-c tempc     ==== TMD ====
-c temp      call wfat_calc_structuref(bt_tmd, gm_tmd, nch, erg,
-c temp     &                          nqn, mid, lmax_, 
-c temp     &                          dbl_mb(k_cmm), dcpl_mb(k_in),
-c temp     &                          dcpl_mb(k_sf))
-c temp
-c temp      call wfat_get_kmax(ef, nch, erg, nqn, nid, mid, kmax)
-c temp      dk = 2 * kmax / (nktmd0 - 1)
-c temp      write(luout, '("Max. transverse momentum = ", e14.6)') kmax
-c temp
-c temp      ntmd = natom * nch
-c temp      if (.not. MA_alloc_get(MT_DCPL, ntmd, 'tmd', l_tm, k_tm))
-c temp     &     call errquit('WFAT: tmd allocation failed', 2, MA_ERR)
-c temp
-c temp      tmd_atom = .true.
-c temp      call wfat_initprint_tmd(nch, orbid0, spinid)
-c temp      if (tmd_atom) call wfat_initprint_tmdar(nch, natom,
-c temp     &                                        orbid0, spinid)
-c temp      ky = -kmax
-c temp      do iy = 1, nktmd0
-c temp         kx = -kmax
-c temp         do ix = 1, nktmd0
-c temp
-c temp            if (ix /= nktmd0) then
-c temp               gap = .false.
-c temp            else
-c temp               gap = .true.
-c temp            endif
-c temp            
-c temp            call wfat_calc_tmd(kx, ky, nch, erg, nqn, nid, mid,
-c temp     &                         ef, dcpl_mb(k_sf), dcpl_mb(k_tm))
-c temp            if (ndid == 0) then
-c temp               call wfat_print_tmd(kx, ky, nch, dcpl_mb(k_tm), gap)
-c temp               if (tmd_atom) call wfat_print_tmdar(kx, ky, nch, natom,
-c temp     &                            dcpl_mb(k_tm), gap)
-c temp            endif
-c temp
-c temp            kx = kx + dk
-c temp         enddo
-c temp         ky = ky + dk
-c temp      enddo
-c temp      call wfat_endprint_tmd()
-c temp      if (tmd_atom) call wfat_endprint_tmdar()
-c temp      
-c temp      
-c temp      
-c temp      if (.not. MA_free_heap(l_cmm))
-c temp     &     call errquit('WFAT: chmmt deallocation failed',
-c temp     &     3, MA_ERR)
-c temp      if (.not. MA_free_heap(l_in))
-c temp     &     call errquit('WFAT: intgl deallocation failed',
-c temp     &     3, MA_ERR)
-c temp      if (.not. MA_free_heap(l_sf))
-c temp     &     call errquit('WFAT: srfc deallocation failed',
-c temp     &     3, MA_ERR)
-c temp      if (.not. MA_free_heap(l_fc))
-c temp     &     call errquit('WFAT: ffc deallocation failed',
-c temp     &     3, MA_ERR)
-c temp      if (.not. MA_free_heap(l_iy))
-c temp     &     call errquit('WFAT: p_ionyd deallocation failed',
-c temp     &     3, MA_ERR)
-c temp      if (.not. MA_free_heap(l_tm))
-c temp     &     call errquit('WFAT: tmd deallocation failed',
-c temp     &     3, MA_ERR)
-      
       end
 c=======================================================
 

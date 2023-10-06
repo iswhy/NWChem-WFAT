@@ -739,7 +739,7 @@ cc     where comp = x,y,z and the size of D is n1 by n2, and T_i^m is the polar 
       double precision dr(1:*)         ! [input], required only if dr_in=.true., regardless of dr_in, its minimum size should be nr1*nr2.
       logical dt_in
       double precision dt(1:*)         ! [input], required only if dt_in=.true., regardless of dt_in, its minimum size should be nt1*nt2.
-      logical numt                     ! [input], meaningful only if dt_in=.true.
+      logical numt                     ! [input], meaningful only if dt_in=.false.
       double precision dpo             ! [output],
 
       integer l_tm, k_tm
