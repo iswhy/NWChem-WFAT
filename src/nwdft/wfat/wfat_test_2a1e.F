@@ -3,6 +3,7 @@ c==========================================================
       subroutine wfat_test_2a1e(m, nr1, nt1, nr2, nt2, nr3, nt3)
 
       implicit none
+#include "geom.fh"
 #include "stdio.fh"
 #include "mafdecls.fh"      
 #include "errquit.fh"
@@ -14,10 +15,12 @@ c==========================================================
       integer nr3
       integer nt3
 
+      character*16 tag(2)
       logical numz
       integer l_cf1, l_eg1, l_cf2, l_eg2, l_cf3, l_eg3, l_dr, l_dt
       integer k_cf1, k_eg1, k_cf2, k_eg2, k_cf3, k_eg3, k_dr, k_dt
-      integer nr1_, nt1_, i, maxiter, orbid, i_cf2, sphi
+      integer geom, nr1_, nt1_, i, maxiter, orbid, i_cf2, sphi
+      double precision ch(2), cd(3,2)
       double precision q1, q2, z1, z2, ke, polb(3), eps, dipole(3)
 
 
@@ -46,7 +49,20 @@ c      z2 = -0.778d0
 c      orbid = 2
 c      eps = 0.1d0
 c      sphi = 1
-      
+
+
+c     ==== Set up the geometry ====
+      if (.not. geom_create(geom, 'wfat_test_geom'))
+     &     call errquit('WFAT: Error in creating geometry object.', 50,
+     &     GEOM_ERR)
+      tag = (/ 'atom1', 'atom2' /)
+      cd(:,1) = (/ 0.0d0, 0.0d0, z1 /)
+      cd(:,2) = (/ 0.0d0, 0.0d0, z2 /)
+      ch = (/ q1, q2 /)
+      if (.not. geom_cart_set(geom, 2, tag, cd, ch))
+     &     call errquit('WFAT: Error in initializing geometry object.',
+     &     39, GEOM_ERR)
+
       
 c     ==== Obtain eigenstates with m'=m ====
       maxiter = 10
@@ -54,8 +70,8 @@ c     ==== Obtain eigenstates with m'=m ====
      &     call errquit('WFAT: Cannot allocate hm2', 1, MA_ERR)
       if (.not. ma_alloc_get(MT_DBL, nr2*nt2, 'erg2', l_eg2, k_eg2))
      &     call errquit('WFAT: Cannot allocate erg2', 1, MA_ERR)
-      call wfat_2a1e_solve(m, nr2, nt2, q1, q2, z1, z2, ke, .true.,
-     &     maxiter, orbid, eps, dbl_mb(k_cf2), dbl_mb(k_eg2))
+      call wfat_2a1e_solve(m, nr2, nt2, geom, ke, .true., maxiter,
+     &     orbid, eps, dbl_mb(k_cf2), dbl_mb(k_eg2))
 
 
 c     ==== Print eigenvalues ====
@@ -95,8 +111,8 @@ c     ==== Obtain eigenstates with m'=m-1 ====
      &     call errquit('WFAT: Cannot allocate erg1', 1, MA_ERR)
       if (m >= 1) then
          write(luout, '("Input ke = ", es17.8)') ke
-         call wfat_2a1e_solve(m-1, nr1_, nt1_, q1, q2, z1, z2, ke, 
-     &        .False., 1, 1, eps, dbl_mb(k_cf1), dbl_mb(k_eg1))
+         call wfat_2a1e_solve(m-1, nr1_, nt1_, geom, ke, .False., 1, 1,
+     &        eps, dbl_mb(k_cf1), dbl_mb(k_eg1))
          write(luout, '("Output ke = ", es17.8)') ke
          write(luout, '("First 10 eigenvalues for m = ", i3, " :")') m-1
          do i = 1, 10
@@ -111,8 +127,8 @@ c     ==== Obtain eigenstates with m'=m+1 ====
       if (.not. ma_alloc_get(MT_DBL, nr3*nt3, 'erg3', l_eg3, k_eg3))
      &     call errquit('WFAT: Cannot allocate erg3', 1, MA_ERR)
       write(luout, '("Input ke = ", es17.8)') ke
-      call wfat_2a1e_solve(m+1, nr3, nt3, q1, q2, z1, z2, ke, .False.,
-     &     1, 1, eps, dbl_mb(k_cf3), dbl_mb(k_eg3))
+      call wfat_2a1e_solve(m+1, nr3, nt3, geom, ke, .False., 1, 1, eps,
+     &     dbl_mb(k_cf3), dbl_mb(k_eg3))
       write(luout, '("Output ke = ", es17.8)') ke
       write(luout, '("First 10 eigenvalues for m = ", i3, " :")') m+1
       do i = 1, 10
@@ -136,14 +152,25 @@ c     ==== Don't adapt ke ====
       q2 = 1.0d0
       z1 = 1.0d0
       z2 = -1.0d0
+      cd(:,1) = (/ 0.0d0, 0.0d0, z1 /)
+      cd(:,2) = (/ 0.0d0, 0.0d0, z2 /)
+      ch = (/ q1, q2 /)
+      if (.not. geom_cart_set(geom, 2, tag, cd, ch))
+     &     call errquit('WFAT: Error in initializing geometry object.',
+     &     39, GEOM_ERR)
+      
       maxiter = 10
-      call wfat_2a1e_solve(0, nr2, nt2, q1, q2, z1, z2, ke, .false.,
-     &     0, 1, eps, dbl_mb(k_cf2), dbl_mb(k_eg2))
+      call wfat_2a1e_solve(0, nr2, nt2, geom, ke, .false., 0, 1, eps, 
+     &     dbl_mb(k_cf2), dbl_mb(k_eg2))
       write(luout, '("The lowest eigenvalue for m = 0 and without ke '//
      &     'adaptation = ", f18.8, " H")') dbl_mb(k_eg2)
 
       
 c     ==== Deallocations ====
+      if (.not. geom_destroy(geom))
+     &     call errquit('WFAT: Error in destroying geometry object.',
+     &     50, GEOM_ERR)
+      
       if (m >= 1) then
          if (.not. ma_free_heap(l_cf1))
      &        call errquit('WFAT: Cannot deallocate hm1', 1, MA_ERR)

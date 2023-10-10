@@ -1,7 +1,7 @@
 c===============================================================
 c===============================================================
       subroutine wfat_2a1e_intgl(rtdb, geom, nqn, nid, mid, lmax_,
-     &     gqual, zi, celm, mch, nr, nt, ke, vcf, erg, chmmt0, eps, 
+     &     gq, zi, celm, mch, nr, nt, ke, orbid, vcf, erg, chmmt0, eps, 
      &     wfat1, chpos, chmmt, g_il)
 
       implicit none
@@ -18,13 +18,14 @@ c===============================================================
       integer nid(nqn)             ! [input],
       integer mid(nqn)             ! [input],
       integer lmax_                ! [input],
-      integer gqual                ! [input],
+      integer gq                   ! [input],
       double precision zi          ! [input],
       integer celm                 ! [input],
       integer mch                  ! [input],
       integer nr                   ! [input],
       integer nt                   ! [input],
       double precision ke          ! [input],
+      integer orbid                ! [input],
       double precision vcf(nr*nt)  ! [input],
       double precision erg         ! [input],
       double precision chmmt0(3)   ! [input],
@@ -45,7 +46,7 @@ c===============================================================
       integer k_pt, k_wt, k_sc, k_om, k_i0, k_i_, k_il, k_icp, k_ipp
       double precision mask_g(2), npt_tot, t_now, t_last, t_start, celf
       double precision atp(3), znuc, v_c(3), v_m(3), vc_psi, wtcelf
-      double precision dt_prog, dt_all, normch
+      double precision dt_prog, dt_all, normch, iondip(3)
       double complex czero
       integer nch, imf
       parameter(nch=1, imf=0)
@@ -86,6 +87,9 @@ cOLD      ncf = nbas * (nch + nch1)
 cOLD      if (.not. MA_alloc_get(MT_DBL, ncf, 'vch', l_cf, k_cf))
 cOLD     &     call errquit('WFAT: vch allocation failed', 59, MA_ERR)
       call wfat_2a1e_orbcent(geom, chmmt0, chpos, chmmt)
+      iondip = (/ 0.0d0, 0.0d0, 0.0d0 /)
+      call wfat_print_orb_property(nch, orbid, 1, erg, chpos, chmmt,
+     &     iondip)
 clater      if (wfat1) then
 clater         call wfat_perturbnew_cwfn(nch, spinid, orbid,
 clater     &        dbl_mb(k_cf+nbas*nch), pb)
@@ -102,7 +106,7 @@ cOLD     &     dbl_mb(k_pos))
 
 
 c     ==== Allocate grid-related arrays ====
-      call wfat_alloc_quadgrid(gqual, max_npt, l_pt, k_pt, l_wt, k_wt)
+      call wfat_alloc_quadgrid(gq, max_npt, l_pt, k_pt, l_wt, k_wt)
 
 
 c     ==== Allocate WFAT integral, its integrands, and some other ====
@@ -115,7 +119,7 @@ c     ==== Allocate WFAT integral, its integrands, and some other ====
 
 c     ==== Obtaining grid ranges for the current process ====
       call wfat_alloc_gridrange(natom, l_icp, k_icp, l_ipp, k_ipp)
-      call wfat_get_gridrange(geom, ndid, gqual, int_mb(k_icp),
+      call wfat_get_gridrange(geom, ndid, gq, int_mb(k_icp),
      &     int_mb(k_ipp), natomp, nptp)
 
 
@@ -130,7 +134,7 @@ clater     &        nom2, nik2_0, nik2_, nik2, l_om2, k_om2, l_ik2_0, k_ik2_0,
 clater     &        l_ik2_, k_ik2_, l_ik2, k_ik2)
 clater         call wfat_omega_wfat1(geom, nch, nqn, erg, chpos, nid,
 clater     &        mid, lmax_, natomp, nptp, int_mb(k_icp), int_mb(k_ipp),
-clater     &        gqual, nlgl, zion, dcpl_mb(k_om1), dcpl_mb(k_om2))
+clater     &        gq, nlgl, zion, dcpl_mb(k_om1), dcpl_mb(k_om2))
 clater      endif
 
       
@@ -175,7 +179,7 @@ clater      endif
          if (.not. geom_cent_get(geom, icent, tag, atp, znuc))
      &        call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
 
-         call wfat_get_gridpt(int(znuc), gqual, max_npt, npt,
+         call wfat_get_gridpt(int(znuc), gq, max_npt, npt,
      &                        dbl_mb(k_pt : k_pt+3*max_npt-1),
      &                        dbl_mb(k_wt : k_wt+max_npt-1))
 
@@ -300,6 +304,13 @@ c     ==== Accumulate to global intgl (g_il) ====
       call ga_sync()
       call ga_norm1(g_il, normch)      
 
+
+c     ==== Deallocations ====
+      call wfat_dealloc_quadgrid(l_pt, l_wt)
+      call wfat_dealloc_gridrange(l_icp, l_ipp)
+      call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il)
+      call wfat_terminate_progress(g_nptx)
+      
       end
 c===============================================================
 

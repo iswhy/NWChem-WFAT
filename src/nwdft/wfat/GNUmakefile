@@ -83,7 +83,10 @@
 	wfat_calc_tau.o \
 	wfat_calc_phixi.o \
 	wfat_sumyield_lebedev.o \
+	wfat_2a1e_task.o \
 	wfat_2a1e.o \
+	wfat_2a1e_init.o \
+	wfat_2a1e_prepare.o \
 	wfat_2a1e_dipole.o \
 	wfat_2a1e_target.o \
 	wfat_2a1e_intgl.o \

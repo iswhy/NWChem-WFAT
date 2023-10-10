@@ -1,7 +1,7 @@
 c==========================================================
 c==========================================================
-      subroutine wfat_2a1e_solve(m, nr, nt, q1, q2, z1, z2, ke,
-     &     adapt_ke, maxiter, id_target, eps, coef, erg)
+      subroutine wfat_2a1e_solve(m, nr, nt, geom, ke, adapt_ke, maxiter,
+     &     id_target, eps, coef, erg)
 
       implicit none
 #include "stdio.fh"
@@ -10,10 +10,7 @@ c==========================================================
       integer m
       integer nr
       integer nt
-      double precision q1
-      double precision q2
-      double precision z1
-      double precision z2
+      integer geom
       double precision ke                    ! [in/output]
       logical adapt_ke
       integer maxiter                        ! [input], only used when adapt_ke=.true.
@@ -119,7 +116,7 @@ c     ==== Hamiltonian construction ====
       do iter = 1, maxiter_
          call wfat_2a1e_hamiltonian(nr, nt, dbl_mb(k_x), dbl_mb(k_t),
      &        dbl_mb(k_gr), dbl_mb(k_ht), dbl_mb(k_hr), dbl_mb(k_gt), 
-     &        ke, q1, q2, z1, z2, eps, coef)
+     &        ke, geom, eps, coef)
       
 c        ==== Hamiltonian diagonalization ====
          call wfat_dsyev_wrap(nr*nt, coef, erg)
@@ -167,7 +164,7 @@ c==========================================================
 c==========================================================
 c==========================================================
       subroutine wfat_2a1e_hamiltonian(nr, nt, xquad, tquad, gr, ht, hr,
-     &     gt, ke, q1, q2, z1, z2, eps, hm)
+     &     gt, ke, geom, eps, hm)
 
       implicit none
 #include "mafdecls.fh"      
@@ -182,16 +179,13 @@ c==========================================================
       double precision hr(nr, nr)
       double precision gt(nt, nt)
       double precision ke
-      double precision q1
-      double precision q2
-      double precision z1
-      double precision z2
+      integer geom
       double precision eps
       double precision hm(nr*nt, nr*nt)
 
       integer i, j, n, i_tm1, i_tm2, l_tm1, k_tm1, l_tm2, k_tm2, i_r
       integer i_t
-      double precision x, t, vdist1(2), vdist2(2), dist1, dist2, pot
+      double precision x, t, vpt(3), pot
       double precision deg2rad
       parameter(deg2rad=0.01745329251994d0)
 
@@ -223,13 +217,16 @@ c     ==== Nuclear attraction part ====
             t = tquad(i_t) * deg2rad
             i = i + 1
 
-            vdist1 = (/ x/ke*sin(t), x/ke*cos(t) - z1 /)
-            vdist2 = (/ x/ke*sin(t), x/ke*cos(t) - z2 /)
-            dist1 = sqrt(sum(vdist1 * vdist1) + eps)
-            dist2 = sqrt(sum(vdist2 * vdist2) + eps)
-            pot = - (q1/dist1 + q2/dist2)
+cOLD            vdist1 = (/ x/ke*sin(t), x/ke*cos(t) - z1 /)
+cOLD            vdist2 = (/ x/ke*sin(t), x/ke*cos(t) - z2 /)
+cOLD            dist1 = sqrt(sum(vdist1 * vdist1) + eps)
+cOLD            dist2 = sqrt(sum(vdist2 * vdist2) + eps)
+cOLD            pot = - (q1/dist1 + q2/dist2)
 
-c            pot = - (1/x) * ke
+cOLD            pot = - (1/x) * ke
+
+            vpt = (/ x/ke*sin(t), 0.0d0, x/ke*cos(t) /)
+            call wfat_2a1e_potential(geom, vpt, eps, pot)
             hm(i,i) = hm(i,i) + pot
          enddo
       enddo

@@ -1,16 +1,13 @@
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_target(q1, q2, z1, z2, m, sphi, target, eps, 
+      subroutine wfat_2a1e_target(geom, m, sphi, target, eps, 
      &     nr, nt, init_ke, maxiter, cf, erg, ke)
 
       implicit none
 #include "stdio.fh"      
 #include "mafdecls.fh"
 #include "errquit.fh"
-      double precision q1
-      double precision q2
-      double precision z1
-      double precision z2
+      integer geom
       integer m
       integer sphi
       integer target
@@ -28,8 +25,8 @@ c===============================================================
 
       
       ke = init_ke
-      call wfat_2a1e_solve(m, nr, nt, q1, q2, z1, z2, ke, .true.,
-     &     maxiter, target, eps, cf, erg)
+      call wfat_2a1e_solve(m, nr, nt, geom, ke, .true., maxiter, target,
+     &     eps, cf, erg)
 
 
 c     ==== Obtain the electronic dipole moment ====

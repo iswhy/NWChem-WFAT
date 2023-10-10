@@ -205,7 +205,7 @@ c        ==== Binary-load WFAT integrals on 'restart' startup mode ====
       endif
       
 
-c     ==== Printings ====
+c     ==== Ionization calculations and printings ====
       if (ndid == 0) then
          rtdb_stat = rtdb_parallel(.false.)
          if (.not. MA_alloc_get(MT_DCPL, nintg, 'intgl', l_in, k_in))
