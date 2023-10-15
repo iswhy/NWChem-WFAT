@@ -106,8 +106,7 @@ c     ==== Obtaining print switches ====
 
       
 c     ==== Whether using TD field or no ====
-      if (.not. rtdb_cget(rtdb, 'wfat:tdfield', 1, td))
-     &     td = 'no'
+      if (.not. rtdb_cget(rtdb, 'wfat:tdfield', 1, td)) td = 'no'
       if (td=='td') then
          call wfat_prep_tdfield(rtdb, nlas, l_al, k_al, las_env,
      &        l_wl, k_wl, l_pl, k_pl, l_tl, k_tl, l_dl, k_dl, ntime,
@@ -225,6 +224,8 @@ c        ==== When WFAT(1) is in use ====
             call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
          endif
 
+         
+c        ==== Printing the WFAT integrals ====
          if (wfat1) then
             call wfat_print_integrals(nch, nqn, natm, lmax, 
      &           int_mb(k_npa), int_mb(k_mpa), wfat1, dcpl_mb(k_in), 

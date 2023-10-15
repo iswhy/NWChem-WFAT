@@ -267,6 +267,9 @@ c=======================================================
       do l = abs(m), ll
          call wfat_calc_radnorm(l, n, m, znuc, kp, cc)
          radf(l) = cc * (kp*r)**l * exp(-kp*r) * chgf(l)
+
+
+cdebug         radf(l) = exp(kp*r)
       enddo
 
       end

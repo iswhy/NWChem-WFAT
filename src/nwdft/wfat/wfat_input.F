@@ -153,6 +153,8 @@ c     ==== Initial status of WFAT inputs ====
       print_tmd = .false.
       print_tmd_atom = .false.
 
+      s2a1e_exist = .false.
+      s2a1e_stat = .true.
 
 c     ========================================================
 c     ==================== INPUTS PARSING ====================
@@ -316,6 +318,10 @@ c           ==== OPTIONAL INPUTS ====
      &              prtb_maxitr, prtb_maxitr_exist, prtb_maxitr_stat,
      &              prtb_ordthr, prtb_ordthr_exist, prtb_ordthr_stat,
      &              prtb_maxord, prtb_maxord_exist, prtb_maxord_stat)
+            else if (inp_compare(.false., 'system_2a1e', field)) then
+               s2a1e_exist = .true.
+               s2a1e_stat = .true.
+               s2a1e = .true.
 
 c           ==== End ====
             else if (inp_compare(.false., 'end', field)) then
@@ -334,16 +340,21 @@ c           ==== End ====
 
 
 c     ==== Obtain the theory of previous task ====
-      if (rtdb_cget(rtdb,'scf:scftype', 1, wfat_theory)) then
-         call wfat_info_banner(luout, .true.)
-         write(luout, '(5x, "Previous SCF type = ", a)')
-     &        trim(wfat_theory)
-         write(luout, '(5x, "If this is a ME-WFAT job, then this '//
-     &        'information refers to the last charge state SCF", /,'//
-     &        '5x, "calculation (either the neutral or cation, '//
-     &        'ME-WFAT needs two prior SCF calculations).")')
+      if (s2a1e) then
+         wfat_theory = '2a1e'
+         write(luout, '("The 2a1e system is requested.")')
       else
-         call errquit('task: no task input for theory?',0, RTDB_ERR)
+         if (rtdb_cget(rtdb,'scf:scftype', 1, wfat_theory)) then
+            call wfat_info_banner(luout, .true.)
+            write(luout, '(5x, "Previous SCF type = ", a)')
+     &           trim(wfat_theory)
+            write(luout, '(5x, "If this is a ME-WFAT job, then this '//
+     &           'information refers to the last charge state ", /,'//
+     &           '5x, "SCF calculation (either the neutral or , '//
+     &           'cation ME-WFAT needs two prior SCF calculations).")')
+         else
+            call errquit('task: no task input for theory?',0, RTDB_ERR)
+         endif
       endif
       if (.not. rtdb_cput(rtdb, 'wfat:theory', 1, trim(wfat_theory)))
      &     call errquit('WFAT: Error writing theory to rtdb',
@@ -352,7 +363,8 @@ c     ==== Obtain the theory of previous task ====
 
 c     ==== Check whether the current theory is DFT ====
       if (trim(adjustl(wfat_theory)) /= 'RHF' .and.
-     &    trim(adjustl(wfat_theory)) /= 'UHF' ) then
+     &    trim(adjustl(wfat_theory)) /= 'UHF' .and.
+     &    .not. s2a1e) then
          write(luout, '("WFAT: WARNING!")')
          write(luout, 100)
       endif

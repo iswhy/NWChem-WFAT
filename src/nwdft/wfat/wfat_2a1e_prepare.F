@@ -1,7 +1,7 @@
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_prep_system(rtdb, mch, sphi, orbid, eps, nr, 
-     &     nt, init_ke, maxiter)
+      subroutine wfat_2a1e_prep_system(rtdb, mch, sphi, spinid, orbid, 
+     &     eps, nr, nt, init_ke, maxiter)
 
       implicit none
 #include "mafdecls.fh"
@@ -10,6 +10,7 @@ c===============================================================
       integer rtdb               ! [input],
       integer mch                ! [output],
       integer sphi               ! [output],
+      integer spinid             ! [output],
       integer orbid              ! [output],
       double precision eps       ! [output],
       integer nr                 ! [output],
@@ -29,9 +30,12 @@ c     ==== The k quantum number (the xz-plane reflection symmetry) ====
      &     1, RTDB_ERR)
       
 c     ==== The eigenstate ID within the above (m,k) ====
-      if (.not. rtdb_get(rtdb, 'wfat:2a1e_id', mt_int, 1, orbid))
-     &     call errquit('WFAT: Failed reading 2a1e_id from rtdb',
-     &     1, RTDB_ERR)
+      if (.not. rtdb_get(rtdb, 'wfat:orbid', mt_int, 1, orbid))
+     &     call errquit('WFAT: Failed reading orbid from rtdb',
+     &     18, RTDB_ERR)
+      if (.not. rtdb_get(rtdb, 'wfat:spinid', mt_int, 1, spinid))
+     &     call errquit('WFAT: Failed reading spinid from rtdb',
+     &     18, INPUT_ERR)
 
 c     ==== The soft Coulomb parameter ====
       if (.not. rtdb_get(rtdb, 'wfat:2a1e_eps', mt_dbl, 1, eps))

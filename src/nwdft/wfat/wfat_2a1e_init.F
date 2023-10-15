@@ -5,13 +5,33 @@ c===============================================================
       implicit none
 #include "geom.fh"
 #include "errquit.fh"
+#include "global.fh"
+#include "rtdb.fh"
 #include "wfat_qm_param.fh"
       integer rtdb
 
+      logical rtdb_stat
+
+
+c     ==== Check existence, format, and ====
+c     ====     necessities of inputs    ====
+      if (ga_nodeid() == 0) then
+         rtdb_stat = rtdb_parallel(.false.)
+         call wfat_process_input(rtdb)
+         rtdb_stat = rtdb_parallel(.true.)
+      endif
+      call ga_sync()
+
+      
       call wfat_2a1e_geom(rtdb, geom_hd)
       if (.not. geom_ncent(geom_hd, natm))
      &     call errquit('WFAT: Getting natm failed', 89, GEOM_ERR)
 
+
+c     ==== Determine zion ====
+      if (.not. geom_nuc_charge(geom_hd, zion))
+     &     call errquit('WFAT: Getting zion failed', 52, GEOM_ERR)
+      
       end
 c===============================================================
 

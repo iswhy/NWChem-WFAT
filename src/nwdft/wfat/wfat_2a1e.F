@@ -125,7 +125,7 @@ c        ==== Hamiltonian diagonalization ====
             write(luout, '(i5, ") energy, delta energy = ", 2f15.8)')
      &           iter, erg(id_target), erg(id_target) - e0
             e0 = erg(id_target)
-            ke = sqrt( 2 * abs(erg(id_target)) )
+            ke = sqrt( 2 * abs(erg(id_target)) ) * 2
          endif
       enddo
       
@@ -348,6 +348,19 @@ c     L_n^{|m|+2} from n=0 to n=nr-1 evaluated at x.
          rfun(i) = sqrt(ke**3) * 1/sqrt(laguerre_norm_i(i-1, m+2)) * 
      &        x**(mm/2) * exp(-x/2) * rfun(i)
       enddo
+
+
+
+
+cc      mm = dble(m)
+cc      call wfat_lagfun_e(1, nr-1, mm+2, x, exp(-x/2), rfun)
+ccc     At this point, rfun(1:nr) contains the generalized Laguerre polynomials
+ccc     L_n^{|m|+2} from n=0 to n=nr-1 evaluated at x.
+cc
+cc      do i = 1, nr
+cc         rfun(i) = sqrt(ke**3) * 1/sqrt(laguerre_norm_i(i-1, m+2)) * 
+cc     &        x**(mm/2) * rfun(i)
+cc      enddo
 
       end
 c==========================================================
@@ -604,3 +617,97 @@ c     ==== Deallocations ====
       
       end
 c==========================================================
+
+
+c==========================================================
+c==========================================================
+      subroutine wfat_eval_fbrr_mask(m, nr, ke, r, a, b, zi, kp, rfun)
+c     DESCRIPTION:
+c     Evaluates the radial FBR basis based on the associated Laguerre functions.
+      implicit none
+#include "errquit.fh"
+      integer m
+      integer nr
+      double precision ke
+      double precision r
+      double precision a
+      double precision b
+      double precision zi
+      double precision kp
+      double precision rfun(nr)
+
+      integer i
+      double precision mm, x, laguerre_norm_i, er, p, d
+      external laguerre_norm_i
+
+      x = ke * r
+      if (m < 0) call errquit('WFAT: The input argument m of '//
+     &     'wfat_eval_fbrr must be such that m >= 0', 58, UERR)
+      if (x < 0.0d0)
+     &     call errquit('WFAT: The input argument r of '//
+     &     'wfat_eval_fbrr must be such that r >= 0.', 80, UERR)
+      
+      mm = dble(m)
+      call wfat_lagfun_e(1, nr-1, mm+2, x, exp(-x/2), rfun)
+c     At this point, rfun(1:nr) contains the generalized Laguerre polynomials
+c     L_n^{|m|+2} from n=0 to n=nr-1 evaluated at x.
+
+      er = erfc(a*(x-b))
+      do i = 1, nr
+         p = 1 / x**(i-1) / x**(mm/2) * x**(zi/kp)
+         d = p - (p-1) / 2 * er
+         rfun(i) = sqrt(ke**3) * 1/sqrt(laguerre_norm_i(i-1, m+2)) * 
+     &        x**(mm/2) * rfun(i) * d
+      enddo
+
+      end
+c==========================================================
+      
+
+c==========================================================
+c==========================================================
+      subroutine wfat_eval_dvrr_mask(m, nr, ke, r, a, b, zi, kp, dvrr)
+
+      implicit none
+#include "stdio.fh"
+#include "mafdecls.fh"      
+#include "errquit.fh"
+      integer m
+      integer nr
+      double precision ke
+      double precision r
+      double precision a
+      double precision b
+      double precision zi
+      double precision kp
+      double precision dvrr(nr)
+
+      integer i, l_fb, k_fb, l_u, k_u, i_u
+
+
+      if (m < 0) call errquit('WFAT: The input argument m of '//
+     &     'wfat_eval_dvrr must be such that m >= 0', 58, UERR)
+
+      if (.not. ma_alloc_get(MT_DBL, nr, 'fbrr', l_fb, k_fb))
+     &     call errquit('WFAT: Cannot allocate fbrr', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nr*nr, 'u_r', l_u, k_u))
+     &     call errquit('WFAT: Cannot allocate u_r', 1, MA_ERR)
+
+
+      call wfat_dvr_fbr_r(m, nr, dbl_mb(k_u))
+      call wfat_eval_fbrr_mask(m, nr, ke, r, a, b, zi, kp, dbl_mb(k_fb))
+
+      do i = 1, nr
+         i_u = k_u + (i-1)*nr
+         dvrr(i) = sum(dbl_mb(i_u:i_u+nr-1) * dbl_mb(k_fb:k_fb+nr-1))
+      enddo
+
+
+      if (.not. ma_free_heap(l_fb))
+     &     call errquit('WFAT: Cannot deallocate fbrr', 1, MA_ERR)
+      if (.not. ma_free_heap(l_u))
+     &     call errquit('WFAT: Cannot deallocate u_r', 1, MA_ERR)
+
+      end
+c==========================================================
+      

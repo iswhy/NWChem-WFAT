@@ -27,6 +27,8 @@ c===============================================================
       ke = init_ke
       call wfat_2a1e_solve(m, nr, nt, geom, ke, .true., maxiter, target,
      &     eps, cf, erg)
+c      call wfat_2a1e_solve(m, nr, nt, geom, ke, .false., maxiter, 
+c     &     target, eps, cf, erg)
 
 
 c     ==== Obtain the electronic dipole moment ====

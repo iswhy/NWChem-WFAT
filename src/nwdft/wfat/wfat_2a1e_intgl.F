@@ -1,8 +1,8 @@
 c===============================================================
 c===============================================================
       subroutine wfat_2a1e_intgl(rtdb, geom, nqn, nid, mid, lmax_,
-     &     gq, zi, celm, mch, nr, nt, ke, orbid, vcf, erg, chmmt0, eps, 
-     &     wfat1, chpos, chmmt, g_il)
+     &     gq, zi, celm, sphi, mch, nr, nt, ke, orbid, vcf, erg, chmmt0,
+     &     eps, wfat1, chpos, chmmt, g_il)
 
       implicit none
 #include "util.fh"
@@ -21,6 +21,7 @@ c===============================================================
       integer gq                   ! [input],
       double precision zi          ! [input],
       integer celm                 ! [input],
+      integer sphi                 ! [input],
       integer mch                  ! [input],
       integer nr                   ! [input],
       integer nt                   ! [input],
@@ -56,6 +57,8 @@ c===============================================================
       call ga_sync()
       ndid = ga_nodeid()
 
+
+      write(luout, '("ke: ", 2es18.8)') ke, erg
 
 c     ==== Get number of atoms ====
       if (.not. geom_ncent(geom, natom))
@@ -196,8 +199,8 @@ c           ==== Calculate vc|psi> ====
             if (wfat1) then
                call wfat_2a1e_vcpsi_ord1()
             else
-               call wfat_2a1e_vcpsi(geom, mch, nr, nt, ke, eps, zi, vcf,
-     &              chpos, v_m, dbl_mb(k_sc), vc_psi)
+               call wfat_2a1e_vcpsi(geom, sphi, mch, nr, nt, ke, eps, 
+     &              zi, vcf, chpos, v_m, dbl_mb(k_sc), vc_psi)
             endif
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
@@ -211,7 +214,8 @@ c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
             if (isnan( abs(dcpl_mb(k_i0)) ))
      &           write(luout, '("isnan", i8, 3es14.6, 6x, 3es21.12E3)')
      &           ic, v_m, dcpl_mb(k_om), vc_psi
-            
+
+
             
 
 clater            if (wfat1) then
@@ -238,7 +242,8 @@ clater     &              v_m, mask_k, dcpl_mb(k_ik1_0))
 clater               call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh,
 clater     &              v_m, mask_k, dcpl_mb(k_ik2_0))
 clater            endif
-               
+
+                       
             
 c           ==== Quadrature summation ====
             call wfat_celf_1pt(geom, icent, v_c, celm, celf)
@@ -250,6 +255,12 @@ c           ==== Quadrature summation ====
      &                         dcpl_mb(k_i0:k_i0+ni0-1) *
      &                         wtcelf                        !! 1)
 
+            jpt = jpt + 1
+            write(luout, '("check: ", i8, 9es15.6)')
+     &           jpt, v_m, vc_psi, dcpl_mb(k_i0), dcpl_mb(k_i_), wtcelf
+
+
+            
 clater            if (wfat1) then
 clater               i_l = k_ij_ + (icent-1) * nsh*nqn*nch1
 clater               i_r = i_l + nsh*nqn*nch1 - 1
@@ -270,6 +281,7 @@ clater     &                            dcpl_mb(k_ik2_0:k_ik2_0+nik2_0-1) *
 clater     &                            wtcelf
 clater            endif
 
+            
 c           ==== Print progress ====
             pr_count = pr_count + 1
             if (pr_count == pr_chk(kk)) then

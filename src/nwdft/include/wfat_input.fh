@@ -46,7 +46,7 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     si_type
 
       logical
-     &     wfat1
+     &     wfat1, s2a1e
 
       logical
      &     print_exist, print_stat, 
@@ -82,7 +82,8 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     prtb_itrthr_exist, prtb_itrthr_stat,
      &     prtb_maxitr_exist, prtb_maxitr_stat,
      &     prtb_ordthr_exist, prtb_ordthr_stat,
-     &     prtb_maxord_exist, prtb_maxord_stat      
+     &     prtb_maxord_exist, prtb_maxord_stat,
+     &     s2a1e_exist, s2a1e_stat
       
       logical
      &     print_srfc, print_rate, print_yild, print_avbeta, 
@@ -159,6 +160,7 @@ c     == Logicals ==
      &     prtb_maxitr_exist, prtb_maxitr_stat,
      &     prtb_ordthr_exist, prtb_ordthr_stat,
      &     prtb_maxord_exist, prtb_maxord_stat,
+     &     s2a1e_exist, s2a1e_stat,
      &     print_srfc, print_rate, print_yild, print_avbeta,
      &     print_avgamma, print_tmd, print_tmd_atom, field_need,
      &     dt_need, tmax_need,
@@ -170,7 +172,7 @@ c     == Logicals ==
      &     prtb_dgnthr_need, prtb_offthr_need, prtb_e1thr_need, 
      &     prtb_itrthr_need, prtb_maxitr_need, prtb_ordthr_need,
      &     prtb_maxord_need,
-     &     wfat1,
+     &     wfat1, s2a1e,
 c     == Integers ==
      &     wfat_nbeta, wfat_ngamma, g_wfat_bt, g_wfat_gm, wfat_orbid0,
      &     wfat_orbid, n_orbid, wfat_spinid, npara, n_npara, mpara,

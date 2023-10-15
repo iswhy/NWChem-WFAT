@@ -148,6 +148,121 @@ c
 c================================================
 
 
+c================================================
+c================================================
+      subroutine wfat_lagfun_e( m, n, alpha, x, e, cx )
+c*****************************************************************************
+c
+c! LF_FUNCTION evaluates the Laguerre function Lf(n,alpha,x).
+c
+c  Recursion:
+c
+c    Lf(0,ALPHA,X) = 1
+c    Lf(1,ALPHA,X) = 1+ALPHA-X
+c
+c    Lf(N,ALPHA,X) = (2*N-1+ALPHA-X)/N * Lf(N-1,ALPHA,X) 
+c                      - (N-1+ALPHA)/N * Lf(N-2,ALPHA,X)
+c
+c  Restrictions:
+c
+c    -1 < ALPHA
+c
+c  Special values:
+c
+c    Lf(N,0,X) = L(N,X).
+c    Lf(N,ALPHA,X) = LM(N,ALPHA,X) for ALPHA integral.
+c
+c  Norm:
+c
+c    Integral ( 0 <= X < +oo ) exp ( - X ) * Lf(N,ALPHA,X)^2 dX
+c    = Gamma ( N + ALPHA + 1 ) / N!
+c
+c  Licensing:
+c
+c    This code is distributed under the GNU LGPL license. 
+c
+c  Modified:
+c
+c    10 March 2012
+c
+c  Author:
+c
+c    John Burkardt
+c
+c  Modified by:
+c
+c    Imam Wahyutama, on February 9 2021
+c  
+c  Reference:
+c
+c    Milton Abramowitz, Irene Stegun,
+c    Handbook of Mathematical Functions,
+c    National Bureau of Standards, 1964,
+c    ISBN: 0-486-61272-4,
+c    LC: QA47.A34.
+c
+c  Parameters:
+c
+c    Input, integer ( kind = 4 ) M, the number of evaluation points.
+c
+c    Input, integer ( kind = 4 ) N, the highest order function to compute.
+c
+c    Input, real ( kind = 8 ) ALPHA, the parameter.  -1 < ALPHA is required.
+c
+c    Input, real ( kind = 8 ) X(M), the evaluation points.
+c
+c    Output, real ( kind = 8 ) CX(1:M,0:N), the functions of 
+c    degrees 0 through N evaluated at the points X.
+c
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"      
+      integer ( kind = 4 ) m
+      integer ( kind = 4 ) n
+      real ( kind = 8 )  alpha
+      real ( kind = 8 )  x(1:m)
+      real ( kind = 8 )  e
+      real ( kind = 8 )  cx(1:m,0:n)
+      integer ( kind = 4 ) i
+      
+     
+      if ( alpha <= -1.0D+00 ) then
+        write ( luout, '(a)' ) ' '
+        write ( luout, '(a)' ) 'LF_FUNCTION - Fatal error!'
+        write ( luout, '(a,g14.6)' ) '  The input value of ALPHA is ',
+     &          alpha
+        write ( luout, '(a)' ) '  but ALPHA must be greater than -1.'
+        call errquit('WFAT: An error encountered during a call to '//
+     &               'wfat_lagfun', 1, UERR)
+      end if
+     
+      if ( n < 0 ) then
+        return
+      end if
+     
+      cx(1:m,0) = 1.0D+00 * e
+     
+      if ( n == 0 ) then
+        return
+      end if
+     
+      cx(1:m,1) = (1.0D+00 + alpha - x(1:m)) * e
+     
+      do i = 2, n
+        cx(1:m,i) = ( 
+     &              ( real ( 2*i - 1, kind=8 ) + alpha - x(1:m) ) *
+     &                cx(1:m,i-1) +
+     &              ( real (  -i + 1, kind=8 ) - alpha          ) *
+     &                cx(1:m,i-2)
+     &              ) /
+     &              real (i, kind=8 )
+      end do
+     
+      return
+      end
+c================================================
+
+
 c=======================================================
 c=======================================================
       subroutine wfat_lf_quadrature_rule ( n, alpha, x, w )

@@ -784,8 +784,8 @@ c=======================================================
       prtb_maxitr_need = .false.    ! needed when oe
       prtb_ordthr_need = .false.    ! needed when oe
       prtb_maxord_need = .false.    ! needed when oe
+
       
-            
       sr = print_srfc
       rt = print_rate
       yi = print_yild
@@ -854,8 +854,6 @@ c=======================================================
          call wfat_need_input0(rt, tmd, tmda, .false., .false., .false.,
      &        .false., prtb_maxord_need)
       endif
-
-
 
 
 
@@ -961,18 +959,18 @@ c=======================================================
       integer rtdb
 
       character*1 spin_str
-      character*4 ss
+      character*10 ss1, ss2
       character*3 n_npara_c, MAX_N_NPARA_c
       character*5 n_orbid_c, MAX_N_ORBID_c
 
-      integer nsp, numelc(2), i, is
+      integer nsp, numelc(2), i, is, nrr, ntt
       double precision dt_00, tmax_00
       
       character*1 w
       logical r
       parameter ( w='i' )
       integer k
-
+      
 
       if (field_need) then
          call wfat_sanity_field(nfield, fld_tp, fld_fr, fld_ce, fld_wi,
@@ -1029,9 +1027,14 @@ c=======================================================
      &           1, INPUT_ERR)
          endif
 
-         if (.not. rtdb_get(rtdb, 'dft:ipol', mt_int, 1, nsp))
-     &        call errquit('WFAT: Error in getting ipol from RTDB',
-     &        1, RTDB_ERR)      
+c        ==== Check spin ID ====
+         if (s2a1e) then
+            nsp = 2
+         else
+            if (.not. rtdb_get(rtdb, 'dft:ipol', mt_int, 1, nsp))
+     &           call errquit('WFAT: Error in getting ipol from RTDB',
+     &           1, RTDB_ERR)
+         endif
          call wfat_ivec_inrange(n_orbid, wfat_spinid, 1, nsp, 'WFAT', 
      &        '''spin_id''', 'o', r, k)
          if (.not. r)
@@ -1040,28 +1043,48 @@ c=======================================================
      &        'system is spin-unpolarized. If it is spin-polarized, ' //
      &        'the possible spin is either ''a'' or ''b''.',
      &        1, INPUT_ERR)
-         
-         if (.not. rtdb_get(rtdb, 'dft:noc', mt_int, 2, numelc))
-     &        call errquit('WFAT: Error in getting noc from RTDB',
-     &        1, RTDB_ERR)
+
+c        ==== Check orbitals ID ====
+         if (s2a1e) then
+            numelc = (/ 1, 0 /)
+         else
+            if (.not. rtdb_get(rtdb, 'dft:noc', mt_int, 2, numelc))
+     &           call errquit('WFAT: Error in getting noc from RTDB',
+     &           1, RTDB_ERR)
+         endif
          do i = 1, n_orbid
             is = wfat_spinid(i)
             if (is == 1) spin_str = 'a'
             if (is == 2) spin_str = 'b'
-            call wfat_ival_inrange(wfat_orbid0(i), -(numelc(is)-1), 0,
-     &           'WFAT', '''orb_id''', 'o', r)
+            if (s2a1e) then
+               if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr', mt_int, 1, nrr))
+     &              call errquit('WFAT: Error in getting 2a1e_nr '//
+     &              'from RTDB', 1, RTDB_ERR)
+               if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt', mt_int, 1, ntt))
+     &              call errquit('WFAT: Error in getting 2a1e_nt '//
+     &              'from RTDB', 1, RTDB_ERR)
+               
+               call wfat_ival_inrange(wfat_orbid0(i), 1, nrr*ntt,
+     &              'WFAT', '''orb_id''', 'o', r)
+               write(ss1, '(i10)') 1
+               write(ss2, '(i10)') nrr*ntt
+            else
+               call wfat_ival_inrange(wfat_orbid0(i), -(numelc(is)-1), 
+     &              0, 'WFAT', '''orb_id''', 'o', r)
+               write(ss1, '(i10)') -(numelc(is)-1)
+               write(ss2, '(i10)') 0
+            endif
             if (.not. r) then
-               write(ss, '(i4)') -(numelc(is)-1)
                call errquit('WFAT: One spatial orbital in '//
      &              spin_str//'-spin channel lies outside of the '//  
      &              'allowed range, which is in between and '//
-     &              'including '//trim(adjustl(ss))//' and 0. This '// 
-     &              'range is determined by the number of electrons '//
-     &              'in '//spin_str//'-spin channel.', 1, INPUT_ERR)
+     &              'including '//trim(adjustl(ss1))//' and '//
+     &              trim(adjustl(ss2))//'.', 1, INPUT_ERR)
             endif
          enddo
       endif
-      
+
+c     ==== Check parabolic quantum numbers ====
       if (paraqn_need) then
          write(n_npara_c, '(i3)') n_npara
          write(MAX_N_NPARA_c, '(i3)') MAX_N_NPARA
