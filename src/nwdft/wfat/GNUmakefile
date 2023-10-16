@@ -91,6 +91,7 @@
 	wfat_2a1e_target.o \
 	wfat_2a1e_intgl.o \
 	wfat_2a1e_potential.o \
+	wfat_2a1e_perturb.o \
 	wfat_3j.o \
 	wfat_gaunt.o \
 	wfat_test_chg.o \
