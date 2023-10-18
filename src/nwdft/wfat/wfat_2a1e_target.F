@@ -1,7 +1,7 @@
 c===============================================================
 c===============================================================
       subroutine wfat_2a1e_target(geom, m, sphi, target, eps, 
-     &     nr, nt, init_ke, maxiter, cf, erg, ke)
+     &     nr, nt, init_ke, maxiter, cf, erg, dipole, ke)
 
       implicit none
 #include "stdio.fh"      
@@ -41,7 +41,11 @@ c     ==== Obtain the electronic dipole moment ====
      &     cf(:,target), cf(:,target), .false., dbl_mb(k_dr), .false.,
      &     dbl_mb(k_dt), .false., dipole(3))
 
+      
+c     ==== Analysis ====
+      call wfat_analyze_target(nr, nt, erg, dipole)
 
+      
 c     ==== Deallocations ====
       if (.not. ma_free_heap(l_dr))
      &     call errquit('WFAT: Cannot deallocate dr', 1, MA_ERR)
@@ -50,4 +54,30 @@ c     ==== Deallocations ====
 
       end
 c===============================================================
-      
+
+
+c===============================================================
+c===============================================================
+      subroutine wfat_analyze_target(nr, nt, erg, dipole)
+
+      implicit none
+#include "stdio.fh"
+      integer nr
+      integer nt
+      double precision erg(nr*nt)
+      double precision dipole(3)
+
+      integer i
+
+      write(luout, '("A few lowest energies : ")')
+      do i = 1, min(nr*nt, 10)
+         write(luout, '(i4, f16.8)') i, erg(i)
+      enddo
+
+      write(luout, '("")')
+      write(luout, '("Dipole moment : ")')
+      write(luout, '(3f12.6)') dipole
+      write(luout, '("")')
+
+      end
+c===============================================================

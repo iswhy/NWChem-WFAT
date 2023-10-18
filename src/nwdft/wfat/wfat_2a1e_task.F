@@ -16,14 +16,14 @@ c===============================================================
       logical pr_tmd, pr_tmd_atom
       logical res_mode, wfat1, rtdb_stat
       integer l_cf, l_eg, l_npa, l_mpa, l_in, l_dpo, l_inj, l_ink1
-      integer l_ink2, l_pb
+      integer l_ink2, l_pb, l_cfx, l_cfy, l_cfz
       integer k_cf, k_eg, k_npa, k_mpa, k_in, k_dpo, k_inj, k_ink1
-      integer k_ink2, k_pb
+      integer k_ink2, k_pb, k_cfx, k_cfy, k_cfz
       integer mch, sphi, spinid, orbid, nr, nt, maxiter, i_cf, i_eg
       integer lmax, gqual, nqn, nsh, nintg, g_il, ndid, nlgl, ndpo
-      integer nintj, nintk, g_j, g_k(2), npb
+      integer nintj, nintk, g_j, g_k(2), npb, nr_m, nt_m, nr_p, nt_p
       double precision eps, init_ke, out_ke, edip(3), chpos(3), chmmt(3)
-      double precision fieldmag, pb(3,3)
+      double precision fieldmag, pb(3,3), polb(3)
 
       integer nch
       parameter(nch=1)
@@ -58,15 +58,15 @@ c     ==== Allocate the coefficients and energies array ====
       call wfat_2a1e_prep_cf(nr, nt, l_cf, k_cf, l_eg, k_eg)
 
 
-c     ==== Obtaining parabolic quantum numbers ====
+c     ==== Obtain parabolic quantum numbers ====
       call wfat_prep_paraqn(rtdb, nqn, l_npa, k_npa, l_mpa, k_mpa)
 
 
-c     ==== Obtaining WFAT(1) information ====
+c     ==== Obtain WFAT(1) information ====
       call wfat_prep_wfat1(rtdb, wfat1, nlgl)
       
 
-c     ==== Obtaining print switches ====
+c     ==== Obtain print switches ====
       call wfat_prep_printsw(rtdb, pr_srfc, pr_rate, pr_yild, pr_avbeta,
      &     pr_avgamma, pr_tmd, pr_tmd_atom)
 
@@ -87,7 +87,15 @@ clater     &        tmax, extf)
 c     ==== Solve the Hamiltonian for the target ====
 c     ====   eigenstate (the ionized channel)   ====
       call wfat_2a1e_target(geom_hd, mch, sphi, orbid, eps, nr, nt,
-     &     init_ke, maxiter, dbl_mb(k_cf), dbl_mb(k_eg), out_ke)
+     &     init_ke, maxiter, dbl_mb(k_cf), dbl_mb(k_eg), edip, out_ke)
+      call wfat_2a1e_prep_cf1(wfat1, rtdb, mch, nr, nt, nr_m, nt_m, 
+     &     nr_p, nt_p, l_cfx, k_cfx, l_cfy, k_cfy, l_cfz, k_cfz)
+      if (wfat1) then
+         call wfat_2a1e_perturb(geom_hd, mch, sphi, orbid, eps,
+     &        out_ke, nr, nt, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cf),
+     &        dbl_mb(k_eg), dbl_mb(k_cfx), dbl_mb(k_cfy), dbl_mb(k_cfz),
+     &        polb)
+      endif
 
 
 c     ==== Calculate (or load) WFAT integrals ====
@@ -99,9 +107,11 @@ c     ==== Calculate (or load) WFAT integrals ====
       call ga_zero(g_il)
       
 
-c     ==== Preparing WFAT(1) integrals ====
+c     ==== Prepare WFAT(1) integrals ====
       call wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, nintj, 
      &     g_j, nintk, g_k, npb, l_pb, k_pb)
+      if (wfat1)
+     &     call wfat_2a1e_assign_polb(polb, dbl_mb(k_pb))
 
       
 c     ==== Compute the OEWFAT integrals ====
@@ -109,8 +119,9 @@ c     ==== Compute the OEWFAT integrals ====
       i_eg = k_eg + (orbid-1)
       call wfat_2a1e_intgl(rtdb, geom_hd, nqn, int_mb(k_npa), 
      &     int_mb(k_mpa), lmax, gqual, zion, wf_msm, sphi, mch, nr, nt, 
-     &     out_ke, orbid, dbl_mb(i_cf), dbl_mb(i_eg), edip, eps, wfat1, 
-     &     chpos, chmmt, g_il)
+     &     out_ke, orbid, dbl_mb(i_cf), dbl_mb(i_eg), edip, eps, wfat1,
+     &     nlgl, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy),
+     &     dbl_mb(k_cfz), chpos, chmmt, g_il, g_j, g_k)
       
 
 c     ==== Ionization calculations and printings ====
@@ -125,17 +136,20 @@ c        ==== When WFAT(1) is in use ====
          call wfat_prep_wfat1_ti(wfat1, nr*nt, 2, nintj, nintk,
      &        ndpo, l_dpo, k_dpo, l_inj, k_inj, l_ink1, k_ink1,
      &        l_ink2, k_ink2)
-clater         if (wfat1) then
-clater            call ga_get(g_j, 1, nintj, 1, 1, dcpl_mb(k_inj), nintj)
-clater            call ga_get(g_k(1), 1, nintk, 1, 1, dcpl_mb(k_ink1), nintk)
-clater            call ga_get(g_k(2), 1, nintk, 1, 1, dcpl_mb(k_ink2), nintk)
+         if (wfat1) then
+            call ga_get(g_j, 1, nintj, 1, 1, dcpl_mb(k_inj), nintj)
+            call ga_get(g_k(1), 1, nintk, 1, 1, dcpl_mb(k_ink1), nintk)
+            call ga_get(g_k(2), 1, nintk, 1, 1, dcpl_mb(k_ink2), nintk)
 clater            ctr = 0.0d0
 clater            call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
-clater         endif
+         endif
          
 
 c        ==== Printing the WFAT integrals ====
          if (wfat1) then
+            call wfat_print_integrals(nch, nqn, natm, lmax, 
+     &           int_mb(k_npa), int_mb(k_mpa), wfat1, dcpl_mb(k_in), 
+     &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
          else
             call wfat_print_wfat0_ints(nch, nqn, natm, lmax, 
      &           int_mb(k_npa), int_mb(k_mpa), dcpl_mb(k_in))
@@ -174,6 +188,7 @@ clater     &           res_mode)
 c     ==== Deallocations ====
       call wfat_erase_paraqn(l_npa, l_mpa)
       call wfat_2a1e_erase_cf(l_cf, l_eg)
+      call wfat_2a1e_erase_cf1(l_cfx, l_cfy, l_cfz)
       if (.not. ga_destroy(g_il))
      &     call errquit('WFAT: Cannot destroy intgl.', 45, GA_ERR)
 

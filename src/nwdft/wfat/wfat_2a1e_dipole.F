@@ -905,3 +905,23 @@ c     ==== Normalization_factor / \pi ====
 
       end
 !========================================================
+
+
+!========================================================
+!========================================================
+      subroutine wfat_2a1e_assign_polb(pb_in, pb_out)
+
+      implicit none
+      double precision pb_in(3)
+      double precision pb_out(3,3)
+
+      integer i
+      
+      pb_out = 0.0d0
+      do i = 1,3
+         pb_out(i,i) = pb_in(i)
+      enddo
+
+      end
+!========================================================
+      

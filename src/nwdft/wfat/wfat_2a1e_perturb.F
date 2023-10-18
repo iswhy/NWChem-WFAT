@@ -7,24 +7,24 @@ c===============================================================
 #include "stdio.fh"      
 #include "mafdecls.fh"
 #include "errquit.fh"
-      integer geom
-      integer m
-      integer sphi
-      integer orbid
-      double precision eps
-      double precision ke
-      integer nr
-      integer nt
-      integer nr_m
-      integer nt_m
-      integer nr_p
-      integer nt_p
-      double precision cf(nr*nt, nr*nt)
-      double precision erg(nr*nt)
-      double precision cfx(1:*)
-      double precision cfy(1:*)
-      double precision cfz(nr*nt)
-      double precision polb(3)
+      integer geom                         ! [input],
+      integer m                            ! [input],
+      integer sphi                         ! [input],
+      integer orbid                        ! [input],
+      double precision eps                 ! [input],
+      double precision ke                  ! [input],
+      integer nr                           ! [input],
+      integer nt                           ! [input],
+      integer nr_m                         ! [input],
+      integer nt_m                         ! [input],
+      integer nr_p                         ! [input],
+      integer nt_p                         ! [input],
+      double precision cf(nr*nt, nr*nt)    ! [input],
+      double precision erg(nr*nt)          ! [input],
+      double precision cfx(1:*)            ! [output], The minimum size is nr_p*nt_p if m=0, if m>0, the minimum size is nr_m*nt_m + nr_p*nt_p.
+      double precision cfy(1:*)            ! [output], The minimum size is nr_p*nt_p if m=0, if m>0, the minimum size is nr_m*nt_m + nr_p*nt_p.
+      double precision cfz(nr*nt)          ! [output],
+      double precision polb(3)             ! [output],
 
       integer l_cfm, l_egm, l_cfp, l_egp
       integer k_cfm, k_egm, k_cfp, k_egp

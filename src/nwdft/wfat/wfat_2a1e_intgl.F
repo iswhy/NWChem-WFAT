@@ -2,7 +2,8 @@ c===============================================================
 c===============================================================
       subroutine wfat_2a1e_intgl(rtdb, geom, nqn, nid, mid, lmax_,
      &     gq, zi, celm, sphi, mch, nr, nt, ke, orbid, vcf, erg, chmmt0,
-     &     eps, wfat1, chpos, chmmt, g_il)
+     &     eps, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, cfx, cfy, cfz,
+     &     chpos, chmmt, g_il, g_j, g_k)
 
       implicit none
 #include "util.fh"
@@ -32,25 +33,41 @@ c===============================================================
       double precision chmmt0(3)   ! [input],
       double precision eps         ! [input],
       logical wfat1                ! [input],
+      integer nlgl                 ! [input], only used when wfat1=.true.
+      integer nr_m                 ! [input], only used when wfat1=.true.
+      integer nt_m                 ! [input], only used when wfat1=.true.
+      integer nr_p                 ! [input], only used when wfat1=.true.
+      integer nt_p                 ! [input], only used when wfat1=.true.
+      double precision cfx(1:*)    ! [input], only used when wfat1=.true.
+      double precision cfy(1:*)    ! [input], only used when wfat1=.true.
+      double precision cfz(nr*nt)  ! [input], only used when wfat1=.true.
       double precision chpos(3)    ! [output],
       double precision chmmt(3)    ! [output],
       integer g_il                 ! [output],
+      integer g_j                  ! [output], only calculated when wfat1=.true.
+      integer g_k(2)               ! [output], only calculated when wfat1=.true.
 
       character*12 dt_str
       character*16 tag
-      logical ismask_g, t1
+      logical ismask_g, ismask_j, ismask_k, t1
       integer ndid, natom, max_npt, nscr, nsh, nom, ni0, ni_, nil
+      integer nij0, nij_, nij, nik1_0, nik1_, nik1, nik2_0, nik2_, nik2
       integer natomp, nptp, pr_chk(10), g_nptx, nptx, jpt, pr_count, kk
-      integer ic
+      integer ic, nom1, nom2, i_om1, i_om2
       integer icent, npt, ipt_i, ipt_f, ipt, ipt0, i_l, i_r
       integer l_pt, l_wt, l_sc, l_om, l_i0, l_i_, l_il, l_icp, l_ipp
+      integer l_ij0, l_ij_, l_ij, l_ik1_0, l_ik1_, l_ik1, l_ik2_0
+      integer l_ik2_, l_ik2, l_om1, l_om2
       integer k_pt, k_wt, k_sc, k_om, k_i0, k_i_, k_il, k_icp, k_ipp
-      double precision mask_g(2), npt_tot, t_now, t_last, t_start, celf
-      double precision atp(3), znuc, v_c(3), v_m(3), vc_psi, wtcelf
-      double precision dt_prog, dt_all, normch, iondip(3)
+      integer k_ij0, k_ij_, k_ij, k_ik1_0, k_ik1_, k_ik1, k_ik2_0
+      integer k_ik2_, k_ik2, k_om1, k_om2
+      double precision mask_g(2), mask_j(2), mask_k(2), npt_tot, t_now
+      double precision t_last, t_start, celf, atp(3), znuc, v_c(3)
+      double precision v_m(3), vc_psi, wtcelf, dt_prog, dt_all, normch
+      double precision iondip(3), vc_cpsi(3)
       double complex czero
-      integer nch, imf
-      parameter(nch=1, imf=0)
+      integer nch, nch1, imf
+      parameter(nch=1, nch1=3, imf=0)
       parameter(czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)))
 
 
@@ -68,44 +85,33 @@ c     ==== Get number of atoms ====
       ismask_g = .false.
       if (rtdb_get(rtdb, 'wfat:mask_g', mt_dbl, 2, mask_g))
      &     ismask_g = .true.
-clater      ismask_j = .false.
-clater      if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_j', mt_dbl, 2, mask_j))
-clater     &     ismask_j = .true.
-clater      ismask_k = .false.
-clater      if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_k', mt_dbl, 2, mask_k))
-clater     &     ismask_k = .true.
+      ismask_j = .false.
+      if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_j', mt_dbl, 2, mask_j))
+     &     ismask_j = .true.
+      ismask_k = .false.
+      if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_k', mt_dbl, 2, mask_k))
+     &     ismask_k = .true.
 
+      if (ismask_g) write(luout, '("Masking g")')
+      if (ismask_j) write(luout, '("Masking j")')
+      if (ismask_k) write(luout, '("Masking k")')
+      
 
-c     ==== Obtain properties of each channel ====
-c     nch = the number of the ionized channels.
+c     ==== Obtain properties of the ionized channel ====
 c     nch1 = the number of channels that contains the correction terms (needed for WFAT(1)),
-c            it is equal to 3*nch because each ionized channel has three correction terms 
+c            it is equal to 3 because the ionized channel has three correction terms 
 c            associated to the three cartesian components of the dipole operator.
-clater      if (wfat1) then
-clater         nch1 = 3*nch
-clater      else
-clater         nch1 = 0
-clater      endif
-cOLD      ncf = nbas * (nch + nch1)
-cOLD      if (.not. MA_alloc_get(MT_DBL, ncf, 'vch', l_cf, k_cf))
-cOLD     &     call errquit('WFAT: vch allocation failed', 59, MA_ERR)
       call wfat_2a1e_orbcent(geom, chmmt0, chpos, chmmt)
       iondip = (/ 0.0d0, 0.0d0, 0.0d0 /)
       call wfat_print_orb_property(nch, orbid, 1, erg, chpos, chmmt,
      &     iondip)
+
+
+c     ==== Coefficients of the correction term to the wave function ====
 clater      if (wfat1) then
-clater         call wfat_perturbnew_cwfn(nch, spinid, orbid,
-clater     &        dbl_mb(k_cf+nbas*nch), pb)
 clater         call wfat_check_wfat1ovl(nch, dbl_mb(k_cf),
-clater     &        dbl_mb(k_cf+nbas*nch))
+clater     &        dbl_mb(k_cf+nbas*nch)
 clater      endif
-cOLD      if (.not. MA_alloc_get(MT_INT, nch+nch1, 'spinid1', l_si, k_si))
-cOLD     &     call errquit('WFAT: spinid1 allocation failed', 59, MA_ERR)
-cOLD      if (.not. MA_alloc_get(MT_DBL, 3*(nch+nch1), 'chpos1',
-cOLD     &     l_pos, k_pos))
-cOLD     &     call errquit('WFAT: chpos1 allocation failed', 59, MA_ERR)
-cOLD      call wfat_get_wfat1_sppos(wfat1, nch, spinid, chpos, int_mb(k_si),
-cOLD     &     dbl_mb(k_pos))      
 
 
 c     ==== Allocate grid-related arrays ====
@@ -113,7 +119,23 @@ c     ==== Allocate grid-related arrays ====
 
 
 c     ==== Allocate WFAT integral, its integrands, and some other ====
-      nscr = nr + nt + nr*nt
+      if (wfat1) then
+         nscr = 
+     &        nr +
+     &        nt +
+     &        nr*nt +
+     &        nr_m +
+     &        nt_m +
+     &        nr_m*nt_m +
+     &        nr_p +
+     &        nt_p +
+     &        nr_p*nt_p
+      else
+         nscr = 
+     &        nr +
+     &        nt +
+     &        nr*nt
+      endif
       if (.not. MA_alloc_get(MT_DBL, nscr, 'scratch', l_sc, k_sc))
      &     call errquit('WFAT: scratch allocation failed', 59, MA_ERR)
       call wfat_alloc_intgl(lmax_, nqn, nch, natom, nsh, nom, ni0, ni_,
@@ -127,18 +149,18 @@ c     ==== Obtaining grid ranges for the current process ====
 
 
 c     ==== Calculate WFAT(1) Omega ====
-clater      if (wfat1) then
-clater         call wfat_alloc_intgl_wfat1(lmax_, nqn, nch, nch1, natom,
-clater     &        nptp, nsh, nij0, nij_, nij,
-clater     &        l_ij0, k_ij0, l_ij_, k_ij_, l_ij, k_ij,
-clater     &        nom1, nik1_0, nik1_, nik1, l_om1, k_om1, l_ik1_0, k_ik1_0,
-clater     &        l_ik1_, k_ik1_, l_ik1, k_ik1,
-clater     &        nom2, nik2_0, nik2_, nik2, l_om2, k_om2, l_ik2_0, k_ik2_0,
-clater     &        l_ik2_, k_ik2_, l_ik2, k_ik2)
-clater         call wfat_omega_wfat1(geom, nch, nqn, erg, chpos, nid,
-clater     &        mid, lmax_, natomp, nptp, int_mb(k_icp), int_mb(k_ipp),
-clater     &        gq, nlgl, zion, dcpl_mb(k_om1), dcpl_mb(k_om2))
-clater      endif
+      if (wfat1) then
+         call wfat_alloc_intgl_wfat1(lmax_, nqn, nch, nch1, natom,
+     &        nptp, nsh, nij0, nij_, nij,
+     &        l_ij0, k_ij0, l_ij_, k_ij_, l_ij, k_ij,
+     &        nom1, nik1_0, nik1_, nik1, l_om1, k_om1, l_ik1_0, k_ik1_0,
+     &        l_ik1_, k_ik1_, l_ik1, k_ik1,
+     &        nom2, nik2_0, nik2_, nik2, l_om2, k_om2, l_ik2_0, k_ik2_0,
+     &        l_ik2_, k_ik2_, l_ik2, k_ik2)
+         call wfat_omega_wfat1(geom, nch, nqn, erg, chpos, nid,
+     &        mid, lmax_, natomp, nptp, int_mb(k_icp), int_mb(k_ipp),
+     &        gq, nlgl, zi, dcpl_mb(k_om1), dcpl_mb(k_om2))
+      endif
 
       
       if (ndid == 0) then
@@ -171,11 +193,11 @@ c     ==== Loop over atoms ====
       pr_count = 0
       kk = 1
       dcpl_mb(k_i_ : k_i_+ni_-1) = czero
-clater      if (wfat1) then
-clater         dcpl_mb(k_ij_ : k_ij_+nij_-1) = czero
-clater         dcpl_mb(k_ik1_ : k_ik1_+nik1_-1) = czero
-clater         dcpl_mb(k_ik2_ : k_ik2_+nik2_-1) = czero
-clater      endif
+      if (wfat1) then
+         dcpl_mb(k_ij_ : k_ij_+nij_-1) = czero
+         dcpl_mb(k_ik1_ : k_ik1_+nik1_-1) = czero
+         dcpl_mb(k_ik2_ : k_ik2_+nik2_-1) = czero
+      endif
       
       do ic = 1, natomp
          icent = int_mb(k_icp + ic - 1)
@@ -190,6 +212,7 @@ clater      endif
          ipt_f = int_mb(k_ipp + 1 + (ic-1)*2)
 c        ==== Loop over all quadrature points around the current atom ====
          do ipt = ipt_i, ipt_f
+            jpt = jpt + 1
             ipt0 = k_pt + 3*(ipt-1)
             v_c(1:3) = dbl_mb(ipt0 : ipt0+2)
             call geom_cent2cent(geom, icent, v_c, imf, v_m, t1)
@@ -197,54 +220,47 @@ c        ==== Loop over all quadrature points around the current atom ====
             
 c           ==== Calculate vc|psi> ====
             if (wfat1) then
-               call wfat_2a1e_vcpsi_ord1()
+               call wfat_2a1e_vcpsi_ord1(geom, sphi, mch, nr, nt, nr_m,
+     &              nt_m, nr_p, nt_p, ke, eps, zi, vcf, cfx, cfy, cfz, 
+     &              chpos, v_m, dbl_mb(k_sc), vc_psi, vc_cpsi)
             else
                call wfat_2a1e_vcpsi(geom, sphi, mch, nr, nt, ke, eps, 
      &              zi, vcf, chpos, v_m, dbl_mb(k_sc), vc_psi)
             endif
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
-            call wfat_omega_1pt(geom, v_m, nch, erg,
-     &           chpos, nqn, nid, mid, lmax_, int(zi),
-     &           dcpl_mb(k_om:k_om+nom-1))
+            call wfat_omega_1pt(geom, v_m, nch, erg, chpos, nqn, nid, 
+     &           mid, lmax_, int(zi), dcpl_mb(k_om:k_om+nom-1))
             
 c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
-            call wfat_integrand(nch, nqn, nsh, dcpl_mb(k_om),
-     &           vc_psi, dcpl_mb(k_i0))
+            call wfat_integrand(nch, nqn, nsh, dcpl_mb(k_om), vc_psi, 
+     &           dcpl_mb(k_i0))
             if (isnan( abs(dcpl_mb(k_i0)) ))
      &           write(luout, '("isnan", i8, 3es14.6, 6x, 3es21.12E3)')
      &           ic, v_m, dcpl_mb(k_om), vc_psi
-
-
             
+c           ==== Calculate the integrand of J^{(n,m)x_i}_{l,m'} ====
+c           =====           and K^{(n,m)}_{l,m'}                ====
+            if (wfat1) then
+               i_om1 = k_om1 + (jpt-1)*nsh*nqn*nch
+               i_om2 = k_om2 + (jpt-1)*nsh*nqn*nch
+               call wfat_integrand_wfat1(nch, nqn, nsh, dcpl_mb(k_om),
+     &              dcpl_mb(i_om1), dcpl_mb(i_om2), vc_cpsi, vc_psi, 
+     &              dcpl_mb(k_ij0), dcpl_mb(k_ik1_0), dcpl_mb(k_ik2_0))
+            endif
 
-clater            if (wfat1) then
-clater               jpt = jpt + 1
-clater               i_om1 = k_om1 + (jpt-1)*nsh*nqn*nch
-clater               i_om2 = k_om2 + (jpt-1)*nsh*nqn*nch
-claterc              ==== Calculate the integrand of J^{(n,m)x_i}_{l,m'} ====
-claterc              =====           and K^{(n,m)}_{l,m'}                ====
-clater               call wfat_integrand_wfat1(nch, nqn, nsh, dcpl_mb(k_om),
-clater     &              dcpl_mb(i_om1), dcpl_mb(i_om2), dbl_mb(k_vc+nch),
-clater     &              dbl_mb(k_vc), dcpl_mb(k_ij0), dcpl_mb(k_ik1_0),
-clater     &              dcpl_mb(k_ik2_0))
-clater            endif
-
-            
+c           ==== Apply masks to the integrands ====
             if (ismask_g) call wfat_mask_intd(geom, natom, nch, erg, 
      &           nqn, nsh, v_m, mask_g, dcpl_mb(k_i0))
-clater            if (ismask_j .and. wfat1) call wfat_mask_intd(geom, 
-clater     &           natom, 3*nch, erg, nqn, nsh, v_m, mask_j,
-clater     &           dcpl_mb(k_ij0))
-clater            if (ismask_k .and. wfat1) then
-clater               call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh,
-clater     &              v_m, mask_k, dcpl_mb(k_ik1_0))
-clater               call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh,
-clater     &              v_m, mask_k, dcpl_mb(k_ik2_0))
-clater            endif
+            if (ismask_j .and. wfat1) call wfat_mask_intd(geom, natom, 
+     &           3*nch, erg, nqn, nsh, v_m, mask_j, dcpl_mb(k_ij0))
+            if (ismask_k .and. wfat1) then
+               call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh,
+     &              v_m, mask_k, dcpl_mb(k_ik1_0))
+               call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh,
+     &              v_m, mask_k, dcpl_mb(k_ik2_0))
+            endif
 
-                       
-            
 c           ==== Quadrature summation ====
             call wfat_celf_1pt(geom, icent, v_c, celm, celf)
             wtcelf = celf * dbl_mb(k_wt+ipt-1)
@@ -254,32 +270,30 @@ c           ==== Quadrature summation ====
             dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
      &                         dcpl_mb(k_i0:k_i0+ni0-1) *
      &                         wtcelf                        !! 1)
-
-            jpt = jpt + 1
-            write(luout, '("check: ", i8, 9es15.6)')
-     &           jpt, v_m, vc_psi, dcpl_mb(k_i0), dcpl_mb(k_i_), wtcelf
-
-
             
-clater            if (wfat1) then
-clater               i_l = k_ij_ + (icent-1) * nsh*nqn*nch1
-clater               i_r = i_l + nsh*nqn*nch1 - 1
-clater               dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
-clater     &                            dcpl_mb(k_ij0:k_ij0+nij0-1) *
-clater     &                            wtcelf
-clater
-clater               i_l = k_ik1_ + (icent-1) * nsh*nqn*nch
-clater               i_r = i_l + nsh*nqn*nch - 1
-clater               dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
-clater     &                            dcpl_mb(k_ik1_0:k_ik1_0+nik1_0-1) *
-clater     &                            wtcelf
-clater
-clater               i_l = k_ik2_ + (icent-1) * nsh*nqn*nch
-clater               i_r = i_l + nsh*nqn*nch - 1
-clater               dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
-clater     &                            dcpl_mb(k_ik2_0:k_ik2_0+nik2_0-1) *
-clater     &                            wtcelf
-clater            endif
+            if (wfat1) then
+               i_l = k_ij_ + (icent-1) * nsh*nqn*nch1
+               i_r = i_l + nsh*nqn*nch1 - 1
+               dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
+     &                            dcpl_mb(k_ij0:k_ij0+nij0-1) *
+     &                            wtcelf
+
+               i_l = k_ik1_ + (icent-1) * nsh*nqn*nch
+               i_r = i_l + nsh*nqn*nch - 1
+               dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
+     &                            dcpl_mb(k_ik1_0:k_ik1_0+nik1_0-1) *
+     &                            wtcelf
+
+               i_l = k_ik2_ + (icent-1) * nsh*nqn*nch
+               i_r = i_l + nsh*nqn*nch - 1
+               dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
+     &                            dcpl_mb(k_ik2_0:k_ik2_0+nik2_0-1) *
+     &                            wtcelf
+            endif
+            
+c            jpt = jpt + 1
+c            write(luout, '("check: ", i8, 9es15.6)')
+c     &           jpt, v_m, vc_psi, dcpl_mb(k_i0), dcpl_mb(k_i_), wtcelf
 
             
 c           ==== Print progress ====
@@ -304,11 +318,11 @@ c           ==== Print progress ====
 c     ==== Reorder elements of intgl ====      
       call wfat_reorder_intgl(nsh, natom, nqn, nch,
      &     dcpl_mb(k_i_ : k_i_+ni_-1), dcpl_mb(k_il : k_il+nil-1))
-clater      if (wfat1)
-clater     &     call wfat_reorder_intgl_wfat1(nsh, natom, nqn, nch,
-clater     &     dcpl_mb(k_ij_), dcpl_mb(k_ij),
-clater     &     dcpl_mb(k_ik1_), dcpl_mb(k_ik1),
-clater     &     dcpl_mb(k_ik2_), dcpl_mb(k_ik2))
+      if (wfat1)
+     &     call wfat_reorder_intgl_wfat1(nsh, natom, nqn, nch,
+     &     dcpl_mb(k_ij_), dcpl_mb(k_ij),
+     &     dcpl_mb(k_ik1_), dcpl_mb(k_ik1),
+     &     dcpl_mb(k_ik2_), dcpl_mb(k_ik2))
       
 
 c     ==== Accumulate to global intgl (g_il) ====
@@ -316,11 +330,36 @@ c     ==== Accumulate to global intgl (g_il) ====
       call ga_sync()
       call ga_norm1(g_il, normch)      
 
+      if (wfat1) then
+         call ga_acc(g_j, 1, nij, 1, 1, dcpl_mb(k_ij), nij, 1.0d0)
+c         call ga_zero(g_j)
+         call ga_sync()
+         call ga_norm1(g_j, normch)
+         if (ndid==0) write(luout, '("intgl_j norm = ", es14.6)') normch
+
+         call ga_acc(g_k(1), 1, nik1, 1, 1, dcpl_mb(k_ik1), nik1, 1.0d0)
+c         call ga_zero(g_k(1))
+         call ga_sync()
+         call ga_norm1(g_k(1), normch)
+         if (ndid==0) write(luout, '("intgl_k1 norm = ", es14.6)')
+     &        normch
+
+         call ga_acc(g_k(2), 1, nik2, 1, 1, dcpl_mb(k_ik2), nik2, 1.0d0)
+c         call ga_zero(g_k(2))
+         call ga_sync()
+         call ga_norm1(g_k(2), normch)
+         if (ndid==0) write(luout, '("intgl_k2 norm = ", es14.6)')
+     &        normch
+      endif
+      
 
 c     ==== Deallocations ====
       call wfat_dealloc_quadgrid(l_pt, l_wt)
       call wfat_dealloc_gridrange(l_icp, l_ipp)
       call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il)
+      if (wfat1)
+     &     call wfat_dealloc_intgl_wfat1(l_ij0, l_ij_, l_ij,
+     &     l_om1, l_ik1_0, l_ik1_, l_ik1, l_om2, l_ik2_0, l_ik2_, l_ik2)
       call wfat_terminate_progress(g_nptx)
       
       end

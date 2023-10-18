@@ -492,6 +492,33 @@ c==========================================================
 
 c==========================================================
 c==========================================================
+      subroutine wfat_2a1e_eval_phi(s, m, phi, f)
+
+      implicit none
+      character*1 s
+      integer m
+      double precision phi
+      double precision f
+
+      double precision pi_const
+      parameter(pi_const=3.14159265359d0)
+
+      if (s == 'c') then
+         if (m == 0) then
+            f = 1.0d0 / sqrt(2*pi_const)
+         else
+            f = cos(abs(m)*phi) / sqrt(pi_const)
+         endif
+      else if (s == 's') then
+         f = sin(abs(m)*phi) / sqrt(pi_const)
+      endif
+
+      end
+c==========================================================
+
+
+c==========================================================
+c==========================================================
       subroutine wfat_dvr_fbr_r(m, nr, u)
 c     DESCRIPTION:
 c     Calculates the transformation matrix from radial DVR basis to radial

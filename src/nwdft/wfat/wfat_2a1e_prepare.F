@@ -80,9 +80,88 @@ c===============================================================
 
       if (.not. ma_alloc_get(MT_DBL, (nr*nt)**2, '2a1e_coef',
      &     l_cf, k_cf))
-     &     call errquit('WFAT: Cannot allocate coef', 1, MA_ERR)
+     &     call errquit('WFAT: Cannot allocate 2a1e_coef', 1, MA_ERR)
       if (.not. ma_alloc_get(MT_DBL, nr*nt, '2a1e_erg', l_eg, k_eg))
-     &     call errquit('WFAT: Cannot allocate erg', 1, MA_ERR)
+     &     call errquit('WFAT: Cannot allocate 2a1e_erg', 1, MA_ERR)
+
+      end
+c===============================================================
+
+
+c===============================================================
+c===============================================================
+      subroutine wfat_2a1e_prep_cf1(wfat1, rtdb, m, nr, nt, nr_m, nt_m, 
+     &     nr_p, nt_p, l_cfx, k_cfx, l_cfy, k_cfy, l_cfz, k_cfz)
+
+      implicit none
+#include "rtdb.fh"
+#include "mafdecls.fh"
+#include "errquit.fh"
+      logical wfat1
+      integer rtdb
+      integer m               
+      integer nr, nt
+      integer nr_m, nt_m
+      integer nr_p, nt_p
+      integer l_cfx, k_cfx
+      integer l_cfy, k_cfy
+      integer l_cfz, k_cfz    
+
+      integer n_m, n_p, nz
+
+
+      if (wfat1) then
+c        ==== The number of radial DVR basis for m-1 spectrum ====
+         if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr_m', mt_int, 1, nr_m))
+     &        call errquit('WFAT: Failed reading 2a1e_nr_m from rtdb',
+     &        1, RTDB_ERR)
+         
+c        ==== The number of polar DVR basis for m-1 spectrum ====
+         if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt_m', mt_int, 1, nt_m))
+     &        call errquit('WFAT: Failed reading 2a1e_nt_m from rtdb',
+     &        1, RTDB_ERR)
+         
+c        ==== The number of radial DVR basis for m+1 spectrum ====
+         if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr_p', mt_int, 1, nr_p))
+     &        call errquit('WFAT: Failed reading 2a1e_nr_p from rtdb',
+     &        1, RTDB_ERR)
+         
+c        ==== The number of polar DVR basis for m+1 spectrum ====
+         if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt_p', mt_int, 1, nt_p))
+     &        call errquit('WFAT: Failed reading 2a1e_nt_p from rtdb',
+     &        1, RTDB_ERR)
+      else
+         nr_m = 1
+         nt_m = 1
+         nr_p = 1
+         nt_p = 1
+      endif
+      
+      
+c     ==== Allocations ====
+      if (wfat1) then
+         if (m >= 1) then
+            n_m = nr_m * nt_m
+         else
+            n_m = 0
+         endif
+         n_p = nr_p * nt_p
+         nz = nr * nt
+      else
+         n_m = 1
+         n_p = 1
+         nz = 1
+      endif
+
+      if (.not. ma_alloc_get(MT_DBL, n_m+n_p, '2a1e_coefx',
+     &     l_cfx, k_cfx))
+     &     call errquit('WFAT: Cannot allocate 2a1e_coefx', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, n_m+n_p, '2a1e_coefy',
+     &     l_cfy, k_cfy))
+     &     call errquit('WFAT: Cannot allocate 2a1e_coefy', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nz, '2a1e_coefz',
+     &     l_cfz, k_cfz))
+     &     call errquit('WFAT: Cannot allocate 2a1e_coefz', 1, MA_ERR)
 
       end
 c===============================================================
@@ -105,4 +184,28 @@ c===============================================================
 
       end
 c===============================================================
+
+
+c===============================================================
+c===============================================================
+      subroutine wfat_2a1e_erase_cf1(l_cfx, l_cfy, l_cfz)
+
+      implicit none
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer l_cfx, l_cfy, l_cfz
+
+      if (.not. MA_free_heap(l_cfx))
+     &     call errquit('WFAT: 2a1e_coefx deallocation failed', 3,
+     &     MA_ERR)
+      if (.not. MA_free_heap(l_cfy))
+     &     call errquit('WFAT: 2a1e_coefy deallocation failed', 3,
+     &     MA_ERR)
+      if (.not. MA_free_heap(l_cfz))
+     &     call errquit('WFAT: 2a1e_coefz deallocation failed', 3,
+     &     MA_ERR)
+
+      end
+c===============================================================
+      
       
