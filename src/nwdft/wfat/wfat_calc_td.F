@@ -1,12 +1,29 @@
 c===============================================================
 c===============================================================
-      subroutine wfat_calc_td(rtdb, geom, pr_srfc, pr_yild, 
-     &           pr_avbeta, pr_avgamma, nlas, ftlas, alas, wlas, 
-     &           plas, tlas, dlas, nt, tmax, extf, nch, orbid0, spinid,
-     &           erg, chmmt, nqn, nid, mid, lmax, zi, intgl, wfat1, nb,
-     &           ns, orbid, dpmo, pb, chpos, intgl_j, intgl_k1,
-     &           intgl_k2)
+      subroutine wfat_calc_td(rtdb, geom, pr_srfc, pr_yild, pr_avbeta,
+     &     pr_avgamma, nlas, ftlas, alas, wlas, plas, tlas, dlas, nt,
+     &     tmax, extf, nch, orbid0, spinid, erg, chmmt, nqn, nid, mid,
+     &     lmax, zi, intgl, wfat1, nsub, maxn, dgs, ndgs, dps, pbs,
+     &     intgl_j, intgl_k1, intgl_k2)
+
 c     DESCRIPTION:
+c     nsub = It is only used when wfat1=.true.. The number of degenerate subspaces,
+c            a nondegenerate state is considered a degenerate state in a subspace of
+c            dimension 1.
+c     maxn = It is only used when wfat1=.true.. The largest dimension of all degenerate
+c            subspaces, i.e. maxn=maxval(ndgs).
+c     dgs = It is only used when wfat1=.true.. The channel ID arranged into degenerate
+c           subspaces (columns). Each subspace (column) must only have states of the same
+c           spin. Its minimum size is maxn*nsub.
+c     ndgs = It is only used when wfat1=.true.. The dimension of each degenerate subspace.
+c            Its minimum size is nsub.
+c     dps = It is only used when wfat1=.true.. The electronic dipole moment matrix in
+c           molecular frame in each degenerate subspace. The 3 indices in the 3rd
+c           dimension correspond to x, y, z. Its minimum size is maxn*maxn*3*nsub.
+c     pbs = It is only used when wfat1=.true.. The static polarizability matrix in 
+c           molecular frame in each degenerate subspace. The 6 indices in the 3rd 
+c           dimension correspond to xx, yy, zz, xy, xz, yz. Its minimum size is
+c           maxn*maxn*6*nsub.
       
       implicit none
 #include "global.fh"      
@@ -44,24 +61,24 @@ cOLD      character*5 ftlas(nlas)       ! Function type of envelope, 'gauss' or 
       integer lmax                    ! [input]
       double precision zi             ! [input]
       double complex intgl(1:*)       ! [input]
-      logical wfat1                       ! [input]
-      integer nb                          ! [input], only used when wfat1=.true.
-      integer ns                          ! [input], only used when wfat1=.true.
-      integer orbid(1:*)                  ! [input], only used when wfat1=.true.
-      double precision dpmo(1:*)          ! [input], only used when wfat1=.true. The minimum size should be nb*nb*ns*3.
-      double precision pb(1:*)            ! [input], only used when wfat1=.true. The minimum size should be 3*3*nch.
-      double precision chpos(1:*)         ! [input], only used when wfat1=.true.
-      double complex intgl_j(1:*)         ! [input], only used when wfat1=.true.
-      double complex intgl_k1(1:*)        ! [input], only used when wfat1=.true.
-      double complex intgl_k2(1:*)        ! [input], only used when wfat1=.true.
+      logical wfat1                   ! [input]
+      integer nsub                    ! [input]
+      integer maxn                    ! [input]
+      integer dgs(1:*)                ! [input]
+      integer ndgs(1:*)               ! [input]
+      double precision dps(1:*)       ! [input]
+      double precision pbs(1:*)       ! [input]
+      double complex intgl_j(1:*)     ! [input]
+      double complex intgl_k1(1:*)    ! [input]
+      double complex intgl_k2(1:*)    ! [input]
       
       logical gap, sumbtgm
-      integer nsf, nbt, ngm, nat, ndid, ndgi, ndgn, nsc, nsx, nmmd, npbd
+      integer nsf, nbt, ngm, nat, ndid, nsc, nsx, npbd
       integer n_jn, n_kn, n_on
       integer ib, ig, i, iqn, i_on
-      integer l_gn, l_gnn, l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_pbd, l_jn
+      integer l_gn, l_gnn, l_sc, l_sx, l_pbd, l_jn
       integer l_kn, l_on, l_jnn, l_knn
-      integer k_gn, k_gnn, k_dgi, k_dgn, k_sc, k_sx, k_mmd, k_pbd, k_jn
+      integer k_gn, k_gnn, k_sc, k_sx, k_pbd, k_jn
       integer k_kn, k_on, k_jnn, k_knn
       double precision bt_start, bt_last, dbt, dbtr, bt
       double precision gm_start, gm_last, dgm, dgmr, gm
@@ -98,17 +115,16 @@ c     ==== Allocation of structure factors ====
 
 c     ==== When WFAT1 is active ====
       if (wfat1) then
-         call wfat_prepare_an(nb, nat, nch, nqn, ndgi, l_dgi, k_dgi,
-     &        ndgn, l_dgn, k_dgn, nsc, l_sc, k_sc, nsx, l_sx, k_sx, 
-     &        nmmd, l_mmd, k_mmd, npbd, l_pbd, k_pbd,
-     &        n_jn, l_jn, k_jn, n_kn, l_kn, k_kn, n_on, l_on, k_on)
+         call wfat_prepare_an(maxn, nat, nch, nqn, nsc, l_sc, k_sc, 
+     &        nsx, l_sx, k_sx, npbd, l_pbd, k_pbd, n_jn, l_jn, k_jn,
+     &        n_kn, l_kn, k_kn, n_on, l_on, k_on)
          if (.not. MA_alloc_get(MT_DCPL, n_jn, 'jnn', l_jnn, k_jnn))
      &        call errquit('WFAT: jnn allocation failed', 2, MA_ERR)
          if (.not. MA_alloc_get(MT_DCPL, n_kn, 'knn', l_knn, k_knn))
      &        call errquit('WFAT: knn allocation failed', 2, MA_ERR)
          
-         call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
-     &        int_mb(k_dgn))
+cOLD         call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
+cOLD     &        int_mb(k_dgn))
          if (.not. rtdb_get(rtdb, 'wfat:mthr', mt_dbl, 1, mthr))
      &        call errquit('WFAT: Failed reading mthr from rtdb',
      &        1, RTDB_ERR)
@@ -171,20 +187,16 @@ c     ==== Calculate and print structure factor and ion yield ====
             if (pr_srfc .or. pr_yild .or. pr_avbeta) then
 c              ==== Calculate structure factor ====
                if (wfat1) then
-                  call wfat_get_srfc1(bt, gm, nat, nb, ns,
-     &                 nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
-     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, chpos, 
-     &                 mthr, dthr, intgl, intgl_j, intgl_k1, intgl_k2, 
-     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_mmd), 
-     &                 dbl_mb(k_pbd), dcpl_mb(k_gn), dcpl_mb(k_jn),
-     &                 dcpl_mb(k_kn))
-                  call wfat_get_srfc1(180.0d0-bt, 180.0d0+gm, nat, nb,
-     &                 ns, nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
-     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, chpos, 
-     &                 mthr, dthr, intgl, intgl_j, intgl_k1, intgl_k2, 
-     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_mmd), 
-     &                 dbl_mb(k_pbd), dcpl_mb(k_gnn), dcpl_mb(k_jnn),
-     &                 dcpl_mb(k_knn))
+                  call wfat_get_srfc1(bt, gm, nat, nch, nqn, lmax, mid, 
+     &                 chmmt, intgl, intgl_j, intgl_k1, intgl_k2, nsub, 
+     &                 maxn, dgs, ndgs, dthr, dps, pbs, dbl_mb(k_sc), 
+     &                 dcpl_mb(k_sx), dbl_mb(k_pbd), dcpl_mb(k_gn), 
+     &                 dcpl_mb(k_jn), dcpl_mb(k_kn))
+                  call wfat_get_srfc1(180.d0-bt, 180.0d0+gm, nat, nch,
+     &                 nqn, lmax, mid, chmmt, intgl, intgl_j, intgl_k1,
+     &                 intgl_k2, nsub, maxn, dgs, ndgs, dthr, dps, pbs,
+     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_pbd),
+     &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn))
                else
                   call wfat_get_srfc0(geom, bt, gm, nch, erg,
      &                 nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_gn))
@@ -285,20 +297,16 @@ c     ==== Calculate gamma-averaged ion yield ====
 
 c              ==== Calculate structure factor ====
                if (wfat1) then
-                  call wfat_get_srfc1(bt, gm, nat, nb, ns,
-     &                 nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
-     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, chpos, 
-     &                 mthr, dthr, intgl, intgl_j, intgl_k1, intgl_k2, 
-     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_mmd), 
-     &                 dbl_mb(k_pbd), dcpl_mb(k_gn), dcpl_mb(k_jn),
-     &                 dcpl_mb(k_kn))
-                  call wfat_get_srfc1(180.0d0-bt, 180.0d0+gm, nat, nb,
-     &                 ns, nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
-     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, chpos, 
-     &                 mthr, dthr, intgl, intgl_j, intgl_k1, intgl_k2, 
-     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_mmd), 
-     &                 dbl_mb(k_pbd), dcpl_mb(k_gnn), dcpl_mb(k_jnn),
-     &                 dcpl_mb(k_knn))
+                  call wfat_get_srfc1(bt, gm, nat, nch, nqn, lmax, mid, 
+     &                 chmmt, intgl, intgl_j, intgl_k1, intgl_k2, nsub, 
+     &                 maxn, dgs, ndgs, dthr, dps, pbs, dbl_mb(k_sc), 
+     &                 dcpl_mb(k_sx), dbl_mb(k_pbd), dcpl_mb(k_gn), 
+     &                 dcpl_mb(k_jn), dcpl_mb(k_kn))
+                  call wfat_get_srfc1(180.0d0-bt, 180.0d0+gm, nat, nch, 
+     &                 nqn, lmax, mid, chmmt, intgl, intgl_j, intgl_k1, 
+     &                 intgl_k2, nsub, maxn, dgs, ndgs, dthr, dps, pbs, 
+     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_pbd), 
+     &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn))
                else
                   call wfat_get_srfc0(geom, bt, gm, nch, erg,
      &                 nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_gn))
@@ -346,8 +354,7 @@ c     ==== Deallocations ====
       if (.not. MA_free_heap(l_gnn))
      &     call errquit('WFAT: srfcn deallocation failed', 3, MA_ERR)
       if (wfat1) then
-         call wfat_erase_an(l_dgi, l_dgn, l_sc, l_sx, l_mmd, 
-     &        l_pbd, l_jn, l_kn, l_on)
+         call wfat_erase_an(l_sc, l_sx, l_pbd, l_jn, l_kn, l_on)
          if (.not. MA_free_heap(l_jnn))
      &        call errquit('WFAT: jnn deallocation failed', 3, MA_ERR)
          if (.not. MA_free_heap(l_knn))

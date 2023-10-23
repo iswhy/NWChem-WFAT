@@ -936,7 +936,10 @@ c=======================================================
 
       wfat_check_invec = .false.
       do i = 1, n
-         if (vec(i) == k) wfat_check_invec = .true.
+         if (vec(i) == k) then
+            wfat_check_invec = .true.
+            exit
+         endif
       enddo
 
       end
@@ -1340,6 +1343,29 @@ c
 c=======================================================
 
 
+c=======================================================
+c=======================================================
+      subroutine wfat_unique_count_i(nl, list, n)
+
+      implicit none
+      integer nl
+      integer list(nl)
+      integer n
+
+      integer minv, maxv
+      
+      minv = minval(list) - 1
+      maxv = maxval(list)
+      n = 0
+      do while (minv < maxv)
+         n = n + 1
+         minv = minval(list, mask=(list>minv))
+      enddo
+       
+      end
+c=======================================================
+
+      
 c=======================================================
 c=======================================================
       subroutine wfat_dsortx_simple()

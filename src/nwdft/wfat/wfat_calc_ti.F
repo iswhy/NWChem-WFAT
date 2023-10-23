@@ -2,11 +2,31 @@ c===============================================================
 c===============================================================
       subroutine wfat_calc_ti(rtdb, geom, pr_srfc, pr_rate, fieldm,
      &           nch, orbid0, spinid, erg, chmmt, nqn, nid, mid, lmax, 
-     &           zi, intgl, wfat1, nb, ns, orbid, dpmo, pb, chpos, 
+     &           zi, intgl, wfat1, nsub, maxn, dgs, ndgs, dps, pbs,
      &           intgl_j, intgl_k1, intgl_k2)
 
 c     DESCRIPTION:
-      
+c     nsub = It is only used when wfat1=.true.. The number of degenerate subspaces,
+c            a nondegenerate state is considered a degenerate state in a subspace of
+c            dimension 1.
+c     maxn = It is only used when wfat1=.true.. The largest dimension of all degenerate
+c            subspaces, i.e. maxn=maxval(ndgs).
+c     dgs = It is only used when wfat1=.true.. The channel ID arranged into degenerate
+c           subspaces (columns). Each subspace (column) must only have states of the same
+c           spin. However, note that dgs has no information about the spins of its
+c           columns. This information is not needed because dgs contains the indices of the
+c           channels which already encode the spin of that channel. The range of its 
+c           elements is 1 <= dgs(i,j) <= nch. Its minimum size ismaxn*nsub.
+c     ndgs = It is only used when wfat1=.true.. The dimension of each degenerate subspace.
+c            Its minimum size is nsub.
+c     dps = It is only used when wfat1=.true.. The electronic dipole moment matrix in
+c           molecular frame in each degenerate subspace. The 3 indices in the 3rd
+c           dimension correspond to x, y, z. Its minimum size is maxn*maxn*3*nsub.
+c     pbs = It is only used when wfat1=.true.. The static polarizability matrix in 
+c           molecular frame in each degenerate subspace. The 6 indices in the 3rd 
+c           dimension correspond to xx, yy, zz, xy, xz, yz. Its minimum size is
+c           maxn*maxn*6*nsub.
+
       implicit none
 #include "global.fh"      
 #include "errquit.fh"
@@ -30,23 +50,23 @@ c     DESCRIPTION:
       integer lmax                    ! [input]
       double precision zi             ! [input]
       double complex intgl(1:*)       ! [input]
-      logical wfat1                       ! [input]
-      integer nb                          ! [input], only used when wfat1=.true.
-      integer ns                          ! [input], only used when wfat1=.true.
-      integer orbid(1:*)                  ! [input], only used when wfat1=.true.
-      double precision dpmo(1:*)          ! [input], only used when wfat1=.true. The minimum size should be nb*nb*ns*3.
-      double precision pb(1:*)            ! [input], only used when wfat1=.true. The minimum size should be 3*3*nch.
-      double precision chpos(1:*)         ! [input], only used when wfat1=.true.
-      double complex intgl_j(1:*)         ! [input], only used when wfat1=.true.
-      double complex intgl_k1(1:*)        ! [input], only used when wfat1=.true.
-      double complex intgl_k2(1:*)        ! [input], only used when wfat1=.true.
+      logical wfat1                   ! [input]
+      integer nsub                    ! [input]
+      integer maxn                    ! [input]
+      integer dgs(1:*)                ! [input]
+      integer ndgs(1:*)               ! [input]
+      double precision dps(1:*)       ! [input]
+      double precision pbs(1:*)       ! [input]
+      double complex intgl_j(1:*)     ! [input], only used when wfat1=.true.
+      double complex intgl_k1(1:*)    ! [input], only used when wfat1=.true.
+      double complex intgl_k2(1:*)    ! [input], only used when wfat1=.true.
       
       logical gap, justa
-      integer n_gn, nfc, nrt, nbt, ngm, nat, ndgi, ndgn, nsc, nsx, nmmd
+      integer n_gn, nfc, nrt, nbt, ngm, nat, nsc, nsx
       integer npbd, n_jn, n_kn, n_on, ib, ig, ndid, i, iqn, i_on
-      integer l_gn, l_fc, l_rt, l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_pbd
+      integer l_gn, l_fc, l_rt, l_sc, l_sx, l_pbd
       integer l_jn, l_kn, l_on
-      integer k_gn, k_fc, k_rt, k_dgi, k_dgn, k_sc, k_sx, k_mmd, k_pbd
+      integer k_gn, k_fc, k_rt, k_sc, k_sx, k_pbd
       integer k_jn, k_kn, k_on
       double precision bt_start, bt_last, dbt, dbtr, bt
       double precision gm_start, gm_last, dgm, dgmr, gm
@@ -87,12 +107,11 @@ c     ==== Allocation of structure factors and ion yields ====
 
 c     ==== When WFAT1 is active ====
       if (wfat1) then
-         call wfat_prepare_an(nb, nat, nch, nqn, ndgi, l_dgi, k_dgi,
-     &        ndgn, l_dgn, k_dgn, nsc, l_sc, k_sc, nsx, l_sx, k_sx, 
-     &        nmmd, l_mmd, k_mmd, npbd, l_pbd, k_pbd,
-     &        n_jn, l_jn, k_jn, n_kn, l_kn, k_kn, n_on, l_on, k_on)
-         call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
-     &        int_mb(k_dgn))
+         call wfat_prepare_an(maxn, nat, nch, nqn, nsc, l_sc, k_sc, 
+     &        nsx, l_sx, k_sx, npbd, l_pbd, k_pbd, n_jn, l_jn, k_jn,
+     &        n_kn, l_kn, k_kn, n_on, l_on, k_on)
+cOLD         call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
+cOLD     &        int_mb(k_dgn))
          if (.not. rtdb_get(rtdb, 'wfat:mthr', mt_dbl, 1, mthr))
      &        call errquit('WFAT: Failed reading mthr from rtdb',
      &        1, RTDB_ERR)
@@ -147,13 +166,11 @@ c     ==== Calculate and print structure factor and ion yield ====
             if (pr_srfc .or. pr_rate) then
 c              ==== Calculate structure factors ====
                if (wfat1) then
-                  call wfat_get_srfc1(bt, gm, nat, nb, ns,
-     &                 nch, nqn, lmax, orbid, spinid, int_mb(k_dgi),
-     &                 int_mb(k_dgn), mid, dpmo, erg, chmmt, pb, chpos, 
-     &                 mthr, dthr, intgl, intgl_j, intgl_k1, intgl_k2, 
-     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_mmd), 
-     &                 dbl_mb(k_pbd), dcpl_mb(k_gn), dcpl_mb(k_jn),
-     &                 dcpl_mb(k_kn))
+                  call wfat_get_srfc1(bt, gm, nat, nch, nqn, lmax, mid, 
+     &                 chmmt, intgl, intgl_j, intgl_k1, intgl_k2, nsub, 
+     &                 maxn, dgs, ndgs, dthr, dps, pbs, dbl_mb(k_sc), 
+     &                 dcpl_mb(k_sx), dbl_mb(k_pbd), dcpl_mb(k_gn), 
+     &                 dcpl_mb(k_jn), dcpl_mb(k_kn))
                else
                   call wfat_get_srfc0(geom, bt, gm, nch, erg,
      &                 nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_gn))
@@ -176,7 +193,7 @@ c              ==== Calculate ionization rate ====
                   call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid,
      &                 mid, fieldm, erg, zi, dcpl_mb(k_gn),
      &                 dcpl_mb(k_jn), dcpl_mb(k_kn), dbl_mb(k_on), 
-     &                 dbl_mb(k_mmd), dbl_mb(k_pbd), justa, 
+     &                 chmmt, dbl_mb(k_pbd), justa, 
      &                 dbl_mb(k_fc), dbl_mb(k_rt), rate)
                else
                   call wfat_calc_rate(nat, fieldm, nch, erg,
@@ -212,39 +229,10 @@ c     ==== Deallocations ====
       if (.not. MA_free_heap(l_rt))
      &     call errquit('WFAT: p_rate deallocation failed',
      &     3, MA_ERR)
-      if (wfat1) call wfat_erase_an(l_dgi, l_dgn, l_sc, l_sx, l_mmd, 
-     &           l_pbd, l_jn, l_kn, l_on)
+      if (wfat1) call wfat_erase_an(l_sc, l_sx, l_pbd, l_jn, l_kn, l_on)
 
       end
 c===============================================================
-
-
-c============================================================
-c============================================================
-      subroutine wfat_detect_degen0(nch, orbid, spinid, dgid0, dgn0)
-
-      implicit none
-#include "wfat_qm_param.fh"
-#include "mafdecls.fh"
-      integer nch          ! [input],
-      integer orbid(nch)   ! [input],
-      integer spinid(nch)  ! [input],
-      integer dgid0(nch)   ! [output], the degenerate-ID of the ionized channels whose MO ID and spin ID are specified in orbid and spinid, respectively.
-      integer dgn0(nch)    ! [output], the degree of degeneracy of the ionized channels.
-
-      integer i, io, is
-
-c     dgid0 is a subset of int_mb(k_modgid:k_modgid+nbas0*nspin0-1)
-c     dgn0 is a subset of int_mb(k_dgn:k_dgn+nbas0*nspin0-1)
-      do i = 1, nch
-         io = orbid(i)
-         is = spinid(i)
-         dgid0(i) = int_mb(k_modgid + (is-1)*nbas0 + (io-1))
-         dgn0(i) = int_mb(k_modgn + (is-1)*nbas0 + (io-1))
-      enddo
-
-      end
-c============================================================
 
 
 c===============================================================
@@ -319,29 +307,21 @@ c===============================================================
       
 c===============================================================
 c===============================================================
-      subroutine wfat_prepare_an(nb, nat, nch, nqn, ndgi, l_dgi, k_dgi,
-     &           ndgn, l_dgn, k_dgn, nsc, l_sc, k_sc, nsx, l_sx, k_sx,
-     &           nmmd, l_mmd, k_mmd, npbd, l_pbd, k_pbd,
-     &           n_jn, l_jn, k_jn, n_kn, l_kn, k_kn,
-     &           n_on, l_on, k_on)
+      subroutine wfat_prepare_an(maxn, nat, nch, nqn, nsc, l_sc, k_sc,
+     &           nsx, l_sx, k_sx, npbd, l_pbd, k_pbd, n_jn, l_jn, k_jn, 
+     &           n_kn, l_kn, k_kn, n_on, l_on, k_on)
       
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
-      integer nb             ! [input], 
+      integer maxn           ! [input], 
       integer nat            ! [input], 
       integer nch            ! [input], 
       integer nqn            ! [input], 
-      integer ndgi           ! [output],
-      integer l_dgi, k_dgi   ! [output],
-      integer ndgn           ! [output],
-      integer l_dgn, k_dgn   ! [output],
       integer nsc            ! [output],
       integer l_sc, k_sc     ! [output],
       integer nsx            ! [output],
       integer l_sx, k_sx     ! [output],
-      integer nmmd           ! [output],
-      integer l_mmd, k_mmd   ! [output],
       integer npbd           ! [output],
       integer l_pbd, k_pbd   ! [output],
       integer n_jn           ! [output],
@@ -351,21 +331,13 @@ c===============================================================
       integer n_on           ! [output],
       integer l_on, k_on     ! [output],
 
-      ndgi = nch
-      if (.not. MA_alloc_get(MT_INT, ndgi, 'dgid0', l_dgi, k_dgi))
-     &     call errquit('WFAT: dgid0 allocation failed', 2, MA_ERR)
-      ndgn = nch
-      if (.not. MA_alloc_get(MT_INT, ndgn, 'dgn0', l_dgn, k_dgn))
-     &     call errquit('WFAT: dgn0 allocation failed', 2, MA_ERR)
-      nsc = 2*nb**2 + nb
+      
+      nsc = maxn**2 + maxn
       if (.not. MA_alloc_get(MT_DBL, nsc, 'scratch', l_sc, k_sc))
      &     call errquit('WFAT: scratch allocation failed', 2, MA_ERR)
       nsx = nat * nqn * nch
       if (.not. MA_alloc_get(MT_DCPL, nsx, 'scr-cpx', l_sx, k_sx))
      &     call errquit('WFAT: scr-cpx allocation failed', 2, MA_ERR)
-      nmmd = 3 * nch
-      if (.not. MA_alloc_get(MT_DBL, nmmd, 'chmmtd', l_mmd, k_mmd))
-     &     call errquit('WFAT: chmmtd allocation failed', 2, MA_ERR)
       npbd = 3 * 3 * nch
       if (.not. MA_alloc_get(MT_DBL, npbd, 'pbd', l_pbd, k_pbd))
      &     call errquit('WFAT: pbd allocation failed', 2, MA_ERR)
@@ -385,32 +357,22 @@ c===============================================================
 
 c===============================================================
 c===============================================================
-      subroutine wfat_erase_an(l_dgi, l_dgn, l_sc, l_sx, l_mmd, l_pbd,
-     &                         l_jn, l_kn, l_on)
+      subroutine wfat_erase_an(l_sc, l_sx, l_pbd, l_jn, l_kn, l_on)
 
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
-      integer l_dgi
-      integer l_dgn
       integer l_sc
       integer l_sx
-      integer l_mmd
       integer l_pbd
       integer l_jn
       integer l_kn
       integer l_on
 
-      if (.not. MA_free_heap(l_dgi))
-     &     call errquit('WFAT: dgid0 deallocation failed', 3, MA_ERR)
-      if (.not. MA_free_heap(l_dgn))
-     &     call errquit('WFAT: dgn0 deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_sc))
      &     call errquit('WFAT: scratch deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_sx))
      &     call errquit('WFAT: scr-cpx deallocation failed', 3, MA_ERR)
-      if (.not. MA_free_heap(l_mmd))
-     &     call errquit('WFAT: chmmtd deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_pbd))
      &     call errquit('WFAT: pbd deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_jn))

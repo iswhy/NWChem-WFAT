@@ -40,12 +40,15 @@
 	wfat_potential.o \
 	wfat_potential_asy.o \
 	wfat_potential_rs.o \
+	wfat_dipole.o \
+	wfat_polarizability.o \
 	wfat_tools.o \
 	wfat_par_tools.o \
 	wfat_et_det.o \
 	wfat_test.o \
 	wfat_test2.o \
 	wfat_numdens.o \
+	wfat_degenerate.o \
 	wfat_orb_property.o \
 	wfat_calc_dpmo.o \
 	wfat_eval_mo.o \
