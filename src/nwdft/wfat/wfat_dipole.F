@@ -120,4 +120,45 @@ c           maxn*maxn*6*nsub.
 
       end
 c===============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_equal_mmt(nch, n, mfid, mmd, ctr, mthr, t)
+
+      implicit none
+      integer nch
+      integer n
+      integer mfid(n)
+      double precision mmd(3,nch)
+      double precision ctr(3,nch)
+      double precision mthr
+      logical t
+
+      integer j, j_, i, i_
+      double precision d(3), e
+
+
+      t = .true.
+
+      do j = 1, n
+         j_ = mfid(j)
+         do i = 1, n
+            i_ = mfid(i)
+
+            if (j > i) then
+               d = (mmd(:,j_)+ctr(:,j_)) - (mmd(:,i_)+ctr(:,i_))
+               e = sqrt( sum(d**2) )
+               if (e > mthr) then
+                  t = .false.
+                  return
+               endif
+            endif
+            
+         enddo
+      enddo
+
+      end
+c============================================================
+
       

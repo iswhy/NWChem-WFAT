@@ -259,8 +259,8 @@ c     DESCRIPTION:
       double precision nall
 
       logical wfat1
-      integer nb, ns, orbid
-      double precision dpmo, pb, chpos
+      integer ndgsub, max_ndgsub, dgs, ndgs
+      double precision dps, pbs
       double complex intgl_j, intgl_k1, intgl_k2, czero
       parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
       
@@ -285,23 +285,29 @@ cOLD     &     erg, chmmt, nqn, nid, mid, lmax, zi, dcpl_mb(k_in))
 c     ==== These dummy parameters will need to be properly computed ====
 c     ====      later when WFAT(1) is implemented for ME-WFAT       ====
       wfat1 = .false.
-      nb = 1
-      ns = 1
-      orbid = 1
-      dpmo = 0.0d0
-      pb = 0.0d0
-      chpos = 0.0d0
+      ndgsub = 1
+      max_ndgsub = 1
+      dgs = 1
+      ndgs = 1
+      dps = 0.0d0
+      pbs = 0.0d0
       intgl_j = czero
       intgl_k1 = czero
       intgl_k2 = czero
 c     ==================================================================
       
+cOLD      call wfat_calc_td(rtdb, geom, pr_srfc, pr_yild, 
+cOLD     &     pr_avbeta, pr_avgamma, nlas, ftlas, alas, wlas, 
+cOLD     &     plas, tlas, dlas, nt, tmax, extf, nch, dummy_int, spinid, 
+cOLD     &     erg, chmmt, nqn, nid, mid, lmax, zi, dcpl_mb(k_in), 
+cOLD     &     wfat1, nb, ns, orbid, dpmo, pb, chpos, intgl_j, intgl_k1,
+cOLD     &     intgl_k2)
       call wfat_calc_td(rtdb, geom, pr_srfc, pr_yild, 
      &     pr_avbeta, pr_avgamma, nlas, ftlas, alas, wlas, 
      &     plas, tlas, dlas, nt, tmax, extf, nch, dummy_int, spinid, 
      &     erg, chmmt, nqn, nid, mid, lmax, zi, dcpl_mb(k_in), 
-     &     wfat1, nb, ns, orbid, dpmo, pb, chpos, intgl_j, intgl_k1,
-     &     intgl_k2)
+     &     wfat1, ndgsub, max_ndgsub, dgs, ndgs, dps, pbs, intgl_j, 
+     &     intgl_k1, intgl_k2)
       
 
       if (.not. ma_free_heap(l_in))
@@ -345,8 +351,8 @@ c     DESCRIPTION:
       double precision nall
 
       logical wfat1
-      integer nb, ns, orbid
-      double precision dpmo, pb, chpos
+      integer ndgsub, max_ndgsub, dgs, ndgs
+      double precision dps, pbs
       double complex intgl_j, intgl_k1, intgl_k2, czero
       parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
       
@@ -369,23 +375,27 @@ cOLD     &     zi, dcpl_mb(k_in))
 c     ==== These dummy parameters will need to be properly computed ====
 c     ====      later when WFAT(1) is implemented for ME-WFAT       ====
       wfat1 = .false.
-      nb = 1
-      ns = 1
-      orbid = 1
-      dpmo = 0.0d0
-      pb = 0.0d0
-      chpos = 0.0d0
+      ndgsub = 1
+      max_ndgsub = 1
+      dgs = 1
+      ndgs = 1
+      dps = 0.0d0
+      pbs = 0.0d0
       intgl_j = czero
       intgl_k1 = czero
       intgl_k2 = czero
 c     ==================================================================
       
+cOLD      call wfat_calc_ti(rtdb, geom, pr_srfc, pr_rate, fieldm, 
+cOLD     &     1, dummy_int, spinid, erg, chmmt, nqn, nid, mid, lmax,
+cOLD     &     zi, dcpl_mb(k_in), wfat1, nb, ns, orbid, dpmo, pb, chpos, 
+cOLD     &     intgl_j, intgl_k1, intgl_k2)
       call wfat_calc_ti(rtdb, geom, pr_srfc, pr_rate, fieldm, 
      &     1, dummy_int, spinid, erg, chmmt, nqn, nid, mid, lmax,
-     &     zi, dcpl_mb(k_in), wfat1, nb, ns, orbid, dpmo, pb, chpos, 
-     &     intgl_j, intgl_k1, intgl_k2)
+     &     zi, dcpl_mb(k_in), wfat1, ndgsub, max_ndgsub, dgs, ndgs, dps,
+     &     pbs, intgl_j, intgl_k1, intgl_k2)
 
-
+      
       if (.not. ma_free_heap(l_in))
      &     call errquit('MEWFAT: Cannot deallocate intgl', 83, MA_ERR)
       

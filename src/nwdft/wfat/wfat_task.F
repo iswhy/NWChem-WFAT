@@ -24,10 +24,12 @@ c===============================================================
       integer ndid, gqual, i, lmax, nlgl, is, npb, ndpo
       integer l_nd, l_or0, l_sp, l_or, l_npa, l_mpa, l_eg
       integer l_ps, l_cmm, l_idp, l_in, l_ftl, l_al, l_wl, l_pl, l_tl
-      integer l_dl, l_pb, l_dpo, l_inj, l_ink1, l_ink2
+      integer l_dl, l_pb, l_dpo, l_dps, l_pbs, l_inj, l_ink1, l_ink2
+      integer l_dgs, l_dgss, l_ndgs
       integer k_nd, k_or0, k_sp, k_or, k_npa, k_mpa, k_eg
       integer k_ps, k_cmm, k_idp, k_in, k_ftl, k_al, k_wl, k_pl, k_tl
-      integer k_dl, k_pb, k_dpo, k_inj, k_ink1, k_ink2
+      integer k_dl, k_pb, k_dpo, k_dps, k_pbs, k_inj, k_ink1, k_ink2
+      integer k_dgs, k_dgss, k_ndgs
       integer g_il, g_j, g_k(2), nlas, ntime
       integer nch, nqn, nerg, ncpos, ncmm, niond, nsh, nintg, nintj
       integer nintk, prtb_ord
@@ -224,7 +226,8 @@ c        ==== When WFAT(1) is in use ====
             call wfat_dgn_nsub_ch(nspin0, nch, int_mb(k_or),
      &           int_mb(k_sp), ndgsub, max_ndgsub)
             call wfat_prep_wfat1_dgn(wfat1, ndgsub, max_ndgsub, l_dgs,
-     &           k_dgs, l_dgss, k_dgss, l_ndgs, k_ndgs)
+     &           k_dgs, l_dgss, k_dgss, l_ndgs, k_ndgs, l_dps, k_dps,
+     &           l_pbs, k_pbs)
             call wfat_dgn_sub(nch, int_mb(k_or), int_mb(k_sp), ndgsub, 
      &           max_ndgsub, int_mb(k_dgs), int_mb(k_dgss),
      &           int_mb(k_ndgs))
@@ -257,15 +260,24 @@ c        ==== Calculate and print key quantities ====
 c        ============================================
          if (td=='td') then
             if (pr_srfc .or. pr_yild .or. pr_avbeta .or. pr_avgamma)
+cOLD     &           call wfat_calc_td(rtdb, geom_hd, pr_srfc, pr_yild, 
+cOLD     &           pr_avbeta, pr_avgamma, nlas, las_env,
+cOLD     &           dbl_mb(k_al), dbl_mb(k_wl), dbl_mb(k_pl), dbl_mb(k_tl),
+cOLD     &           dbl_mb(k_dl), ntime, tmax, extf, nch, int_mb(k_or0), 
+cOLD     &           int_mb(k_sp), dbl_mb(k_eg), dbl_mb(k_cmm), nqn,
+cOLD     &           int_mb(k_npa), int_mb(k_mpa), lmax, zion,
+cOLD     &           dcpl_mb(k_in), wfat1, nbas0, nspin0, int_mb(k_or),
+cOLD     &           dbl_mb(k_dpo), dbl_mb(k_pb), dbl_mb(k_ps),
+cOLD     &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
      &           call wfat_calc_td(rtdb, geom_hd, pr_srfc, pr_yild, 
-     &           pr_avbeta, pr_avgamma, nlas, las_env,
-     &           dbl_mb(k_al), dbl_mb(k_wl), dbl_mb(k_pl), dbl_mb(k_tl),
-     &           dbl_mb(k_dl), ntime, tmax, extf, nch, int_mb(k_or0), 
-     &           int_mb(k_sp), dbl_mb(k_eg), dbl_mb(k_cmm), nqn,
-     &           int_mb(k_npa), int_mb(k_mpa), lmax, zion,
-     &           dcpl_mb(k_in), wfat1, nbas0, nspin0, int_mb(k_or),
-     &           dbl_mb(k_dpo), dbl_mb(k_pb), dbl_mb(k_ps),
-     &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
+     &           pr_avbeta, pr_avgamma, nlas, las_env, dbl_mb(k_al), 
+     &           dbl_mb(k_wl), dbl_mb(k_pl), dbl_mb(k_tl), dbl_mb(k_dl),
+     &           ntime, tmax, extf, nch, int_mb(k_or0), int_mb(k_sp),
+     &           dbl_mb(k_eg), dbl_mb(k_cmm), nqn, int_mb(k_npa), 
+     &           int_mb(k_mpa), lmax, zion, dcpl_mb(k_in), wfat1, 
+     &           ndgsub, max_ndgsub, int_mb(k_dgs), int_mb(k_ndgs),
+     &           dbl_mb(k_dps), dbl_mb(k_pbs), dcpl_mb(k_inj), 
+     &           dcpl_mb(k_ink1), dcpl_mb(k_ink2))
          else
             if (pr_srfc .or. pr_rate)
 cOLD     &           call wfat_calc_ti(rtdb, geom_hd, pr_srfc, pr_rate,
@@ -295,7 +307,7 @@ cOLD     &           dcpl_mb(k_ink2))
          if (.not. MA_free_heap(l_in))
      &        call errquit('WFAT: intgl deallocation failed', 3, MA_ERR)
          call wfat_erase_wfat1_ti(l_dpo, l_inj, l_ink1, l_ink2)
-         call wfat_erase_wfat1_dgn(l_dgs, l_dgss, l_ndgs)
+         call wfat_erase_wfat1_dgn(l_dgs, l_dgss, l_ndgs, l_dps, l_pbs)
          rtdb_stat = rtdb_parallel(.true.)
       endif
       call ga_sync()

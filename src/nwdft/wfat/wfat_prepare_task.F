@@ -417,6 +417,60 @@ c=================================================
 
 c=================================================
 c=================================================
+      subroutine wfat_prep_wfat1_dgn(wfat1, nsub, maxn, l_dgs, k_dgs,
+     &     l_dgss, k_dgss, l_ndgs, k_ndgs, l_dps, k_dps, l_pbs, k_pbs)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      logical wfat1            ! [input]
+      integer nsub             ! [input]
+      integer maxn             ! [input]
+      integer l_dgs, k_dgs     ! [output]
+      integer l_dgss, k_dgss   ! [output]
+      integer l_ndgs, k_ndgs   ! [output]
+      integer l_dps, k_dps     ! [output]
+      integer l_pbs, k_pbs     ! [output]
+
+      integer n_dgs, n_dgss, n_ndgs, n_dps, n_pbs
+
+      
+      if (wfat1) then
+         n_dgs = maxn * nsub
+         n_dgss = nsub
+         n_ndgs = nsub
+         n_dps = maxn**2 * 3 * nsub
+         n_pbs = maxn**2 * 6 * nsub
+      else
+         n_dgs = 1
+         n_dgss = 1
+         n_ndgs = 1
+         n_dps = 1
+         n_pbs = 1
+      endif
+
+      if (.not. MA_alloc_get(MT_INT, n_dgs, 'degsub_id', l_dgs, k_dgs))
+     &     call errquit('WFAT: degsub_id allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_INT, n_dgss, 'degsub_spin',
+     &     l_dgss, k_dgss)) call errquit('WFAT: degsub_spin '//
+     &     'allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_INT, n_ndgs, 'degsub_n',
+     &     l_ndgs, k_ndgs)) call errquit('WFAT: degsub_n allocation '//
+     &     'failed', 59, MA_ERR)
+
+      if (.not. MA_alloc_get(MT_DBL, n_dps, 'degsub_dip', l_dps, k_dps))
+     &     call errquit('WFAT: degsub_dip allocation failed', 
+     &     59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, n_pbs, 'degsub_polb', 
+     &     l_pbs, k_pbs)) call errquit('WFAT: degsub_polb allocation '//
+     &     'failed', 59, MA_ERR)
+      
+      end
+c=================================================
+
+
+c=================================================
+c=================================================
       subroutine wfat_erase_wfat1_ti(l_dpo, l_inj, l_ink1, l_ink2)
 
       implicit none
@@ -435,6 +489,37 @@ c=================================================
      &     call errquit('WFAT: intgl_k1 deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_ink2))
      &     call errquit('WFAT: intgl_k2 deallocation failed', 3, MA_ERR)
+
+      end
+c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_erase_wfat1_dgn(l_dgs, l_dgss, l_ndgs, l_dps,
+     &     l_pbs)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer l_dgs, l_dgss, l_ndgs, l_dps, l_pbs
+
+      if (.not. MA_free_heap(l_dgs))
+     &     call errquit('WFAT: degsub_id deallocation failed',
+     &     3, MA_ERR)
+      if (.not. MA_free_heap(l_dgss))
+     &     call errquit('WFAT: degsub_spin deallocation failed',
+     &     3, MA_ERR)
+      if (.not. MA_free_heap(l_ndgs))
+     &     call errquit('WFAT: degsub_n deallocation failed',
+     &     3, MA_ERR)
+
+      if (.not. MA_free_heap(l_dps))
+     &     call errquit('WFAT: degsub_dip deallocation failed',
+     &     3, MA_ERR)
+      if (.not. MA_free_heap(l_pbs))
+     &     call errquit('WFAT: degsub_polb deallocation failed',
+     &     3, MA_ERR)
 
       end
 c=================================================
