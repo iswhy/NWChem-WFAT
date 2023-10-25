@@ -1,5 +1,23 @@
 c=======================================================
 c=======================================================
+      subroutine wfat_matrix_sumabsorb(m, n, a, b, f, g)
+
+      implicit none
+      integer m               ! [input]
+      integer n               ! [input]
+      double precision a(m,n) ! [in/output]
+      double precision b(m,n) ! [input]
+      double precision f      ! [input]
+      double precision g      ! [input]
+
+      a = f*a + g*b
+      
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
       subroutine wfat_dtranspose(m, n, a, b)
 
       implicit none

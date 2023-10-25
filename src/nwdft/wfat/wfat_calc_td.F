@@ -188,15 +188,16 @@ c     ==== Calculate and print structure factor and ion yield ====
 c              ==== Calculate structure factor ====
                if (wfat1) then
                   call wfat_get_srfc1(bt, gm, nat, nch, nqn, lmax, mid, 
-     &                 chmmt, intgl, intgl_j, intgl_k1, intgl_k2, nsub, 
-     &                 maxn, dgs, ndgs, dthr, dps, pbs, dbl_mb(k_sc), 
-     &                 dcpl_mb(k_sx), dbl_mb(k_pbd), dcpl_mb(k_gn), 
-     &                 dcpl_mb(k_jn), dcpl_mb(k_kn))
+     &                 erg, chmmt, intgl, intgl_j, intgl_k1, intgl_k2, 
+     &                 nsub, maxn, dgs, ndgs, dthr, dps, pbs, 
+     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_pbd), 
+     &                 dcpl_mb(k_gn), dcpl_mb(k_jn), dcpl_mb(k_kn))
                   call wfat_get_srfc1(180.d0-bt, 180.0d0+gm, nat, nch,
-     &                 nqn, lmax, mid, chmmt, intgl, intgl_j, intgl_k1,
-     &                 intgl_k2, nsub, maxn, dgs, ndgs, dthr, dps, pbs,
-     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_pbd),
-     &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn))
+     &                 nqn, lmax, mid, erg, chmmt, intgl, intgl_j, 
+     &                 intgl_k1, intgl_k2, nsub, maxn, dgs, ndgs, dthr, 
+     &                 dps, pbs, dbl_mb(k_sc), dcpl_mb(k_sx), 
+     &                 dbl_mb(k_pbd), dcpl_mb(k_gnn), dcpl_mb(k_jnn),
+     &                 dcpl_mb(k_knn))
                else
                   call wfat_get_srfc0(geom, bt, gm, nch, erg,
      &                 nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_gn))
@@ -224,7 +225,7 @@ c              ==== Calculate ion yield ====
      &                 nch, erg, nqn, nid, mid, nat, dcpl_mb(k_gn), 
      &                 dcpl_mb(k_jn), dcpl_mb(k_kn), dcpl_mb(k_gnn),
      &                 dcpl_mb(k_jnn), dcpl_mb(k_knn), dbl_mb(k_on),
-     &                 dbl_mb(k_mmd), dbl_mb(k_pbd), yield)
+     &                 chmmt, dbl_mb(k_pbd), yield)
                   
                else
                   call wfat_calc_yield(nat, zi, nlas, ftlas, alas, wlas,
@@ -298,15 +299,16 @@ c     ==== Calculate gamma-averaged ion yield ====
 c              ==== Calculate structure factor ====
                if (wfat1) then
                   call wfat_get_srfc1(bt, gm, nat, nch, nqn, lmax, mid, 
-     &                 chmmt, intgl, intgl_j, intgl_k1, intgl_k2, nsub, 
-     &                 maxn, dgs, ndgs, dthr, dps, pbs, dbl_mb(k_sc), 
-     &                 dcpl_mb(k_sx), dbl_mb(k_pbd), dcpl_mb(k_gn), 
-     &                 dcpl_mb(k_jn), dcpl_mb(k_kn))
-                  call wfat_get_srfc1(180.0d0-bt, 180.0d0+gm, nat, nch, 
-     &                 nqn, lmax, mid, chmmt, intgl, intgl_j, intgl_k1, 
-     &                 intgl_k2, nsub, maxn, dgs, ndgs, dthr, dps, pbs, 
+     &                 erg, chmmt, intgl, intgl_j, intgl_k1, intgl_k2, 
+     &                 nsub, maxn, dgs, ndgs, dthr, dps, pbs, 
      &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_pbd), 
-     &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn))
+     &                 dcpl_mb(k_gn), dcpl_mb(k_jn), dcpl_mb(k_kn))
+                  call wfat_get_srfc1(180.0d0-bt, 180.0d0+gm, nat, nch, 
+     &                 nqn, lmax, mid, erg, chmmt, intgl, intgl_j, 
+     &                 intgl_k1, intgl_k2, nsub, maxn, dgs, ndgs, dthr, 
+     &                 dps, pbs, dbl_mb(k_sc), dcpl_mb(k_sx), 
+     &                 dbl_mb(k_pbd), dcpl_mb(k_gnn), dcpl_mb(k_jnn),
+     &                 dcpl_mb(k_knn))
                else
                   call wfat_get_srfc0(geom, bt, gm, nch, erg,
      &                 nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_gn))
@@ -322,7 +324,7 @@ c              ==== Calculate ion yield ====
      &                 nch, erg, nqn, nid, mid, nat, dcpl_mb(k_gn), 
      &                 dcpl_mb(k_jn), dcpl_mb(k_kn), dcpl_mb(k_gnn),
      &                 dcpl_mb(k_jnn), dcpl_mb(k_knn), dbl_mb(k_on),
-     &                 dbl_mb(k_mmd), dbl_mb(k_pbd), yield)
+     &                 chmmt, dbl_mb(k_pbd), yield)
                else
                   call wfat_calc_yield(nat, zi, nlas, ftlas, alas, 
      &                 wlas, plas, tlas, dlas, nt, tmax, extf, nch, erg,

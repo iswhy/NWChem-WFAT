@@ -245,7 +245,8 @@ c           ==== Collect degenerate IDs belonging to spin channel is ====
             if (spinid(ich) == is) id(ich) = dgid0(ich)
          enddo
          call wfat_unique_count_i(nch, id, nsub_s(is))     ! 1)
-         if (wfat_check_invec(-9999, nch, id)) nsub(is) = nsub(is) - 1      ! 2)
+         if (wfat_check_invec(-9999, nch, id))
+     &        nsub_s(is) = nsub_s(is) - 1          ! 2)
       enddo
       nsub = sum(nsub_s)
 
@@ -273,7 +274,7 @@ c============================================================
       integer ndgs(nsub)      ! [output]
 
       logical done(nch)
-      integer i, ich, nn, j, dgid0(nch), dgn0(nch), ich, mfid(nch)
+      integer i, ich, nn, j, dgid0(nch), dgn0(nch), mfid(nch)
       integer orbid0(nch)
 
       call wfat_detect_degen0(nch, orbid, spinid, dgid0, dgn0)

@@ -374,9 +374,9 @@ c===============================================================
 #include "geom.fh"
 #include "errquit.fh"
       integer geom                 ! [input],
-      double precision orbmmt0(3)  ! [input],
+      double precision orbmmt0(3)  ! [input]. Unshifted electronic dipole moment.
       double precision orbcent(3)  ! [output],
-      double precision orbmmt(3)   ! [output],
+      double precision orbmmt(3)   ! [output]. Shifted electronic dipole moment.
       
       character*16 t
       integer i, nc

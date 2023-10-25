@@ -1,8 +1,8 @@
 c============================================================
 c============================================================
-      subroutine wfat_get_srfc1(bt, gm, nat, nch, nqn, lmax, mid, chmmt,
-     &     intl, intl_j, intl_k1, intl_k2, nsub, maxn, dgs, ndgs, dthr,
-     &     dps, pbs, scr, scrx, pb, gn, jn, kn)
+      subroutine wfat_get_srfc1(bt, gm, nat, nch, nqn, lmax, mid, erg, 
+     &     chmmt, intl, intl_j, intl_k1, intl_k2, nsub, maxn, dgs, ndgs,
+     &     dthr, dps, pbs, scr, scrx, pb, gn, jn, kn)
 
       implicit none
 #include "stdio.fh"      
@@ -13,6 +13,7 @@ c============================================================
       integer nqn
       integer lmax
       integer mid(nqn)                                      ! [input],
+      double precision erg(nch)
       double precision chmmt(3,nch)
       double complex intl((1+lmax)**2, nat, nqn, nch)       ! [input],
       double complex intl_j((1+lmax)**2, nat, nqn, 3, nch)  ! [input],
@@ -59,8 +60,8 @@ c        ==== Calculate static polarizability tensor ====
 c           ==== Construct H_int within the degenerate MO's ====
             scr(p_hi:p_hi+nn**2-1) = 0.0d0
             do k = 1, 3
-               scr(p_hi:p_hi+nn**2-1) = scr(p_hi:p_hi+nn**2-1) +
-     &                                  cu(k)*dps(1:nn,1:nn,k,i)
+               call wfat_matrix_sumabsorb(nn, nn, scr(p_hi),
+     &              dps(1:nn,1:nn,k,i), 1.0d0, cu(k))
             enddo
             call wfat_isdiag(nn, scr(p_hi), dthr, isdiag)
 

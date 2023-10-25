@@ -53,11 +53,12 @@ c===============================================================
 
       call wfat_2a1e_perturbcf(geom, m, sphi, orbid, eps, ke, nr,
      &     nt, nr_m, nt_m, nr_p, nt_p, cf, dbl_mb(k_cfm), dbl_mb(k_cfp),
-     &      erg, dbl_mb(k_egm), dbl_mb(k_egp), cfx, cfy, cfz)
+     &     erg, dbl_mb(k_egm), dbl_mb(k_egp), cfx, cfy, cfz)
 
       call wfat_2a1e_polb(m, sphi, orbid, nr_m, nt_m, nr, nt, nr_p, 
      &     nt_p, ke, dbl_mb(k_egm), erg, dbl_mb(k_egp), dbl_mb(k_cfm),
      &     cf, dbl_mb(k_cfp), .false., polb)
+      write(luout, '("Polarizability : ", 3f15.6)') polb
 
 
       if (m >= 1) then
@@ -107,15 +108,15 @@ c===============================================================
       double precision cfy(1:*)
       double precision cfz(nr*nt)
 
-      integer j0, n, n_m, n_p, i, j, i_, sphi_
-      integer l_drm, l_dtm, l_drp, l_dtp, l_dr, l_dt
-      integer k_drm, k_dtm, k_drp, k_dtp, k_dr, k_dt
+      integer j0, n, n_m, n_p, i, j, i_, sphi_, ndp
+      integer l_drm, l_dtm, l_drp, l_dtp, l_dr, l_dt, l_dp
+      integer k_drm, k_dtm, k_drp, k_dtp, k_dr, k_dt, k_dp
       double precision dpo
 
 
       j0 = orbid
       n = nr * nt
-
+      
       
 c     ==== m - 1 ====
       if (m >= 1) then
@@ -144,33 +145,32 @@ c     ==== m + 1 ====
      &     call errquit('WFAT: Cannot allocate dt_dvr+', 1, MA_ERR)
       call wfat_dipole_dvrt(m, 1, nt_p, nt, dbl_mb(k_dtp))
 
+      
+c     ==== Allocate temp vector to hold dipole column ====
+      ndp = max(n, n_m, n_p)
+      if (.not. ma_alloc_get(MT_DBL, ndp, 'dp', l_dp, k_dp))
+     &     call errquit('WFAT: Cannot allocate dp', 1, MA_ERR)
+      
 
 c     ==== x component of the corrected wave function ====
 c     == m-1 sub-component ==
       if (n_m >= 1) then
-         
-         do i = 1, n_m   ! Loop over eigenstates of the m-1 spectrum.
-            cfx(i) = 0.0d0
-            do j = 1, n_m    ! Loop over bases of the m-1 spectrum.
-               call wfat_2a1e_dpo('x', m, -1, nr_m, nt_m, nr, nt, sphi, 
-     &              sphi, ke, cf_m(:,j), cf(:,j0), .true., 
-     &              dbl_mb(k_drm), .true., dbl_mb(k_dtm), .false., dpo)
-               cfx(i) = cfx(i) + cf_m(i,j) * dpo / (erg(j0)-erg_m(j))
-            enddo
+         call wfat_2a1e_dpo_col('x', ke, m-1, m, sphi, sphi, nr_m, nt_m,
+     &        nr, nt, dbl_mb(k_drm), dbl_mb(k_dtm), cf_m, cf(:,j0),
+     &        dbl_mb(k_dp))
+         do j = 1, n_m
+            dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_m(j))
          enddo
-         
+         cfx(1:n_m) = matmul(cf_m, dbl_mb(k_dp:k_dp+n_m-1))
       endif
 c     == m+1 sub-component ==
-      do i = n_m+1, n_m+n_p    ! Loop over eigenstates of the m+1 spectrum.
-         i_ = i - n_m
-         cfx(i) = 0.0d0
-         do j = 1, n_p             ! Loop over bases of the m+1 spectrum.
-            call wfat_2a1e_dpo('x', m, +1, nr_p, nt_p, nr, nt, sphi, 
-     &           sphi, ke, cf_p(:,j), cf(:,j0), .true., 
-     &           dbl_mb(k_drp), .true., dbl_mb(k_dtp), .false., dpo)
-            cfx(i) = cfx(i) + cf_p(i_,j) * dpo / (erg(j0)-erg_p(j))
-         enddo
+      call wfat_2a1e_dpo_col('x', ke, m+1, m, sphi, sphi, nr_p, nt_p,
+     &     nr, nt, dbl_mb(k_drp), dbl_mb(k_dtp), cf_p, cf(:,j0),
+     &     dbl_mb(k_dp))
+      do j = 1, n_p
+         dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_p(j))
       enddo
+      cfx(n_m+1:n_m+n_p) = matmul(cf_p, dbl_mb(k_dp:k_dp+n_p-1))
 
 
 c     ==== y component of the corrected wave function ====
@@ -178,29 +178,22 @@ c     ==== y component of the corrected wave function ====
       if (sphi==2) sphi_ = 1
 c     == m-1 sub-component ==
       if (n_m >= 1) then
-         
-         do i = 1, n_m   ! Loop over eigenstates of the m-1 spectrum.
-            cfy(i) = 0.0d0
-            do j = 1, n_m    ! Loop over bases of the m-1 spectrum.
-               call wfat_2a1e_dpo('y', m, -1, nr_m, nt_m, nr, nt, sphi_,
-     &              sphi, ke, cf_m(:,j), cf(:,j0), .true., 
-     &              dbl_mb(k_drm), .true., dbl_mb(k_dtm), .false., dpo)
-               cfy(i) = cfy(i) + cf_m(i,j) * dpo / (erg(j0)-erg_m(j))
-            enddo
+         call wfat_2a1e_dpo_col('y', ke, m-1, m, sphi_, sphi, nr_m, 
+     &        nt_m, nr, nt, dbl_mb(k_drm), dbl_mb(k_dtm), cf_m, 
+     &        cf(:,j0), dbl_mb(k_dp))
+         do j = 1, n_m
+            dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_m(j))
          enddo
-         
+         cfy(1:n_m) = matmul(cf_m, dbl_mb(k_dp:k_dp+n_m-1))
       endif
 c     == m+1 sub-component ==
-      do i = n_m+1, n_m+n_p    ! Loop over eigenstates of the m+1 spectrum.
-         i_ = i - n_m
-         cfy(i) = 0.0d0
-         do j = 1, n_p             ! Loop over bases of the m+1 spectrum.
-            call wfat_2a1e_dpo('y', m, +1, nr_p, nt_p, nr, nt, sphi_, 
-     &           sphi, ke, cf_p(:,j), cf(:,j0), .true., 
-     &           dbl_mb(k_drp), .true., dbl_mb(k_dtp), .false., dpo)
-            cfy(i) = cfy(i) + cf_p(i_,j) * dpo / (erg(j0)-erg_p(j))
-         enddo
+      call wfat_2a1e_dpo_col('y', ke, m+1, m, sphi_, sphi, nr_p, nt_p, 
+     &     nr, nt, dbl_mb(k_drp), dbl_mb(k_dtp), cf_p, cf(:,j0),
+     &     dbl_mb(k_dp))
+      do j = 1, n_p
+         dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_p(j))
       enddo
+      cfy(n_m+1:n_m+n_p) = matmul(cf_p, dbl_mb(k_dp:k_dp+n_p-1))
 
 
 c     ==== m,m ====
@@ -214,17 +207,16 @@ c     ==== m,m ====
       
 
 c     ==== zz component of the static polarizability ====
-      do i = 1, n   ! Loop over eigenstates of the m spectrum.
-         cfz(i) = 0.0d0
-         do j = 1, n    ! Loop over bases of the m spectrum.
-            if (j /= j0) then
-               call wfat_2a1e_dpo('z', m, 0, nr, nt, nr, nt, sphi,
-     &              sphi, ke, cf(:,j), cf(:,j0), .true., dbl_mb(k_dr), 
-     &              .true., dbl_mb(k_dt), .false., dpo)
-               cfz(i) = cfz(i) + cf(i,j0) * dpo / (erg(j0)-erg(j))
-            endif
-         enddo
+      call wfat_2a1e_dpo_col('z', ke, m, m, sphi, sphi, nr, nt, nr, nt,
+     &     dbl_mb(k_dr), dbl_mb(k_dt), cf, cf(:,j0), dbl_mb(k_dp))
+      do j = 1, n
+         if (j /= j0) then
+            dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg(j))
+         else
+            dbl_mb(k_dp+j-1) = 0.0d0
+         endif
       enddo
+      cfz(1:n) = matmul(cf, dbl_mb(k_dp:k_dp+n-1))
       
 
 c     ==== Deallocations ====
@@ -242,7 +234,12 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: Cannot deallocate dr_dvr', 1, MA_ERR)
       if (.not. ma_free_heap(l_dt))
      &     call errquit('WFAT: Cannot deallocate dt_dvr', 1, MA_ERR)
+      if (.not. ma_free_heap(l_dp))
+     &     call errquit('WFAT: Cannot deallocate dp', 1, MA_ERR)
       
       end
 c===============================================================
+
+
+      
       

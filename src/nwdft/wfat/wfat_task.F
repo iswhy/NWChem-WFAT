@@ -32,7 +32,7 @@ c===============================================================
       integer k_dgs, k_dgss, k_ndgs
       integer g_il, g_j, g_k(2), nlas, ntime
       integer nch, nqn, nerg, ncpos, ncmm, niond, nsh, nintg, nintj
-      integer nintk, prtb_ord
+      integer nintk, prtb_ord, ndgsub, max_ndgsub
       double precision fieldmag, smh, prtb_bt, prtb_gm, ctr(3)
       double precision tmax
 
@@ -223,6 +223,8 @@ c        ==== When WFAT(1) is in use ====
             call ga_get(g_k(1), 1, nintk, 1, 1, dcpl_mb(k_ink1), nintk)
             call ga_get(g_k(2), 1, nintk, 1, 1, dcpl_mb(k_ink2), nintk)
 
+c           ==== Rearrange ionization channel IDs ====
+c           ====    into degenerate subspaces     ====
             call wfat_dgn_nsub_ch(nspin0, nch, int_mb(k_or),
      &           int_mb(k_sp), ndgsub, max_ndgsub)
             call wfat_prep_wfat1_dgn(wfat1, ndgsub, max_ndgsub, l_dgs,
@@ -233,10 +235,14 @@ c        ==== When WFAT(1) is in use ====
      &           int_mb(k_ndgs))
             ctr = 0.0d0
             call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
+
+c           ==== Obtain degenerate subspaces dipole moment ====
             call wfat_dpmo_dgn_sub(nch, int_mb(k_or), ndgsub, 
      &           max_ndgsub, int_mb(k_dgs), int_mb(k_dgss), 
      &           int_mb(k_ndgs), nbas0, nspin0, dbl_mb(k_dpo),
      &           dbl_mb(k_dps))
+
+c           ==== Obtain degenerate subspaces polarizability ====
             call wfat_polb_dgn_sub(nch, int_mb(k_or), ndgsub, 
      &           max_ndgsub, int_mb(k_dgs), int_mb(k_dgss), 
      &           int_mb(k_ndgs), nbas0, nspin0, dbl_mb(k_dpo),

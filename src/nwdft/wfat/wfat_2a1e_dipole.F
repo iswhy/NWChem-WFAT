@@ -907,6 +907,50 @@ c     ==== Normalization_factor / \pi ====
 !========================================================
 
 
+c===============================================================
+c===============================================================
+      subroutine wfat_2a1e_dpo_col(c, ke, m1, m2, s1, s2, nr1, nt1, nr2,
+     &     nt2, dr, dt, cf1, cf2, dp)
+
+      implicit none
+#include "errquit.fh"
+      character*1 c                            ! [input]
+      double precision ke                      ! [input]
+      integer m1                               ! [input]
+      integer m2                               ! [input]
+      integer s1                               ! [input]
+      integer s2                               ! [input]
+      integer nr1                              ! [input]
+      integer nt1                              ! [input]
+      integer nr2                              ! [input]
+      integer nt2                              ! [input]
+      double precision dr(nr1, nr2)            ! [input]
+      double precision dt(nt1, nt2)            ! [input]
+      double precision cf1(nr1*nt1, nr1*nt1)   ! [input]
+      double precision cf2(nr2*nt2)            ! [input]
+      double precision dp(nr1*nt1)             ! [output]
+
+      integer p, i
+
+      if (c /= 'x' .and. c /= 'y' .and. c /= 'z')
+     &     call errquit('WFAT: The argument c of wfat_2a1e_dpo_col '//
+     &     'must be equal to either x, y, or z.', 59, UERR)
+      
+      p = m1 - m2
+      if (p < -1 .or. p > +1) then
+         dp = 0.0d0
+         return
+      endif
+      
+      do i = 1, nr1*nt1
+         call wfat_2a1e_dpo(c, m2, p, nr1, nt1, nr2, nt2, s1, s2, ke,
+     &        cf1(:,i), cf2, .true., dr, .true., dt, .false., dp(i))
+      enddo
+
+      end
+c===============================================================
+
+      
 !========================================================
 !========================================================
       subroutine wfat_2a1e_assign_polb(pb_in, pb_out)

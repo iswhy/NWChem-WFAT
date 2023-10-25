@@ -3,6 +3,7 @@ c===============================================================
       logical function task_wfat_2a1e(rtdb)
 
       implicit none
+#include "stdio.fh"
 #include "global.fh"
 #include "rtdb.fh"
 #include "mafdecls.fh"
@@ -22,8 +23,10 @@ c===============================================================
       integer mch, sphi, spinid, orbid, nr, nt, maxiter, i_cf, i_eg
       integer lmax, gqual, nqn, nsh, nintg, g_il, ndid, nlgl, ndpo
       integer nintj, nintk, g_j, g_k(2), npb, nr_m, nt_m, nr_p, nt_p
+      integer ndgsub, max_ndgsub, dgs(1,1), ndgs(1)
       double precision eps, init_ke, out_ke, edip(3), chpos(3), chmmt(3)
-      double precision fieldmag, pb(3,3), polb(3)
+      double precision fieldmag, pb(3,3), polb(3), dps(1,1,3,1)
+      double precision pbs(1,1,6,1)
 
       integer nch
       parameter(nch=1)
@@ -90,11 +93,13 @@ c     ====   eigenstate (the ionized channel)   ====
      &     init_ke, maxiter, dbl_mb(k_cf), dbl_mb(k_eg), edip, out_ke)
       call wfat_2a1e_prep_cf1(wfat1, rtdb, mch, nr, nt, nr_m, nt_m, 
      &     nr_p, nt_p, l_cfx, k_cfx, l_cfy, k_cfy, l_cfz, k_cfz)
+      write(luout, '("hereb0")')
       if (wfat1) then
          call wfat_2a1e_perturb(geom_hd, mch, sphi, orbid, eps,
      &        out_ke, nr, nt, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cf),
      &        dbl_mb(k_eg), dbl_mb(k_cfx), dbl_mb(k_cfy), dbl_mb(k_cfz),
      &        polb)
+         write(luout, '("hereb1")')
       endif
 
 
@@ -110,8 +115,10 @@ c     ==== Calculate (or load) WFAT integrals ====
 c     ==== Prepare WFAT(1) integrals ====
       call wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, nintj, 
      &     g_j, nintk, g_k, npb, l_pb, k_pb)
+      write(luout, '("hereb2")')
       if (wfat1)
      &     call wfat_2a1e_assign_polb(polb, dbl_mb(k_pb))
+      write(luout, '("hereb3")')
 
       
 c     ==== Compute the OEWFAT integrals ====
@@ -122,6 +129,8 @@ c     ==== Compute the OEWFAT integrals ====
      &     out_ke, orbid, dbl_mb(i_cf), dbl_mb(i_eg), edip, eps, wfat1,
      &     nlgl, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy),
      &     dbl_mb(k_cfz), chpos, chmmt, g_il, g_j, g_k)
+c     edip = Unshifted dipole moment.
+c     chmmt = Shifted dipole moment.
       
 
 c     ==== Ionization calculations and printings ====
@@ -142,6 +151,14 @@ c        ==== When WFAT(1) is in use ====
             call ga_get(g_k(2), 1, nintk, 1, 1, dcpl_mb(k_ink2), nintk)
 clater            ctr = 0.0d0
 clater            call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
+
+            ndgsub = 1
+            max_ndgsub = 1
+            dgs(1,1) = 1
+            ndgs(1) = 1
+            dps(1,1,:,1) = chmmt
+            pbs(1,1,:,1) = 0.0d0
+            pbs(1,1,1:3,1) = polb
          endif
          
 
@@ -165,8 +182,8 @@ c        ==================================================
      &           call wfat_calc_ti(rtdb, geom_hd, pr_srfc, pr_rate,
      &           fieldmag, nch, orbid, spinid, dbl_mb(i_eg), chmmt, 
      &           nqn, int_mb(k_npa), int_mb(k_mpa), lmax, zion, 
-     &           dcpl_mb(k_in), wfat1, nr*nt, 2, orbid, dbl_mb(k_dpo), 
-     &           pb, chpos, dcpl_mb(k_inj), dcpl_mb(k_ink1), 
+     &           dcpl_mb(k_in), wfat1, ndgsub, max_ndgsub, dgs, ndgs,
+     &           dps, pbs, dcpl_mb(k_inj), dcpl_mb(k_ink1),
      &           dcpl_mb(k_ink2))
 
 clater            if (pr_tmd .or. pr_tmd_atom) 
