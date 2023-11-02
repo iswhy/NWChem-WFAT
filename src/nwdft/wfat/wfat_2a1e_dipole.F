@@ -38,12 +38,12 @@ cc     and $R_i^{m1}$ is the radial DVR function.
 
 c     ==== Transformation matrix for m1 ====
       if (.not. ma_alloc_get(MT_DBL, n1*n1, 'u1', l_u1, k_u1))
-     &     call errquit('WFAT: Cannot allocate u1', 1, MA_ERR)
+     &     call errquit('WFAT: Cannot allocate u1', 61, MA_ERR)
       call wfat_dvr_fbr_r(m1, n1, dbl_mb(k_u1))
 
 c     ==== Transformation matrix for m2 ====
       if (.not. ma_alloc_get(MT_DBL, n2*n2, 'u2', l_u2, k_u2))
-     &     call errquit('WFAT: Cannot allocate u2', 1, MA_ERR)
+     &     call errquit('WFAT: Cannot allocate u2', 35, MA_ERR)
       call wfat_dvr_fbr_r(m2, n2, dbl_mb(k_u2))
 
 c     ==== The radial part of dipole matrix in FBR basis ====
@@ -334,12 +334,12 @@ cc     where the size of D is n1 by n2, and T_i^m is the polar DVR function.
 
 c     ==== Transformation matrix for m+p ====
       if (.not. ma_alloc_get(MT_DBL, n1*n1, 'u1', l_u1, k_u1))
-     &     call errquit('WFAT: Cannot allocate u1', 1, MA_ERR)
+     &     call errquit('WFAT: Cannot allocate u1', 81, MA_ERR)
       call wfat_dvr_fbr_t(m+p, n1, dbl_mb(k_u1))
 
 c     ==== Transformation matrix for m ====
       if (.not. ma_alloc_get(MT_DBL, n2*n2, 'u2', l_u2, k_u2))
-     &     call errquit('WFAT: Cannot allocate u2', 1, MA_ERR)
+     &     call errquit('WFAT: Cannot allocate u2', 19, MA_ERR)
       call wfat_dvr_fbr_t(m, n2, dbl_mb(k_u2))
 
 c     ==== The polar part of dipole matrix in FBR basis ====
@@ -713,13 +713,15 @@ c     ==== Deallocations ====
 !========================================================
       subroutine wfat_2a1e_dpo(comp, m, p, nr1, nt1, nr2, nt2, k1, k2,
      &     ke, cf1, cf2, dr_in, dr, dt_in, dt, numt, dpo)
-cc     Calculates D, the matrix of the polar part of the dipole matrix in FBR
-cc     basis. The elements of D depend on the value of p:
-cc          D_{ij} = < u_{i',m+p,k'} | comp | u_{imk} >,
-cc          u_{i01}(r,\theta,\phi) = f_i(r,\theta)/\sqrt(2*pi)
-cc          u_{i02}(r,\theta,\phi) = 0
-cc          u_{im1}(r,\theta,\phi) = f_i(r,\theta) cos(m\phi)/\sqrt(pi)
-cc          u_{im2}(r,\theta,\phi) = f_i(r,\theta) sin(m\phi)/\sqrt(pi)
+cc     Calculates the dipole matrix element between two wave functions
+cc     using their coefficients in the DVR basis, that is
+cc          D_{ij} = < u_{m+p,k'} | comp | v_{m,k} >,
+cc     where
+cc          v_{m,k} = \sum_i c_i \chi_{i,m,k}
+cc          \chi_{i01}(r,\theta,\phi) = f_i(r,\theta)/\sqrt(2*pi)
+cc          \chi_{i02}(r,\theta,\phi) = 0
+cc          \chi_{im1}(r,\theta,\phi) = f_i(r,\theta) cos(m\phi)/\sqrt(pi)
+cc          \chi_{im2}(r,\theta,\phi) = f_i(r,\theta) sin(m\phi)/\sqrt(pi)
 cc     where comp = x,y,z and the size of D is n1 by n2, and T_i^m is the polar FBR function.
       implicit none
 #include "stdio.fh"      
@@ -760,7 +762,7 @@ cc     where comp = x,y,z and the size of D is n1 by n2, and T_i^m is the polar 
          dpo = 0.0d0
          return
       endif
-      
+
 
       if (m < 0)
      &     call errquit('WFAT: The argument m of wfat_2a1e_dpo '//

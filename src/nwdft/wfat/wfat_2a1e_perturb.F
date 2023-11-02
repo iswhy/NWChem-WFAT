@@ -37,8 +37,8 @@ c===============================================================
      &        call errquit('WFAT: Cannot allocate cf-', 1, MA_ERR)
          if (.not. ma_alloc_get(MT_DBL, n_m, 'erg-', l_egm, k_egm))
      &        call errquit('WFAT: Cannot allocate erg-', 1, MA_ERR)
-         call wfat_2a1e_solve(m-1, nr_m, nt_m, geom, ke, .false., 1, 1,
-     &        eps, dbl_mb(k_cfm), dbl_mb(k_egm))
+         call wfat_2a1e_solve(m-1, nr_m, nt_m, geom, ke, .false., 1,
+     &        1, eps, dbl_mb(k_cfm), dbl_mb(k_egm))
       endif
 
 
@@ -47,8 +47,8 @@ c===============================================================
      &     call errquit('WFAT: Cannot allocate cf+', 1, MA_ERR)
       if (.not. ma_alloc_get(MT_DBL, n_p, 'erg+', l_egp, k_egp))
      &     call errquit('WFAT: Cannot allocate erg+', 1, MA_ERR)
-      call wfat_2a1e_solve(m+1, nr_p, nt_p, geom, ke, .false., 1, 1,
-     &     eps, dbl_mb(k_cfp), dbl_mb(k_egp))
+      call wfat_2a1e_solve(m+1, nr_p, nt_p, geom, ke, .false., 1,
+     &     1, eps, dbl_mb(k_cfp), dbl_mb(k_egp))
       
 
       call wfat_2a1e_perturbcf(geom, m, sphi, orbid, eps, ke, nr,
@@ -154,7 +154,7 @@ c     ==== Allocate temp vector to hold dipole column ====
 
 c     ==== x component of the corrected wave function ====
 c     == m-1 sub-component ==
-      if (n_m >= 1) then
+      if (m >= 1) then
          call wfat_2a1e_dpo_col('x', ke, m-1, m, sphi, sphi, nr_m, nt_m,
      &        nr, nt, dbl_mb(k_drm), dbl_mb(k_dtm), cf_m, cf(:,j0),
      &        dbl_mb(k_dp))
@@ -177,7 +177,7 @@ c     ==== y component of the corrected wave function ====
       if (sphi==1) sphi_ = 2
       if (sphi==2) sphi_ = 1
 c     == m-1 sub-component ==
-      if (n_m >= 1) then
+      if (m >= 1) then
          call wfat_2a1e_dpo_col('y', ke, m-1, m, sphi_, sphi, nr_m, 
      &        nt_m, nr, nt, dbl_mb(k_drm), dbl_mb(k_dtm), cf_m, 
      &        cf(:,j0), dbl_mb(k_dp))

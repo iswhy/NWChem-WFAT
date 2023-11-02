@@ -16,6 +16,7 @@ c=================================================
       character(len=FLD_TP_LEN) las_env(max_nfield)
       character*4096 fname
       character*2 td
+      character*7 jobtype
       logical res_mode, rtdb_stat, os, oc, or, extf, isthere, wfat1
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
@@ -45,7 +46,8 @@ c     ================================
 
 c     ==== Task title ====
       call ga_sync()
-      call wfat_prep_tasktitle('ME')
+      jobtype = 'ME'
+      call wfat_prep_tasktitle(jobtype)
       
 
 c     ==== Reading general parameters ====

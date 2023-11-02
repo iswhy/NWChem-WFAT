@@ -50,7 +50,6 @@
 	wfat_numdens.o \
 	wfat_degenerate.o \
 	wfat_orb_property.o \
-	wfat_calc_dpmo.o \
 	wfat_eval_mo.o \
 	wfat_eval_vector.o \
 	wfat_eval_laser.o \
@@ -95,6 +94,7 @@
 	wfat_2a1e_intgl.o \
 	wfat_2a1e_potential.o \
 	wfat_2a1e_perturb.o \
+	wfat_2a1e_nopw.o \
 	wfat_3j.o \
 	wfat_gaunt.o \
 	wfat_test_chg.o \

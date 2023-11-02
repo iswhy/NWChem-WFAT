@@ -5,6 +5,7 @@ c=======================================================
       implicit none
 #include "wfat.fh"
 #include "errquit.fh"
+#include "stdio.fh"
       integer unit0, is, io
 
       logical isopen
@@ -18,6 +19,7 @@ c=======================================================
      &     call errquit('WFAT: Argument unit0 of wfat_print_orbtitle '//
      &     'corresponds to an unopened file.', 1, UERR)
 
+      write(luout, '("Unit inside wfat_print_orbtitle = ", i7)') unit0
       if ( unit0 /= WF_SF_UNIT .and.
      &     unit0 /= WF_RT_UNIT .and.
      &     unit0 /= WF_IY_UNIT .and.

@@ -12,7 +12,8 @@ c=================================================
 
       
       ndid = ga_nodeid()
-      if (ti /= 'OE' .and. ti /= 'ME' .and. ti /= 'OE-2a1e')
+      if (trim(adjustl(ti)) /= 'OE' .and. trim(adjustl(ti)) /= 'ME'
+     &     .and. ti /= 'OE-2a1e')
      &     call errquit('wfat_prep_tasktitle: Invalid value for the '//
      &     'argument ti. A valid value is ''OE'', ''ME'', or 
      &     ''OE-2a1e''.', 1, UERR)
@@ -25,7 +26,7 @@ c=================================================
      &        .false.)
          call util_print_centered(
      &        luout, '<<<<<< Entering '//trim(adjustl(ti))//
-     &        'WFAT task >>>>>>', 40, .false.)
+     &        '-WFAT task >>>>>>', 40, .false.)
          call util_print_centered(
      &        luout, '--------------------------------', 40,
      &        .false.)

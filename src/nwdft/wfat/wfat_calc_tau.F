@@ -16,13 +16,14 @@ c=======================================================
 
       integer i
       double precision kappa, a, b, g, d, eta, r0, xi, phi0, z
-      double precision beta0, pi_const, factorial
+      double precision beta0, pi_const, factorial, mm
       double complex zz, chgm_, imnum
       external factorial
       parameter ( pi_const = 3.14159265359d0 )
       parameter ( imnum = cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
       
 
+      mm = dble(m)
       kappa = sqrt(2 * abs(erg))
       a = 1 + abs(m) + n - zq/kappa
       b = dble(abs(m) + 1)
@@ -37,13 +38,18 @@ c        == R_\nu^{(0)} ===
          z = kappa * eta
          zz = cmplx(z, 0.0d0, kind=kind(1.0d0))
          call wfat_cchg(a, b, zz, chgm_)
-         r0 = d * z**(b/2) * exp(-z/2) * real(chgm_)         
+         if (m /= 0) then
+            r0 = d * kappa**(b/2) * eta**(abs(mm)/2) * exp(-z/2)
+     &           * real(chgm_)
+         else
+            r0 = d * kappa**(b/2) * exp(-z/2) * real(chgm_)
+         endif
 
 c        == phi_\nu^{(0)} ==
          xi = r(i) * (1 + cos(th(i)))         
          call wfat_calc_phi0xi(xi, n, m, erg, phi0)
 
-         tau0(i) = r0 * phi0 * exp(imnum*m*ph(i)) / sqrt(2*pi_const*eta)
+         tau0(i) = r0 * phi0 * exp(imnum*m*ph(i)) / sqrt(2*pi_const)
       enddo
 
       beta0 = zq - kappa*(n + (abs(m)+1)/2.0d0)
@@ -300,7 +306,7 @@ cc      endif
       
 c     ==== Get the passive rotation matrix ===
       call wfat_passrot(bt, gm, protmat)
-      mu = matmul(transpose(protmat), -chmmt)      
+      mu = matmul(transpose(protmat), -chmmt)
 
 
 c     ==== Calculate Q_l's ====
@@ -347,6 +353,72 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: q1 deallocation failed', 46, MA_ERR)
       if (.not. MA_free_heap(l_q2))
      &     call errquit('WFAT: q2 deallocation failed', 46, MA_ERR)
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_collect_tau0(geom, nch, nqn, erg, chpos, nid, mid,
+     &     bt, gm, natp, nptp, centid, ptlim, gq, zi, tau0)
+
+      implicit none
+#include "stdio.fh"      
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer geom
+      integer nch
+      integer nqn
+      double precision erg(nch)     ! [input],
+      double precision chpos(3,nch)
+      integer nid(nqn)              ! [input], 
+      integer mid(nqn)              ! [input], 
+      double precision bt           ! [input], beta orientation angle in degrees.
+      double precision gm           ! [input], gamma orientation angle in degrees.
+      integer natp                  ! [input], the number of atoms for the current process.
+      integer nptp                  ! [input], the number of quadrature points for the current process.
+      integer centid(natp)          ! [input],
+      integer ptlim(2,natp)         ! [input],
+      integer gq                    ! [input],
+      double precision zi           ! [input],
+      double complex tau0(nqn, nch, nptp)
+
+      integer l_r, l_t, l_p
+      integer k_r, k_t, k_p
+      integer i, j, n, m
+
+
+c     ==== Coordinates in molecular frame ====
+      if (.not. MA_alloc_get(MT_DBL, nptp, 'r', l_r, k_r))
+     &     call errquit('WFAT: r allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nptp, 't', l_t, k_t))
+     &     call errquit('WFAT: t allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nptp, 'p', l_p, k_p))
+     &     call errquit('WFAT: p allocation failed', 59, MA_ERR)
+
+      
+      do i = 1, nch
+c        ==== Get the grid points with the current channel center ====
+         call wfat_get_gridpt_rot(geom, natp, centid, ptlim, chpos(:,i),
+     &        gq, bt, gm, dbl_mb(k_r), dbl_mb(k_t), dbl_mb(k_p))
+
+         do j = 1, nqn
+            n = nid(j)
+            m = mid(j)
+            call wfat_calc_tau0(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
+     &           dbl_mb(k_p), erg(i), zi, tau0(j,i,:))
+         enddo
+      enddo
+      
+
+c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_r))
+     &     call errquit('WFAT: r deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_t))
+     &     call errquit('WFAT: t deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_p))
+     &     call errquit('WFAT: p deallocation failed', 61, MA_ERR)
+      
       end
 c=======================================================
 

@@ -57,14 +57,15 @@ c===============================================================
       integer icent, npt, ipt_i, ipt_f, ipt, ipt0, i_l, i_r
       integer l_pt, l_wt, l_sc, l_om, l_i0, l_i_, l_il, l_icp, l_ipp
       integer l_ij0, l_ij_, l_ij, l_ik1_0, l_ik1_, l_ik1, l_ik2_0
-      integer l_ik2_, l_ik2, l_om1, l_om2
+      integer l_ik2_, l_ik2, l_om1, l_om2, l_dr, l_dt
       integer k_pt, k_wt, k_sc, k_om, k_i0, k_i_, k_il, k_icp, k_ipp
       integer k_ij0, k_ij_, k_ij, k_ik1_0, k_ik1_, k_ik1, k_ik2_0
-      integer k_ik2_, k_ik2, k_om1, k_om2
+      integer k_ik2_, k_ik2, k_om1, k_om2, k_dr, k_dt
       double precision mask_g(2), mask_j(2), mask_k(2), npt_tot, t_now
       double precision t_last, t_start, celf, atp(3), znuc, v_c(3)
       double precision v_m(3), vc_psi, wtcelf, dt_prog, dt_all, normch
-      double precision iondip(3), vc_cpsi(3)
+      double precision iondip(3), vc_cpsi(3), ovl1
+      double precision polb_
       double complex czero
       integer nch, nch1, imf
       parameter(nch=1, nch1=3, imf=0)
@@ -76,6 +77,7 @@ c===============================================================
 
 
       write(luout, '("ke: ", 2es18.8)') ke, erg
+      
 
 c     ==== Get number of atoms ====
       if (.not. geom_ncent(geom, natom))
@@ -106,12 +108,29 @@ c            associated to the three cartesian components of the dipole operator
       call wfat_print_orb_property(nch, orbid, 1, erg, chpos, chmmt,
      &     iondip)
 
+      
+c     ==== Some tests ====
+      call wfat_sometests(rtdb, zi, nch, erg, lmax_, chmmt)
 
-c     ==== Coefficients of the correction term to the wave function ====
-clater      if (wfat1) then
-clater         call wfat_check_wfat1ovl(nch, dbl_mb(k_cf),
-clater     &        dbl_mb(k_cf+nbas*nch)
-clater      endif
+
+c     ==== Some checks in wfat1 is used ====
+      if (wfat1) then
+         ovl1 = sum(vcf*cfz)
+         if (.not. ma_alloc_get(MT_DBL, nr*nr, 'dr_dvr', l_dr, k_dr))
+     &        call errquit('WFAT: Cannot allocate dr_dvr', 22, MA_ERR)
+         if (.not. ma_alloc_get(MT_DBL, nt*nt, 'dt_dvr', l_dt, k_dt))
+     &        call errquit('WFAT: Cannot allocate dt_dvr', 25, MA_ERR)
+         call wfat_2a1e_dpo('z', mch, 0, nr, nt, nr, nt, sphi, sphi, ke,
+     &        vcf, cfz, .false., dbl_mb(k_dr), .false., dbl_mb(k_dt), 
+     &        .false., polb_)
+         polb_ = -2 * polb_
+         write(luout, '("<wfn0|wfn_z>, pol_zz = ", 2es21.10)')
+     &        ovl1, polb_
+         if (.not. ma_free_heap(l_dr))
+     &        call errquit('WFAT: Cannot deallocate dr_dvr', 1, MA_ERR)
+         if (.not. ma_free_heap(l_dt))
+     &        call errquit('WFAT: Cannot deallocate dt_dvr', 1, MA_ERR)
+      endif
 
 
 c     ==== Allocate grid-related arrays ====
@@ -216,6 +235,9 @@ c        ==== Loop over all quadrature points around the current atom ====
             ipt0 = k_pt + 3*(ipt-1)
             v_c(1:3) = dbl_mb(ipt0 : ipt0+2)
             call geom_cent2cent(geom, icent, v_c, imf, v_m, t1)
+c           v_c = electron coordinate w.r.t. the current nuclei.
+c           v_m = electron coordinate in the molecular frame, which is also the
+c                 basis center.
 
             
 c           ==== Calculate vc|psi> ====
@@ -315,7 +337,7 @@ c           ==== Print progress ====
      &     'integrals takes ", a, " s.")') trim(adjustl(dt_str))
       
 
-c     ==== Reorder elements of intgl ====      
+c     ==== Reorder elements of intgl ====
       call wfat_reorder_intgl(nsh, natom, nqn, nch,
      &     dcpl_mb(k_i_ : k_i_+ni_-1), dcpl_mb(k_il : k_il+nil-1))
       if (wfat1)
@@ -401,5 +423,3 @@ c===============================================================
       
       end
 c===============================================================
-      
-      

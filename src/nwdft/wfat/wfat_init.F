@@ -59,6 +59,7 @@ c        ==== WFAT level info ====
       endif
 
       
+c     ==== Printing units ====
       WF_SF_PRINT_READY = .false.
       WF_IY_PRINT_READY = .false.
       WF_SF1_PRINT_READY(1:2) = .false.

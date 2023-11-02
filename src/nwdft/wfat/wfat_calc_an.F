@@ -84,14 +84,16 @@ c           ==== If the above H_int is diagonal ... ====
             else
                do j = 1, nn    ! Loop over the H_int-diagonalizing channels.
                   jj = dgs(j,i)      ! Where in pb the j-th eigenstate should go.
-                  call wfat_construct_polb(nn, pbs(j,j,:,i), pb(:,:,jj))
+                  call wfat_construct_polb(pbs(j,j,:,i), pb(:,:,jj))
                enddo
             endif
 
 c        ==== If non-degenerate ====
          else
             jj = dgs(1,i)      ! Where in pb the j-th eigenstate should go.
-            call wfat_construct_polb(1, pbs(1,1,:,i), pb(:,:,jj))
+            call wfat_construct_polb(pbs(1,1,:,i), pb(:,:,jj))
+c            call wfat_dprintmat(1, 6, 'f', pbs(1,1,:,i))
+c            call wfat_dprintmat(3, 3, 'f', pb(:,:,jj))
          endif
 
          

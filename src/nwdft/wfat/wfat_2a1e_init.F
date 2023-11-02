@@ -7,11 +7,22 @@ c===============================================================
 #include "errquit.fh"
 #include "global.fh"
 #include "rtdb.fh"
+#include "wfat.fh"
 #include "wfat_qm_param.fh"
+#include "mafdecls.fh"
       integer rtdb
 
       logical rtdb_stat
+      integer nel_2a1e
+      double precision zn
 
+
+c     ==== Printing units ====
+      WF_SF_PRINT_READY = .false.
+      WF_IY_PRINT_READY = .false.
+      WF_SF1_PRINT_READY(1:2) = .false.
+      WF_SF1_UNIT = (/ WF_JN_UNIT, WF_KN_UNIT /)
+      
 
 c     ==== Check existence, format, and ====
 c     ====     necessities of inputs    ====
@@ -29,8 +40,16 @@ c     ====     necessities of inputs    ====
 
 
 c     ==== Determine zion ====
-      if (.not. geom_nuc_charge(geom_hd, zion))
+      if (.not. geom_nuc_charge(geom_hd, zn))
      &     call errquit('WFAT: Getting zion failed', 52, GEOM_ERR)
+      if (.not. rtdb_get(rtdb, 'wfat:2a1e_nel', mt_int, 1, nel_2a1e))
+     &     call errquit('WFAT: Failed reading ipol from RTDB.', 1,
+     &     RTDB_ERR)
+      zion = zn - nel_2a1e + 1
+
+      
+c     ==== Miscellaneous ====
+      call wfat_reset_lfqlib()  ! Reset Gauss-Laguerre nodes and weights for the calculations of the various U(a,b,z).
       
       end
 c===============================================================
@@ -84,12 +103,22 @@ c     ==== Read some quantities from RDB ====
 c     ==== Set the attributes of 2a1e geom using ====
 c     ====       the above RTDB quantities       ====
       tag = (/ 'a1', 'a2' /)
-      if (.not. geom_cart_set(geom, nc, tag(1:nc), cd(:,1:nc),
+      if (.not. geom_cart_set(geom, nc, tag(1:nc), cd(:,1:nc),            ! 1)
      &     ch(1:nc)))
      &     call errquit('WFAT: Error in initializing geometry object.',
      &     71, GEOM_ERR)
 
       end
+c     NOTES:
+c     1) The coordinates of the two nuclei must be assumed to be defined relative
+c        to the basis center (since the 2a1e system employs a single center expansion)
+c        throughout the code. This means that in any calculations that involve both
+c        the coordinates of the nuclei and electron, e.g. in the code that evaluates 
+c        the single center basis at a certain point, the two coordinates should be used
+c        with the same reference. If Z is the z-coordinate of one nuclei and z is the
+c        z-coordinate for the electron, then if Z-A (with A some reference coordinate)
+c        appears, z-A must apply (instead of z-B) wherever the electronic coordinate is
+c        needed in any given code.
 c===============================================================
       
       

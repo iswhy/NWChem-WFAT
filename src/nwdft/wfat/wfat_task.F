@@ -15,6 +15,7 @@ c===============================================================
 
       character(len=FLD_TP_LEN) las_env(max_nfield)
       character*2 td
+      character*7 jobtype
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
       logical rtdb_stat, wfat1, res_mode, os, oc, or, int_nosave
@@ -70,7 +71,8 @@ c     ==== Check whether the current theory is DFT ====
       
 c     ==== Task title ====
       call ga_sync()
-      call wfat_prep_tasktitle('OE')
+      jobtype = 'OE'
+      call wfat_prep_tasktitle(jobtype)
 
 
 c     ==== Reading general parameters ====

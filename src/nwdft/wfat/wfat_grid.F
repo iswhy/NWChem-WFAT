@@ -838,6 +838,84 @@ c        current process in a parallel execution, the output argument
 c        nptp of the subroutine wfat_get_gridrange can be used to 
 c        compute the above minimum number of elements of r, t, and p.
 c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_get_gridpt_rot(geom, nat, centid, ptlim, vcent, 
+     &                               gq, bt, gm, r, t, p)
+
+c     DESCRIPTION:
+c     Same as wfat_get_gridpt_cents but with the possibility of expressing the output
+c     coordinates in a rotated frame of reference.
+      implicit none
+#include "mafdecls.fh"
+#include "errquit.fh"
+#include "geom.fh"
+#include "stdio.fh"
+#include "global.fh"
+      integer geom                 ! [input], geometry handle.
+      integer nat                  ! [input], the number of atoms contained in centid.
+      integer centid(nat)          ! [input], the ID of atoms containing the points of interest.
+      integer ptlim(2, nat)        ! [input], the range of the ID of points in each atom contained in centid.
+      double precision vcent(3)    ! [input], the reference point (or frame of reference) to which the returned points are expressed.
+      integer gq                   ! [input], the grid quality.
+      double precision bt          ! [input], beta orientation angle in degrees.
+      double precision gm          ! [input], gamma orientation angle in degrees.
+      double precision r(1:*)      ! [output], the r coordinate. The size of this array should be at least equal to the total number of points of interest.   1)
+      double precision t(1:*)      ! [output], the theta coordinate. The size requirement is the same as that for r above.
+      double precision p(1:*)      ! [output], the phi coordinate. The size requirement is the same as that for r above.
+
+      character*16 tag
+      logical t1
+      integer max_npt, j, ic, icent, i, l_pt, k_pt, l_wt, k_wt, i_pt
+      integer npt
+      double precision atp(3), znuc, v_c(3), v_f(3), v_r(3)
+      double precision protmat(3,3)
+
+
+      call wfat_passrot(bt, gm, protmat)
+      call wfat_alloc_quadgrid(gq, max_npt, l_pt, k_pt, l_wt, k_wt)
+
+      j = 0
+      do ic = 1, nat
+         icent = centid(ic)
+         if (.not. geom_cent_get(geom, icent, tag, atp, znuc))
+     &        call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
+         call wfat_get_gridpt(int(znuc), gq, max_npt, npt,
+     &                        dbl_mb(k_pt : k_pt+3*max_npt-1),
+     &                        dbl_mb(k_wt : k_wt+max_npt-1))
+
+         do i = ptlim(1,ic), ptlim(2,ic)
+            i_pt = k_pt + 3*(i-1)
+            v_c(1:3) = dbl_mb(i_pt : i_pt+2)
+            call geom_cent2arb(geom, icent, v_c, vcent, v_f, t1)
+            
+c           v_f = position in molecular frame
+c           v_r = position in the rotated frame, e.g. lab frame
+            v_r = matmul(transpose(protmat), v_f)
+            j = j + 1
+            r(j) = sqrt(sum(v_r*v_r))
+            t(j) = acos(v_r(3)/r(j))
+            p(j) = atan(v_r(2), v_r(1))
+         enddo
+      enddo
+
+      call wfat_dealloc_quadgrid(l_pt, l_wt)
+
+      end
+c     Notes:
+c     1) Using the definition of r, t, and p as given in the
+c        declaration comments above, the minimum number of elements of
+c        these vectors can therefore be expressed as
+c             \sum_i [ ptlim((2),i) - ptlim((1),i) + 1 ]
+c        where i runs from 1 to nat, i.e. all atoms of interest.
+c        If this subroutine is used to obtain all grid points for the
+c        current process in a parallel execution, the output argument
+c        nptp of the subroutine wfat_get_gridrange can be used to 
+c        compute the above minimum number of elements of r, t, and p.
+c=================================================
+      
       
 
 

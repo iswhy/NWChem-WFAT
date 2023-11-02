@@ -20,7 +20,7 @@ c=======================================================
       
       call wfat_calc_o_intl(n, m, erg, zq, oi)
 
-cfordebug      call wfat_calc_o_intl_trapz(n, m, erg, zq, oi)
+c      call wfat_calc_o_intl_trapz(n, m, erg, zq, oi)
       
       
       o(1) = 1/(4*kp**3)*(1 + gmm**2/2 - gmm*(4*bt0/kp-(bt0/kp)**2)
@@ -58,10 +58,12 @@ c=======================================================
       ngr = (/ 40, 50, 60 /)
       kp = sqrt(2 * abs(erg))
       eb1 = 1.0d0 / kp              ! so that zb = 1.0d0 inside wfat_calc_o_intl_part* below.
+      eb1 = 0.3d0 / kp
       eb2 = 30.0d0 / kp
 
       
       call wfat_calc_o_intl_part1(n, m, erg, zq, eb1, oi_p1)
+      write(luout, '("oi_p1 : ", 2es21.12)') oi_p1          ! For debugging
 
       
       if (.not. MA_alloc_get(MT_DBL, maxval(ngr), 'lgl_pt', l_pt, k_pt))
@@ -92,6 +94,7 @@ c=======================================================
 
 c      write(luout, '("hered1")')
       call wfat_calc_o_intl_part3(n, m, erg, zq, eb2, oi_p3)
+      write(luout, '("oi_p3 : ", 2es21.12)') oi_p3          ! For debugging
 
       oi = oi_p1 + oi_p2 + oi_p3
 
@@ -107,8 +110,19 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_calc_o_intl_part1(n, m, erg, zq, eb, oi_p1)
-
+c     DESCRIPTION:
+c     Computes the small-$\eta$ part of $o_\nu$. The small-$\eta$ part of $o_\nu$ can
+c     be written so as to separate the integral over the integrand that contains
+c     $R_\nu^{(0)} O_\nu^{(0)}$ (hence the integral cannot be done analytically) and
+c     over one that contains analytically integrable terms. The later part is referred
+c     to as the direct integration part below because it can be directly integrated
+c     analytically. To integrate the former part, we make use of the fact that the
+c     integral only runs over small values of $\eta$ (in fact, we restricted it to
+c     $\eta < 1/\kappa$), and thus the asymptotic forms of $R_\nu^{(0)}$ and
+c     $O_\nu^{(0)}$ for small argument can be employed to obtain the non-analytically
+c     integrable part.
       implicit none
+#include "stdio.fh"
       integer n
       integer m
       double precision erg
@@ -141,13 +155,15 @@ c     ==== Do the power expansion part ====
      &                    (o0i(i,j) + log(zb)*o0il(i,j)) * zb**i
          enddo
       enddo
+      write(luout, '("part_pow = ", 2es18.8)') part_pow
 
       
 c     ==== Do the direct integration part ====
-      part_dir(1) = 1/kp * ( eb**2/8 + bt0*eb/(2*kp**2) +
+      part_dir(1) = - 1/kp * ( eb**2/8 + bt0*eb/(2*kp**2) +
      &              (bt1_1 + gmm/(2*kp**2) + (3*bt0**2)/(2*kp**4)) *
      &              log(eb+1) )
       part_dir(2) = 1/kp * ( eb/2 - (bt1_2 - bt0/kp**2) * log(eb+1) )
+      write(luout, '("part_dir = ", 2es18.8)') part_dir
 
       
       oi_p1 = part_pow + part_dir
@@ -530,12 +546,13 @@ c=======================================================
       integer k, ngr
       double precision eb, eb_n, de, eta, wt, kp, oi_p1(2), oi_p2(2)
       double precision ee(2)
-      parameter (ngr=1000000)
+      parameter (ngr=100000)
 
 
       kp = sqrt(2 * abs(erg))
       eb = 1.0d0 / kp           ! so that zb = 1.0d0 inside wfat_calc_o_intl_part* below.
-      eb_n = 10000.0d0 / kp
+      eb = 0.5d0 / kp
+      eb_n = 500.0d0 / kp
       
       call wfat_calc_o_intl_part1(n, m, erg, zq, eb, oi_p1)
 

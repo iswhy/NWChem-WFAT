@@ -125,7 +125,8 @@ c        ==== Hamiltonian diagonalization ====
             write(luout, '(i5, ") energy, delta energy = ", 2f15.8)')
      &           iter, erg(id_target), erg(id_target) - e0
             e0 = erg(id_target)
-            ke = sqrt( 2 * abs(erg(id_target)) ) * 2
+c            ke = sqrt( 2 * abs(erg(id_target)) ) * 2
+            ke = sqrt( 2 * abs(erg(id_target)) ) * 6
          endif
       enddo
       

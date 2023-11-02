@@ -359,6 +359,7 @@ c                   (\beta_\nu^{(1)}/\eta' - \mu_z/2 + \eta'/4) R_\nu^{(0)}(\eta
       
 c     ==== Finite k part ====
       o0i = 0.0d0
+      o0il = 0.0d0
       if (abs(m) > 0) then
          ubound = pmax - 1
          do i = 0, ubound
@@ -772,6 +773,7 @@ c     the underlying algebraic structure is identical
             
 c     ==== Finite k part ====
       o0i = 0.0d0
+      o0il = 0.0d0
       if (abs(m) > 0) then
          ubound = pmax - 1
          do i = 0, ubound

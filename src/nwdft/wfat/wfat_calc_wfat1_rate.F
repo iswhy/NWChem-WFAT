@@ -28,8 +28,8 @@ c============================================================
       
       integer i, iqn, n, m
       double precision on_, protmat(3,3), mu(3), lpbz, kp, gmm
-      double precision bt0, bt1_1, bt1_2, bt1, aa, bb_, ffc_
-      double complex gn_, an_
+      double precision bt0, bt1_1, bt1_2, bt1, aa, bb_, ffc_, bb2
+      double complex gn_, an_, an2
 
       
 c      - fix dn for negative m.  
@@ -60,7 +60,7 @@ c     ==== Get the passive rotation matrix ===
      &            (9-6*gmm)*bt0/4/kp**4 - (49+2*gmm)*bt0**2/8/kp**5 +
      &            3*bt0**3/2/kp**6 - bt0**4/8/kp**7
 
-cfordebug            write(luout, '("A_nu = ", f15.7)') aa
+            
 cfordebug            write(luout, '("B_nu = ", f15.7)') bb_
 
             on_ = on(1,iqn,i) + mu(3)*on(2,iqn,i)
@@ -77,10 +77,26 @@ cfordebug            write(luout, '("B_nu = ", f15.7)') bb_
      &           (abs(gn_)**2 * 
      &           (1+aa*ef*log(ef/4/kp**2)+bb_*ef+2*ef*on_) +
      &           2*ef*real(conjg(gn_)*an_))
+
+
+
+c           ==== for debug ====
+            an2 = on_ + an_/gn_
+            bb2 = bb_ + 2 * real(an2)
+
+
+            write(luout, '("A_nu = ", 6f15.7)')
+     &           bt, gm, aa, lpbz, pb(3,3,1), mu(3)
+            write(luout, '("   an = ", 2f15.7)') an2
          enddo
       enddo
 
+      
       rt = sum(p_rt)
+
+
+c     ==== for debug ====
+      rt = bb2
       
       end
 c============================================================

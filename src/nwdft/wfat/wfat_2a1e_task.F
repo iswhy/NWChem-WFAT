@@ -13,6 +13,7 @@ c===============================================================
       integer rtdb
 
       character*2 td
+      character*7 jobtype
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
       logical res_mode, wfat1, rtdb_stat
@@ -45,6 +46,7 @@ c     ==============================
 
 c     ==== Task title ====
       call ga_sync()
+      jobtype = 'OE-2a1e'
       call wfat_prep_tasktitle('OE-2a1e')
 
 
@@ -93,13 +95,11 @@ c     ====   eigenstate (the ionized channel)   ====
      &     init_ke, maxiter, dbl_mb(k_cf), dbl_mb(k_eg), edip, out_ke)
       call wfat_2a1e_prep_cf1(wfat1, rtdb, mch, nr, nt, nr_m, nt_m, 
      &     nr_p, nt_p, l_cfx, k_cfx, l_cfy, k_cfy, l_cfz, k_cfz)
-      write(luout, '("hereb0")')
       if (wfat1) then
          call wfat_2a1e_perturb(geom_hd, mch, sphi, orbid, eps,
      &        out_ke, nr, nt, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cf),
      &        dbl_mb(k_eg), dbl_mb(k_cfx), dbl_mb(k_cfy), dbl_mb(k_cfz),
      &        polb)
-         write(luout, '("hereb1")')
       endif
 
 
@@ -115,10 +115,8 @@ c     ==== Calculate (or load) WFAT integrals ====
 c     ==== Prepare WFAT(1) integrals ====
       call wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, nintj, 
      &     g_j, nintk, g_k, npb, l_pb, k_pb)
-      write(luout, '("hereb2")')
       if (wfat1)
      &     call wfat_2a1e_assign_polb(polb, dbl_mb(k_pb))
-      write(luout, '("hereb3")')
 
       
 c     ==== Compute the OEWFAT integrals ====

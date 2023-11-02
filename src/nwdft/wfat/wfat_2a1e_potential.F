@@ -11,8 +11,8 @@ c===============================================================
       double precision pot
 
       character*16 t
-      integer i, nc
-      double precision dr(3), atp(3), q, dist
+      integer i, nc, nel
+      double precision dr(3), atp(3), q, dist, u, v, q_tot
       
 
       if (.not. geom_ncent(geom, nc))
@@ -26,6 +26,16 @@ c===============================================================
          dr = vpt - atp
          dist = sqrt(sum(dr*dr) + eps)
          pot = pot + (-q)/dist
+
+
+c         if (.not. geom_nuc_charge(geom, q_tot))
+c     &        call errquit('WFAT: geom center info failed.', 45,
+c     &        GEOM_ERR)
+c         nel = int(q_tot)
+c         u = 1.704d0
+c         v = 2.810d0
+c         pot = pot - (nel - (nel-1)*(1-1.0d0/(v/u*(exp(u*dist)-1)+1)))
+c     &        /dist
       enddo
 
       end
@@ -74,8 +84,9 @@ c     Since vpt contains the coordinate of the evaluation point in the
 c     molecular frame, r and theta can directly be extracted from vpt
 c     without prior shifting.
       a = 1.0d0
-      b = ke * 10.0d0
+      b = ke * 20.0d0
       kp = ke
+      write(luout, '("b = ", es14.5)') b
 
 c     ==== Radial part ====
       r = sqrt(sum(vpt*vpt))
@@ -184,7 +195,7 @@ c     Since vpt contains the coordinate of the evaluation point in the
 c     molecular frame, r and theta can directly be extracted from vpt
 c     without prior shifting.
       a = 1.0d0
-      b = ke * 10.0d0
+      b = ke * 50.0d0
       kp = ke
 
 c     ==== Radial part ====

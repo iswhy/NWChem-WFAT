@@ -70,7 +70,7 @@ c           maxn*maxn*6*nsub.
       integer k_jn, k_kn, k_on
       double precision bt_start, bt_last, dbt, dbtr, bt
       double precision gm_start, gm_last, dgm, dgmr, gm
-      double precision rate, mthr, dthr
+      double precision rate, mthr, dthr, ooo(2), ooo_(2)
       double precision deg2rad, pi_const
 
       parameter (deg2rad = 0.01745329251994d0)
@@ -80,6 +80,10 @@ c           maxn*maxn*6*nsub.
       ndid = ga_nodeid()
       if (ndid /= 0) return
 
+
+      write(luout, '("pbs = ", 6es15.6)') pbs(1:6)
+
+      
 
 c     ==== Obtaining info on beta ====
       call wfat_get_beta(rtdb, bt_start, bt_last, nbt, dbt)
@@ -124,7 +128,14 @@ cOLD     &        int_mb(k_dgn))
      &        'the field factor")')
          do i = 1, nch
             do iqn = 1, nqn
+               call wfat_calc_o(0, 0, -0.917956d0, 1.0d0, ooo)
+cfordebug               call wfat_calc_o(0, 0, -0.917956d0, 1.0d0, ooo_)
+               write(luout, '("He o_nu : ", 2i4, 4es21.12)')
+     &              i, iqn, ooo(1), ooo(2), ooo_(1), ooo_(2)
+
+               
                i_on = k_on + 2*nqn*(i-1) + 2*(iqn-1)
+               write(luout, '("zi = ", es14.5)') zi
                call wfat_calc_o(nid(iqn), mid(iqn), erg(i), zi,
      &              dbl_mb(i_on))
                write(luout, '("o_nu : ", 2i4, 2es21.12)')
