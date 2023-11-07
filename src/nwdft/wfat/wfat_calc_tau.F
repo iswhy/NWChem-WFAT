@@ -17,10 +17,11 @@ c=======================================================
       integer i
       double precision kappa, a, b, g, d, eta, r0, xi, phi0, z
       double precision beta0, pi_const, factorial, mm
-      double complex zz, chgm_, imnum
+      double complex zz, chgm_, imnum, czero
       external factorial
       parameter ( pi_const = 3.14159265359d0 )
       parameter ( imnum = cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
       
 
       mm = dble(m)
@@ -50,6 +51,7 @@ c        == phi_\nu^{(0)} ==
          call wfat_calc_phi0xi(xi, n, m, erg, phi0)
 
          tau0(i) = r0 * phi0 * exp(imnum*m*ph(i)) / sqrt(2*pi_const)
+         if ( isnan(abs( tau0(i) )) ) tau0(i) = czero
       enddo
 
       beta0 = zq - kappa*(n + (abs(m)+1)/2.0d0)
@@ -156,16 +158,18 @@ c=======================================================
 
       integer i, j, nlgl, l_r1, k_r1, l_et, k_et, l_es, k_es, l_id, k_id
       double precision kappa, a, b, g, d, eta, r0, r1, xi, phi0, phi1, z
-      double precision beta0, pi_const, factorial
-      double complex zz, chgm_, imnum
+      double precision beta0, pi_const, factorial, mm, sumphi1, sumr1
+      double complex zz, chgm_, imnum, czero
       external factorial
       parameter ( pi_const=3.14159265359d0, nlgl=8 )
       parameter ( imnum=cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
 
 
 c      if (npt /= 1)
 c     &     call errquit('WFAT: For the moment, the argument npt of '//
 c     &     'wfat_calc_tau1 must be equal to one', 27, UERR)
+      mm = dble(m)
       kappa = sqrt(2 * abs(erg))
       a = 1 + abs(m) + n - zq/kappa
       b = dble(abs(m) + 1)
@@ -203,9 +207,7 @@ c      call wfat_r1(npt, dbl_mb(k_et), n, m, erg, zq, bt, gm, chmmt,
 c     &     dbl_mb(k_r1))
       call wfat_r1(npt, dbl_mb(k_es), n, m, erg, zq, bt, gm, chmmt,
      &     nlgl, dbl_mb(k_r1))
-c      write(luout, '("sort1")') 
       dbl_mb(k_es:k_es+npt-1) = dbl_mb(k_r1:k_r1+npt-1)
-c      write(luout, '("sort2")') 
       do i = 1, npt
          j = int_mb(k_id+i-1)
          dbl_mb(k_r1+j-1) = dbl_mb(k_es+i-1)
@@ -214,28 +216,44 @@ c      write(luout, '("sort3")')
 
 
 c     ==== Calculate tau_\nu^{(1)} ====
+      sumr1 = 0.0d0
+      sumphi1 = 0.0d0
       do i = 1, npt
-c        == R_\nu^{(0)} ===
+c        == R_\nu^{(0)} / \sqrt(\eta) ==
          eta = dbl_mb(k_et+i-1)
          z = kappa * eta
          zz = cmplx(z, 0.0d0, kind=kind(1.0d0))
          call wfat_cchg(a, b, zz, chgm_)
-         r0 = d * z**(b/2) * exp(-z/2) * real(chgm_)
+         if (m /= 0) then
+            r0 = d * kappa**(b/2) * eta**(abs(mm)/2) * exp(-z/2)
+     &           * real(chgm_)
+         else
+            r0 = d * kappa**(b/2) * exp(-z/2) * real(chgm_)
+         endif
 
-c        == R_\nu^{(1)} ==
-         r1 = dbl_mb(k_r1+i-1)
+c        == R_\nu^{(1)} / \sqrt(\eta) ==
+         if (eta > 1.0d-12) then
+            r1 = dbl_mb(k_r1+i-1) / sqrt(eta)
+         else
+            r1 = 0.0d0
+         endif
+         if (.not. isnan(r1)) sumr1 = sumr1 + r1
 
 c        == phi_\nu^{(0)} and phi_\nu^{(1)} ==
          xi = r(i) * (1 + cos(th(i)))
          call wfat_calc_phi0xi(xi, n, m, erg, phi0)
          call wfat_calc_phi1xi(xi, n, m, erg, bt, gm, chmmt, phi1)
+         sumphi1 = sumphi1 + phi1
 
          tau1(i) = (r0 * phi1 + r1 * phi0) * exp(imnum*m*ph(i)) /
-     &             sqrt(2*pi_const*eta)
+     &             sqrt(2*pi_const)
+         if ( isnan(abs( tau1(i) )) ) tau1(i) = czero
       enddo
       beta0 = zq - kappa*(n + (abs(m)+1)/2.0d0)
       tau1 = -2*kappa**(beta0/kappa-1) * tau1
 
+      write(luout, '(" sum Phi1 = ", f10.4, 4es20.10)')
+     &     bt, sumphi1, sumr1, sum(tau1)
       
 c     ==== Deallocations ====
       if (.not. MA_free_heap(l_es))
@@ -423,6 +441,77 @@ c     ==== Deallocations ====
 c=======================================================
 
 
+c=======================================================
+c=======================================================
+      subroutine wfat_collect_tau1(geom, nch, nqn, erg, chpos, nid, mid,
+     &     bt, gm, natp, nptp, centid, ptlim, gq, zi, chmmt, tau1)
+
+      implicit none
+#include "stdio.fh"      
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer geom
+      integer nch
+      integer nqn
+      double precision erg(nch)     ! [input],
+      double precision chpos(3,nch)
+      integer nid(nqn)              ! [input], 
+      integer mid(nqn)              ! [input], 
+      double precision bt           ! [input], beta orientation angle in degrees.
+      double precision gm           ! [input], gamma orientation angle in degrees.
+      integer natp                  ! [input], the number of atoms for the current process.
+      integer nptp                  ! [input], the number of quadrature points for the current process.
+      integer centid(natp)          ! [input],
+      integer ptlim(2,natp)         ! [input],
+      integer gq                    ! [input],
+      double precision zi           ! [input],
+      double precision chmmt(3)     ! [input],
+      double complex tau1(nqn, nch, nptp)
+
+      integer l_r, l_t, l_p
+      integer k_r, k_t, k_p
+      integer i, j, n, m
+      
+
+c     ==== Coordinates in molecular frame ====
+      if (.not. MA_alloc_get(MT_DBL, nptp, 'r', l_r, k_r))
+     &     call errquit('WFAT: r allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nptp, 't', l_t, k_t))
+     &     call errquit('WFAT: t allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nptp, 'p', l_p, k_p))
+     &     call errquit('WFAT: p allocation failed', 59, MA_ERR)
+
+      
+      do i = 1, nch
+c        ==== Get the grid points with the current channel center ====
+         call wfat_get_gridpt_rot(geom, natp, centid, ptlim, chpos(:,i),
+     &        gq, bt, gm, dbl_mb(k_r), dbl_mb(k_t), dbl_mb(k_p))
+
+         do j = 1, nqn
+            n = nid(j)
+            m = mid(j)
+c            call wfat_calc_tau0(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
+c     &           dbl_mb(k_p), erg(i), zi, tau0(j,i,:))
+
+            call wfat_calc_tau1(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
+     &           dbl_mb(k_p), erg(i), zi, bt, gm, chmmt,
+     &           tau1(j,i,:))
+         enddo
+      enddo
+      
+
+c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_r))
+     &     call errquit('WFAT: r deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_t))
+     &     call errquit('WFAT: t deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_p))
+     &     call errquit('WFAT: p deallocation failed', 61, MA_ERR)
+
+      end
+c=======================================================
+
+      
 c=======================================================
 c=======================================================
       subroutine wfat_reorder_q(lmax, m, nr, indx, q_1, q_2)

@@ -118,7 +118,7 @@ c     ==== Prepare WFAT(1) integrals ====
       if (wfat1)
      &     call wfat_2a1e_assign_polb(polb, dbl_mb(k_pb))
 
-      
+            
 c     ==== Compute the OEWFAT integrals ====
       i_cf = k_cf + (orbid-1)*nr*nt
       i_eg = k_eg + (orbid-1)
@@ -129,6 +129,13 @@ c     ==== Compute the OEWFAT integrals ====
      &     dbl_mb(k_cfz), chpos, chmmt, g_il, g_j, g_k)
 c     edip = Unshifted dipole moment.
 c     chmmt = Shifted dipole moment.
+
+c     ==== No partial wave mode ====
+      call wfat_2a1e_task_nopw(rtdb, geom_hd, nqn, int_mb(k_npa), 
+     &     int_mb(k_mpa), gqual, zion, wf_msm, sphi, mch, nr, nt, orbid,
+     &     dbl_mb(i_cf), out_ke, dbl_mb(i_eg), edip, eps, wfat1, nlgl,
+     &     nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy),
+     &     dbl_mb(k_cfz))
       
 
 c     ==== Ionization calculations and printings ====

@@ -53,7 +53,7 @@ c===============================================================
       integer ndid, natom, max_npt, nscr, nsh, nom, ni0, ni_, nil
       integer nij0, nij_, nij, nik1_0, nik1_, nik1, nik2_0, nik2_, nik2
       integer natomp, nptp, pr_chk(10), g_nptx, nptx, jpt, pr_count, kk
-      integer ic, nom1, nom2, i_om1, i_om2
+      integer ic, nom1, nom2, i_om1, i_om2, nnnr, nnnt
       integer icent, npt, ipt_i, ipt_f, ipt, ipt0, i_l, i_r
       integer l_pt, l_wt, l_sc, l_om, l_i0, l_i_, l_il, l_icp, l_ipp
       integer l_ij0, l_ij_, l_ij, l_ik1_0, l_ik1_, l_ik1, l_ik2_0
@@ -116,9 +116,11 @@ c     ==== Some tests ====
 c     ==== Some checks in wfat1 is used ====
       if (wfat1) then
          ovl1 = sum(vcf*cfz)
-         if (.not. ma_alloc_get(MT_DBL, nr*nr, 'dr_dvr', l_dr, k_dr))
+         nnnr = max(nr*nr, nr_m*nr_m, nr_p*nr_p)
+         nnnt = max(nt*nt, nt_m*nt_m, nt_p*nt_p)
+         if (.not. ma_alloc_get(MT_DBL, nnnr, 'dr_dvr', l_dr, k_dr))
      &        call errquit('WFAT: Cannot allocate dr_dvr', 22, MA_ERR)
-         if (.not. ma_alloc_get(MT_DBL, nt*nt, 'dt_dvr', l_dt, k_dt))
+         if (.not. ma_alloc_get(MT_DBL, nnnt, 'dt_dvr', l_dt, k_dt))
      &        call errquit('WFAT: Cannot allocate dt_dvr', 25, MA_ERR)
          call wfat_2a1e_dpo('z', mch, 0, nr, nt, nr, nt, sphi, sphi, ke,
      &        vcf, cfz, .false., dbl_mb(k_dr), .false., dbl_mb(k_dt), 
@@ -126,6 +128,13 @@ c     ==== Some checks in wfat1 is used ====
          polb_ = -2 * polb_
          write(luout, '("<wfn0|wfn_z>, pol_zz = ", 2es21.10)')
      &        ovl1, polb_
+         call wfat_2a1e_dpo('x', mch+1, -1, nr, nt, nr_p, nt_p, sphi, 
+     &        sphi, ke, vcf, cfx, .false., dbl_mb(k_dr), .false., 
+     &        dbl_mb(k_dt), .false., polb_)
+         polb_ = -2 * polb_
+         write(luout, '("<wfn0|wfn_x>, pol_xx = ", 2es21.10)')
+     &        ovl1, polb_
+         
          if (.not. ma_free_heap(l_dr))
      &        call errquit('WFAT: Cannot deallocate dr_dvr', 1, MA_ERR)
          if (.not. ma_free_heap(l_dt))

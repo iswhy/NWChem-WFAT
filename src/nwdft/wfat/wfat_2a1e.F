@@ -127,6 +127,7 @@ c        ==== Hamiltonian diagonalization ====
             e0 = erg(id_target)
 c            ke = sqrt( 2 * abs(erg(id_target)) ) * 2
             ke = sqrt( 2 * abs(erg(id_target)) ) * 6
+c            ke = sqrt( 2 * abs(erg(id_target)) ) * 9
          endif
       enddo
       

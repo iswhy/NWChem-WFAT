@@ -84,9 +84,8 @@ c     Since vpt contains the coordinate of the evaluation point in the
 c     molecular frame, r and theta can directly be extracted from vpt
 c     without prior shifting.
       a = 1.0d0
-      b = ke * 20.0d0
+      b = ke * 50.0d0
       kp = ke
-      write(luout, '("b = ", es14.5)') b
 
 c     ==== Radial part ====
       r = sqrt(sum(vpt*vpt))
