@@ -16,7 +16,7 @@ c===============================================================
       character*7 jobtype
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
-      logical res_mode, wfat1, rtdb_stat
+      logical res_mode, wfat1, rtdb_stat, fedvr
       integer l_cf, l_eg, l_npa, l_mpa, l_in, l_dpo, l_inj, l_ink1
       integer l_ink2, l_pb, l_cfx, l_cfy, l_cfz
       integer k_cf, k_eg, k_npa, k_mpa, k_in, k_dpo, k_inj, k_ink1
@@ -91,6 +91,12 @@ clater     &        tmax, extf)
       
 c     ==== Solve the Hamiltonian for the target ====
 c     ====   eigenstate (the ionized channel)   ====
+      if (.not. rtdb_get(rtdb, 'wfat:2a1efd', mt_log, 1, fedvr))
+     &     fedvr = .false.
+      if (fedvr) then
+         call wfat_2a1efd_target(rtdb, geom_hd, mch, nt, eps)
+      endif
+      
       call wfat_2a1e_target(geom_hd, mch, sphi, orbid, eps, nr, nt,
      &     init_ke, maxiter, dbl_mb(k_cf), dbl_mb(k_eg), edip, out_ke)
       call wfat_2a1e_prep_cf1(wfat1, rtdb, mch, nr, nt, nr_m, nt_m, 

@@ -96,6 +96,8 @@
 	wfat_2a1e_perturb.o \
 	wfat_2a1e_nopw.o \
 	wfat_2a1efd.o \
+	wfat_2a1efd_target.o \
+	wfat_fedvr.o \
 	wfat_3j.o \
 	wfat_gaunt.o \
 	wfat_test_chg.o \

@@ -1,22 +1,151 @@
-c=======================================================
-c=======================================================
-      subroutine wfat_2a1efd_solve()
+c==========================================================
+c==========================================================
+      subroutine wfat_2a1efd_solve(m, ni, n, qnodes, nt, geom,
+     &     eps, coef, erg)
 
       implicit none
+#include "stdio.fh"
+#include "mafdecls.fh"      
+#include "errquit.fh"
+      integer m
+      integer ni
+      integer n(ni)
+      double precision qnodes(ni)
+      integer nt
+      integer geom
+      double precision eps       ! [input], smooth Coulomb parameter.
+      double precision coef(*)   ! [output], size nr*nt x nr*nt
+      double precision erg(*)    ! [output], size nr*nt
+      
+      integer l_xq, l_wq, l_hr, l_gr, l_lt, l_ut, l_ht, l_gt
+      integer l_x, l_t, l_tw
+      integer k_xq, k_wq, k_hr, k_gr, k_lt, k_ut, k_ht, k_gt
+      integer k_x, k_t, k_tw
+      integer maxn, nr, i, j, i_hr, i_x
+      double precision deg2rad
+      parameter(deg2rad=0.01745329251994d0)
 
+
+c     =====================
+c     ==== Radial part ====
+c     =====================
+      write(luout, '("hereu0")')
+      maxn = maxval(n)
+      if (.not. ma_alloc_get(MT_DBL, maxn*ni, 'xquad', l_xq, k_xq))
+     &     call errquit('WFAT: Cannot allocate xquad', 3, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, maxn*ni, 'wquad', l_wq, k_wq))
+     &     call errquit('WFAT: Cannot allocate wquad', 3, MA_ERR)
+      call wfat_fedvr_rule(ni, n, maxn, qnodes, dbl_mb(k_xq),
+     &     dbl_mb(k_wq))
+
+      write(luout, '("hereu1")')
+      nr = (sum(n) - ni*2) + (ni - 1)
+      write(luout, '("number of rad. fedvr basis = ", i6)') nr
+      if (.not. ma_alloc_get(MT_DBL, nr*nr, 'g_r', l_gr, k_gr))
+     &     call errquit('WFAT: Cannot allocate g_r', 3, MA_ERR)
+      call wfat_2a1efd_d2r(ni, n, maxn, dbl_mb(k_xq), dbl_mb(k_wq), nr,
+     &     dbl_mb(k_gr))
+      
+c     ==== Get the radial quadrature nodes ====
+      write(luout, '("hereu2")')
+      if (.not. ma_alloc_get(MT_DBL, nr, 'xquad_', l_x, k_x))
+     &     call errquit('WFAT: Cannot allocate xquad_', 3, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nr*nr, 'h_r', l_hr, k_hr))
+     &     call errquit('WFAT: Cannot allocate h_r', 3, MA_ERR)
+      call wfat_fedvr_basnodes(ni, n, maxn, dbl_mb(k_xq), dbl_mb(k_x))
+      do j = 1, nr
+         do i = 1, nr
+            i_hr = k_hr + (j-1)*nr + (i-1)
+            if (i == j) then
+               i_x = k_x + i - 1
+               dbl_mb(i_hr) = 1/(dbl_mb(i_x)**2)
+            else
+               dbl_mb(i_hr) = 0.0d0
+            endif
+         enddo
+      enddo
+c     =====================
+
+
+c     ====================
+c     ==== Theta part ====
+c     ====================
+      write(luout, '("hereu3")')
+      if (.not. ma_alloc_get(MT_DBL, nt, 'lapt', l_lt, k_lt))
+     &     call errquit('WFAT: Cannot allocate lapt', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nt*nt, 'u_t', l_ut, k_ut))
+     &     call errquit('WFAT: Cannot allocate u_t', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nt*nt, 'i_t', l_ht, k_ht))
+     &     call errquit('WFAT: Cannot allocate i_t', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nt*nt, 'g_t', l_gt, k_gt))
+     &     call errquit('WFAT: Cannot allocate g_t', 1, MA_ERR)
+
+      write(luout, '("hereu4")')
+      do j = 1, nt
+         dbl_mb(k_lt+j-1) = -dble((abs(m)+j-1) * (abs(m)+j))
+      enddo
+      call wfat_dvr_fbr_t(abs(m), nt, dbl_mb(k_ut))
+c     transpose(U_t) . T_t . U_t
+      call wfat_represent_diag(nt, nt, dbl_mb(k_ut), dbl_mb(k_lt),
+     &     dbl_mb(k_gt))
+      call wfat_get_identity(nt, dbl_mb(k_ht))
+
+c     ==== Get the polar quadrature nodes ====
+      write(luout, '("herex5")')
+      if (.not. ma_alloc_get(MT_DBL, nt, 'tquad', l_t, k_t))
+     &     call errquit('WFAT: Cannot allocate tquad', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nt, 'tweight', l_tw, k_tw))
+     &     call errquit('WFAT: Cannot allocate tweight', 1, MA_ERR)
+      call wfat_assocleg_quad(-1.0d0, 1.0d0, abs(m), nt, dbl_mb(k_t),
+     &     dbl_mb(k_tw))
+      dbl_mb(k_t:k_t+nt-1) = acos(dbl_mb(k_t:k_t+nt-1)) / deg2rad
+c     ====================
       
 
+c     ==== Hamiltonian construction ====
+      call wfat_2a1e_hamiltonian(nr, nt, dbl_mb(k_x), dbl_mb(k_t),
+     &     dbl_mb(k_gr), dbl_mb(k_ht), dbl_mb(k_hr), dbl_mb(k_gt), 
+     &     1.0d0, geom, eps, coef)
+      
+c     ==== Hamiltonian diagonalization ====
+      call wfat_dsyev_wrap(nr*nt, coef, erg)
 
-
-
+      write(luout, '("FEDVR GS energy = ", f15.8, " H")') erg(1)
+      
+      
+c     ==== Deallocations ====
+      if (.not. ma_free_heap(l_xq))
+     &     call errquit('WFAT: Cannot deallocate xquad', 1, MA_ERR)
+      if (.not. ma_free_heap(l_wq))
+     &     call errquit('WFAT: Cannot deallocate wquad', 1, MA_ERR)
+      if (.not. ma_free_heap(l_gr))
+     &     call errquit('WFAT: Cannot deallocate g_r', 1, MA_ERR)
+      if (.not. ma_free_heap(l_x))
+     &     call errquit('WFAT: Cannot deallocate xquad_', 1, MA_ERR)
+      if (.not. ma_free_heap(l_hr))
+     &     call errquit('WFAT: Cannot deallocate i_r', 1, MA_ERR)
+      
+      if (.not. ma_free_heap(l_lt))
+     &     call errquit('WFAT: Cannot deallocate lapt', 1, MA_ERR)
+      if (.not. ma_free_heap(l_ut))
+     &     call errquit('WFAT: Cannot deallocate u_t', 1, MA_ERR)
+      if (.not. ma_free_heap(l_ht))
+     &     call errquit('WFAT: Cannot deallocate i_t', 1, MA_ERR)
+      if (.not. ma_free_heap(l_gt))
+     &     call errquit('WFAT: Cannot deallocate g_t', 1, MA_ERR)
+      if (.not. ma_free_heap(l_t))
+     &     call errquit('WFAT: Cannot deallocate tquad', 1, MA_ERR)
+      if (.not. ma_free_heap(l_tw))
+     &     call errquit('WFAT: Cannot deallocate tweight', 1, MA_ERR)
+      
       end
-c=======================================================
+c==========================================================
+      
 
-
 c=======================================================
 c=======================================================
-      subroutine wfat_2a1efd_kin(ni, n, maxn, xq, wq, nb, t)
-c     Computes the kinetic energy operator matrix in the FEDVR basis.
+      subroutine wfat_2a1efd_d2r(ni, n, maxn, xq, wq, nb, t)
+c     Computes the matrix representation of the $d^2/dr^2$ operator in FEDVR basis.
       implicit none
 #include "errquit.fh"
       integer ni
@@ -27,7 +156,7 @@ c     Computes the kinetic energy operator matrix in the FEDVR basis.
       integer nb               ! nb=sum(n)-ni*2+ni-1
       double precision t(nb,nb)
 
-      logical brg1, brg2, exclude1, exclude2
+      logical brg1, brg2, include1, include2
       integer nb_, j1, i1, m1, j2, i2, m2
 
 
@@ -47,10 +176,10 @@ c           == Bridge or regular? ==
 
 c           == Exclude (1,1) (the 1st basis), (ni,n(ni)) (the last ==
 c           == basis), and (:,1) (have been absorbed into bridges) ==
-            exclude2 = .false.
+            include2 = .true.
             if ((i2==1 .and. m2==1) .or. (i2==ni .and. m2==n(ni))
-     &           .or. m2==1) exclude2 = .true.
-            if (.not. exclude2) j2 = j2 + 1
+     &           .or. m2==1) include2 = .false.
+            if (include2) j2 = j2 + 1
 
 c           ==== Loop over bra ====
             j1 = 0
@@ -62,14 +191,14 @@ c                 == Bridge or regular? ==
 
 c                 == Exclude (1,1) (the 1st basis), (ni,n(ni)) (the last ==
 c                 == basis), and (:,1) (have been absorbed into bridges) ==
-                  exclude1 = .false.
+                  include1 = .true.
                   if ((i1==1 .and. m1==1) .or. (i1==ni .and. m1==n(ni))
-     &                 .or. m1==1) exclude1 = .true.
-                  if (.not. exclude1) j1 = j1 + 1
+     &                 .or. m1==1) include1 = .false.
+                  if (include1) j1 = j1 + 1
 
 c                 == Calculate the kinetic energy matrix element ==
-                  if (.not. (exclude1 .or. exclude2)) then
-                     call wfat_2a1efd_kin_elm(brg1, i1, m1, brg2, i2, 
+                  if (include1 .and. include2) then
+                     call wfat_2a1efd_d2r_elm(brg1, i1, m1, brg2, i2, 
      &                    m2, ni, n, maxn, xq, wq, t(j1,j2))
                   endif
 
@@ -93,9 +222,15 @@ c=======================================================
       
 c=======================================================
 c=======================================================
-      subroutine wfat_2a1efd_kin_elm(brg1, i1, m1, brg2, i2, m2, ni, n,
+      subroutine wfat_2a1efd_d2r_elm(brg1, i1, m1, brg2, i2, m2, ni, n,
      &     maxn, xq, wq, t)
-
+c     Computes the matrix element of the $d^2/dr^2$ operator in FEDVR basis, that is,
+c     it calculates
+c     $$
+c       \int_0^\infty \chi_{i,m}(r) \frac{d^2}{dr^2} \chi_{i',m'}(r) .
+c     $$
+c     where $\chi_{i,m}$ is the FEDVR basis that corresponds to the i-th FE and m-th DVR
+c     within that FE.
       implicit none
 #include "errquit.fh"
       logical brg1
@@ -174,7 +309,7 @@ c           ==== Quadrature sum ====
          enddo
       enddo
 
-      t = t / 2
+      t = -t
 
       end
 c=======================================================
@@ -341,3 +476,91 @@ c     Equal m.
       
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_eval0_fedvr(m, n, x, w, y, f)
+
+      implicit none
+#include "errquit.fh"
+      integer m
+      integer n
+      double precision x(n)
+      double precision w
+      double precision y
+      double precision f
+
+      if (m < 1 .or. m > n)
+     &     call errquit('WFAT: The argument m of '//
+     &     'wfat_eval1_fedvr must be in between 1 and n.', 1, UERR)
+      
+      call wfat_eval0_lobatto(m, n, x, y, f)
+      f = f / sqrt(w)
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_eval0_fedvr_bridge(n1, x1, w1, n2, x2, w2, y, f)
+
+      implicit none
+#include "errquit.fh"
+      integer n1             ! [input]. The number of DVR points in the i-th FE.
+      double precision x1(*) ! [input]. The DVR quadrature points in the i-th FE. Needed when m /= mm. When needed, its minimum size should be n1.
+      double precision w1    ! [input]. The (i,n1)-th quadrature weight.
+      integer n2             ! [input]. The number of DVR points in the (i+1)-th FE.
+      double precision x2(*) ! [input]. The DVR quadrature points in the (i+1)-th FE. Needed when m /= mm. When needed, its minimum size should be n2.
+      double precision w2    ! [input]. The (i+1,1)-th quadrature weight.
+      double precision y     ! [input]. The evaluation point.
+      double precision f     ! [input]. The value of the bridge FEDVR basis at the (i,mm)-th quadrature point.
+
+      double precision f1, f2
+
+      if (abs(x1(n1)-x2(1)) < 1.0d-12)
+     &     call errquit('WFAT: In wfat_eval0_fedvr_bridge, '//
+     &     'the last point of the i-th element is too far from the '//
+     &     'first point of the (i+1)-th element.', 1, UERR)
+      
+      call wfat_eval0_lobatto(n1, n1, x1, y, f1)
+      call wfat_eval0_lobatto(1, n2, x2, y, f2)
+
+      f = (f1 + f2) / sqrt(w1 + w2)
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_eval0_lobatto(m, n, x, y, f)
+
+      implicit none
+#include "errquit.fh"
+      integer m
+      integer n
+      double precision x(n)
+      double precision y
+      double precision f
+
+      integer j
+
+      if (m < 1 .or. m > n)
+     &     call errquit('WFAT: The argument m of '//
+     &     'wfat_eval0_lobatto must be in between 1 and n.', 1, UERR)
+
+      if (y < x(1) .or. y > x(n)) then
+         f = 0.0d0
+         return
+      endif
+
+      f = 1.0d0
+      do j = 1, n
+         if (j /= m) f = f * (y-x(j)) / (x(m)-x(j))
+      enddo
+
+      end
+c=======================================================
+      
