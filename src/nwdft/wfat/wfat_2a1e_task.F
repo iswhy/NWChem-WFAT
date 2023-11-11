@@ -18,16 +18,18 @@ c===============================================================
       logical pr_tmd, pr_tmd_atom
       logical res_mode, wfat1, rtdb_stat, fedvr
       integer l_cf, l_eg, l_npa, l_mpa, l_in, l_dpo, l_inj, l_ink1
-      integer l_ink2, l_pb, l_cfx, l_cfy, l_cfz
+      integer l_ink2, l_pb, l_cfx, l_cfy, l_cfz, l_ndvr, l_fen, l_xquad
+      integer l_wquad
       integer k_cf, k_eg, k_npa, k_mpa, k_in, k_dpo, k_inj, k_ink1
-      integer k_ink2, k_pb, k_cfx, k_cfy, k_cfz
+      integer k_ink2, k_pb, k_cfx, k_cfy, k_cfz, k_ndvr, k_fen, k_xquad
+      integer k_wquad
       integer mch, sphi, spinid, orbid, nr, nt, maxiter, i_cf, i_eg
       integer lmax, gqual, nqn, nsh, nintg, g_il, ndid, nlgl, ndpo
       integer nintj, nintk, g_j, g_k(2), npb, nr_m, nt_m, nr_p, nt_p
-      integer ndgsub, max_ndgsub, dgs(1,1), ndgs(1)
+      integer ndgsub, max_ndgsub, dgs(1,1), ndgs(1), nfe, maxn, idum
       double precision eps, init_ke, out_ke, edip(3), chpos(3), chmmt(3)
       double precision fieldmag, pb(3,3), polb(3), dps(1,1,3,1)
-      double precision pbs(1,1,6,1)
+      double precision pbs(1,1,6,1), ddum
 
       integer nch
       parameter(nch=1)
@@ -43,6 +45,9 @@ c     ==============================
 
 
       res_mode = .false.
+      if (.not. rtdb_get(rtdb, 'wfat:2a1efd', mt_log, 1, fedvr))
+     &     fedvr = .false.
+      
 
 c     ==== Task title ====
       call ga_sync()
@@ -55,8 +60,16 @@ c     ==== Extract the general parameters ====
 
       
 c     ==== Extract the parameters of the quantum system ====
-      call wfat_2a1e_prep_system(rtdb, mch, sphi, spinid, orbid, eps, 
-     &     nr, nt, init_ke, maxiter)
+      call wfat_2a1e_prep_system(rtdb, mch, sphi, spinid, orbid, eps)
+      call wfat_2a1e_prep_bas(rtdb, fedvr, init_ke, maxiter, nr, 
+     &     nt, nfe, maxn, l_ndvr, k_ndvr, l_fen, k_fen, l_xquad, 
+     &     k_xquad, l_wquad, k_wquad)
+      if (fedvr) then
+         write(luout, '("r grid:")') 
+         call wfat_dprintmat(maxn, nfe, 'e', dbl_mb(k_xquad))
+         write(luout, '("w grid:")') 
+         call wfat_dprintmat(maxn, nfe, 'e', dbl_mb(k_wquad))
+      endif
 
 
 c     ==== Allocate the coefficients and energies array ====
@@ -91,21 +104,29 @@ clater     &        tmax, extf)
       
 c     ==== Solve the Hamiltonian for the target ====
 c     ====   eigenstate (the ionized channel)   ====
-      if (.not. rtdb_get(rtdb, 'wfat:2a1efd', mt_log, 1, fedvr))
-     &     fedvr = .false.
       if (fedvr) then
-         call wfat_2a1efd_target(rtdb, geom_hd, mch, nt, eps)
+         call wfat_2a1efd_target(geom_hd, mch, sphi, orbid, eps, nfe,
+     &        int_mb(k_ndvr), maxn, dbl_mb(k_xquad), dbl_mb(k_wquad),
+     &        nr, nt, dbl_mb(k_cf), dbl_mb(k_eg), edip)
+      else
+         call wfat_2a1e_target(geom_hd, mch, sphi, orbid, eps, nr, nt,
+     &        init_ke, maxiter, dbl_mb(k_cf), dbl_mb(k_eg), edip,
+     &        out_ke)
       endif
-      
-      call wfat_2a1e_target(geom_hd, mch, sphi, orbid, eps, nr, nt,
-     &     init_ke, maxiter, dbl_mb(k_cf), dbl_mb(k_eg), edip, out_ke)
-      call wfat_2a1e_prep_cf1(wfat1, rtdb, mch, nr, nt, nr_m, nt_m, 
-     &     nr_p, nt_p, l_cfx, k_cfx, l_cfy, k_cfy, l_cfz, k_cfz)
+      call wfat_2a1e_prep_cf1(wfat1, fedvr, rtdb, mch, nr, nt, nr_m, 
+     &     nt_m, nr_p, nt_p, l_cfx, k_cfx, l_cfy, k_cfy, l_cfz, k_cfz)
       if (wfat1) then
-         call wfat_2a1e_perturb(geom_hd, mch, sphi, orbid, eps,
-     &        out_ke, nr, nt, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cf),
-     &        dbl_mb(k_eg), dbl_mb(k_cfx), dbl_mb(k_cfy), dbl_mb(k_cfz),
-     &        polb)
+         if (fedvr) then
+            call wfat_2a1efd_perturb(geom_hd, mch, sphi, orbid, nfe, 
+     &           int_mb(k_ndvr), maxn, dbl_mb(k_xquad), dbl_mb(k_wquad),
+     &           nr, nt, nt_m, nt_p, eps, dbl_mb(k_cf), dbl_mb(k_eg),
+     &           dbl_mb(k_cfx), dbl_mb(k_cfy), dbl_mb(k_cfz), polb)
+         else
+            call wfat_2a1e_perturb(geom_hd, mch, sphi, orbid, eps,
+     &           out_ke, nr, nt, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cf),
+     &           dbl_mb(k_eg), dbl_mb(k_cfx), dbl_mb(k_cfy), 
+     &           dbl_mb(k_cfz), polb)
+         endif
       endif
 
 
@@ -123,6 +144,7 @@ c     ==== Prepare WFAT(1) integrals ====
      &     g_j, nintk, g_k, npb, l_pb, k_pb)
       if (wfat1)
      &     call wfat_2a1e_assign_polb(polb, dbl_mb(k_pb))
+      call errquit('stopping HERE', 99, UERR)
 
             
 c     ==== Compute the OEWFAT integrals ====
@@ -132,16 +154,28 @@ c     ==== Compute the OEWFAT integrals ====
      &     int_mb(k_mpa), lmax, gqual, zion, wf_msm, sphi, mch, nr, nt, 
      &     out_ke, orbid, dbl_mb(i_cf), dbl_mb(i_eg), edip, eps, wfat1,
      &     nlgl, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy),
-     &     dbl_mb(k_cfz), chpos, chmmt, g_il, g_j, g_k)
+     &     dbl_mb(k_cfz), fedvr, nfe, int_mb(k_ndvr), maxn, 
+     &     dbl_mb(k_xquad), dbl_mb(k_wquad), chpos, chmmt, g_il, g_j,
+     &     g_k)
+      
+c      call wfat_2a1e_intgl(rtdb, geom_hd, nqn, int_mb(k_npa), 
+c     &     int_mb(k_mpa), lmax, gqual, zion, wf_msm, sphi, mch, nr, nt, 
+c     &     out_ke, orbid, dbl_mb(i_cf), dbl_mb(i_eg), edip, eps, wfat1,
+c     &     nlgl, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy),
+c     &     dbl_mb(k_cfz), fedvr, nfe, idum, maxn, 
+c     &     ddum, ddum, chpos, chmmt, g_il, g_j,
+c     &     g_k)
 c     edip = Unshifted dipole moment.
 c     chmmt = Shifted dipole moment.
 
+      
 c     ==== No partial wave mode ====
-      call wfat_2a1e_task_nopw(rtdb, geom_hd, nqn, int_mb(k_npa), 
-     &     int_mb(k_mpa), gqual, zion, wf_msm, sphi, mch, nr, nt, orbid,
-     &     dbl_mb(i_cf), out_ke, dbl_mb(i_eg), edip, eps, wfat1, nlgl,
-     &     nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy),
-     &     dbl_mb(k_cfz))
+c      if (.not. fedvr)
+c     &     call wfat_2a1e_task_nopw(rtdb, geom_hd, nqn, int_mb(k_npa),
+c     &     int_mb(k_mpa), gqual, zion, wf_msm, sphi, mch, nr, nt, orbid,
+c     &     dbl_mb(i_cf), out_ke, dbl_mb(i_eg), edip, eps, wfat1, nlgl,
+c     &     nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy),
+c     &     dbl_mb(k_cfz))
       
 
 c     ==== Ionization calculations and printings ====
@@ -215,6 +249,7 @@ clater     &           res_mode)
       
 c     ==== Deallocations ====
       call wfat_erase_paraqn(l_npa, l_mpa)
+      call wfat_2a1e_erase_bas(l_ndvr, l_fen, l_xquad, l_wquad)
       call wfat_2a1e_erase_cf(l_cf, l_eg)
       call wfat_2a1e_erase_cf1(l_cfx, l_cfy, l_cfz)
       if (.not. ga_destroy(g_il))

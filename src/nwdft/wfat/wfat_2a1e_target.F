@@ -31,7 +31,7 @@ c      call wfat_2a1e_solve(m, nr, nt, geom, ke, .false., maxiter,
 c     &     target, eps, cf, erg)
 
 
-c     ==== Obtain the electronic dipole moment ====
+c     ==== Electronic dipole moment ====
       dipole = 0.0d0
       if (.not. ma_alloc_get(MT_DBL, (nr*nr)**2, 'dr', l_dr, k_dr))
      &     call errquit('WFAT: Cannot allocate dr', 1, MA_ERR)

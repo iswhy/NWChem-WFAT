@@ -1,6 +1,6 @@
 c==========================================================
 c==========================================================
-      subroutine wfat_2a1efd_solve(m, ni, n, qnodes, nt, geom,
+      subroutine wfat_2a1efd_solve(m, ni, n, maxn, xq, wq, nt, geom,
      &     eps, coef, erg)
 
       implicit none
@@ -10,18 +10,20 @@ c==========================================================
       integer m
       integer ni
       integer n(ni)
-      double precision qnodes(ni)
+      integer maxn
+      double precision xq(maxn,ni)
+      double precision wq(maxn,ni)
       integer nt
       integer geom
       double precision eps       ! [input], smooth Coulomb parameter.
       double precision coef(*)   ! [output], size nr*nt x nr*nt
       double precision erg(*)    ! [output], size nr*nt
       
-      integer l_xq, l_wq, l_hr, l_gr, l_lt, l_ut, l_ht, l_gt
+      integer l_hr, l_gr, l_lt, l_ut, l_ht, l_gt
       integer l_x, l_t, l_tw
-      integer k_xq, k_wq, k_hr, k_gr, k_lt, k_ut, k_ht, k_gt
+      integer k_hr, k_gr, k_lt, k_ut, k_ht, k_gt
       integer k_x, k_t, k_tw
-      integer maxn, nr, i, j, i_hr, i_x
+      integer nr, i, j, i_hr, i_x
       double precision deg2rad
       parameter(deg2rad=0.01745329251994d0)
 
@@ -29,30 +31,18 @@ c==========================================================
 c     =====================
 c     ==== Radial part ====
 c     =====================
-      write(luout, '("hereu0")')
-      maxn = maxval(n)
-      if (.not. ma_alloc_get(MT_DBL, maxn*ni, 'xquad', l_xq, k_xq))
-     &     call errquit('WFAT: Cannot allocate xquad', 3, MA_ERR)
-      if (.not. ma_alloc_get(MT_DBL, maxn*ni, 'wquad', l_wq, k_wq))
-     &     call errquit('WFAT: Cannot allocate wquad', 3, MA_ERR)
-      call wfat_fedvr_rule(ni, n, maxn, qnodes, dbl_mb(k_xq),
-     &     dbl_mb(k_wq))
-
-      write(luout, '("hereu1")')
       nr = (sum(n) - ni*2) + (ni - 1)
       write(luout, '("number of rad. fedvr basis = ", i6)') nr
       if (.not. ma_alloc_get(MT_DBL, nr*nr, 'g_r', l_gr, k_gr))
      &     call errquit('WFAT: Cannot allocate g_r', 3, MA_ERR)
-      call wfat_2a1efd_d2r(ni, n, maxn, dbl_mb(k_xq), dbl_mb(k_wq), nr,
-     &     dbl_mb(k_gr))
+      call wfat_2a1efd_d2r(ni, n, maxn, xq, wq, nr, dbl_mb(k_gr))
       
 c     ==== Get the radial quadrature nodes ====
-      write(luout, '("hereu2")')
       if (.not. ma_alloc_get(MT_DBL, nr, 'xquad_', l_x, k_x))
      &     call errquit('WFAT: Cannot allocate xquad_', 3, MA_ERR)
       if (.not. ma_alloc_get(MT_DBL, nr*nr, 'h_r', l_hr, k_hr))
      &     call errquit('WFAT: Cannot allocate h_r', 3, MA_ERR)
-      call wfat_fedvr_basnodes(ni, n, maxn, dbl_mb(k_xq), dbl_mb(k_x))
+      call wfat_fedvr_basnodes(ni, n, maxn, xq, dbl_mb(k_x))
       do j = 1, nr
          do i = 1, nr
             i_hr = k_hr + (j-1)*nr + (i-1)
@@ -108,16 +98,13 @@ c     ==== Hamiltonian construction ====
      &     1.0d0, geom, eps, coef)
       
 c     ==== Hamiltonian diagonalization ====
+      write(luout, '("dsyev nr nt = ", 2i4)') nr, nt
       call wfat_dsyev_wrap(nr*nt, coef, erg)
 
       write(luout, '("FEDVR GS energy = ", f15.8, " H")') erg(1)
       
       
 c     ==== Deallocations ====
-      if (.not. ma_free_heap(l_xq))
-     &     call errquit('WFAT: Cannot deallocate xquad', 1, MA_ERR)
-      if (.not. ma_free_heap(l_wq))
-     &     call errquit('WFAT: Cannot deallocate wquad', 1, MA_ERR)
       if (.not. ma_free_heap(l_gr))
      &     call errquit('WFAT: Cannot deallocate g_r', 1, MA_ERR)
       if (.not. ma_free_heap(l_x))
@@ -480,7 +467,7 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_eval0_fedvr(m, n, x, w, y, f)
+      subroutine wfat_eval00_fedvr(m, n, x, w, y, f)
 
       implicit none
 #include "errquit.fh"
@@ -495,7 +482,7 @@ c=======================================================
      &     call errquit('WFAT: The argument m of '//
      &     'wfat_eval1_fedvr must be in between 1 and n.', 1, UERR)
       
-      call wfat_eval0_lobatto(m, n, x, y, f)
+      call wfat_eval00_lobatto(m, n, x, y, f)
       f = f / sqrt(w)
 
       end
@@ -504,7 +491,7 @@ c=======================================================
       
 c=======================================================
 c=======================================================
-      subroutine wfat_eval0_fedvr_bridge(n1, x1, w1, n2, x2, w2, y, f)
+      subroutine wfat_eval00_fedvr_bridge(n1, x1, w1, n2, x2, w2, y, f)
 
       implicit none
 #include "errquit.fh"
@@ -524,18 +511,18 @@ c=======================================================
      &     'the last point of the i-th element is too far from the '//
      &     'first point of the (i+1)-th element.', 1, UERR)
       
-      call wfat_eval0_lobatto(n1, n1, x1, y, f1)
-      call wfat_eval0_lobatto(1, n2, x2, y, f2)
+      call wfat_eval00_lobatto(n1, n1, x1, y, f1)
+      call wfat_eval00_lobatto(1, n2, x2, y, f2)
 
       f = (f1 + f2) / sqrt(w1 + w2)
 
       end
 c=======================================================
 
-      
+
 c=======================================================
 c=======================================================
-      subroutine wfat_eval0_lobatto(m, n, x, y, f)
+      subroutine wfat_eval00_lobatto(m, n, x, y, f)
 
       implicit none
 #include "errquit.fh"
@@ -563,4 +550,153 @@ c=======================================================
 
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_eval0_fedvr(ni, n, maxn, xq, wq, nb, y, scr, f)
+
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"
+      integer ni
+      integer n(ni)
+      integer maxn
+      double precision xq(maxn,ni)
+      double precision wq(maxn,ni)
+      integer nb
+      double precision y
+      double precision scr(*)   ! Its minimum size is maxn*maxn + maxn.
+      double precision f(nb)
+
+      logical incl
+      integer j, i, nn, pw, pf, m
+      double precision f_
+
+c      write(luout, '("herel0")')
+      j = 1
+      do i = 1, ni
+         nn = n(i)
+         pw = 1
+         pf = pw + nn**2
+c         write(luout, '("xq : ", 3es17.6)') xq(1,i), y, xq(nn,i)
+         call wfat_eval0_lobatto(nn, xq(:,i), y, scr(pw), scr(pf))
+c         call wfat_dprintmat(1, nn, 'e', scr(pf))
+
+c         write(luout, '("herel1")')
+         do m = 1, nn
+c            write(luout, '("herel2")')
+            if (i > 1 .and. m == 1) then
+               f(j) = (f_ + scr(pf)) / sqrt(wq(nn,i-1) + wq(1,i))
+c               write(luout, '("hereoa, f = ", es14.6)') f(j)
+            else if (m > 1 .and. m < nn) then
+               f(j) = scr(pf+m-1) / sqrt(wq(m,i))
+c               write(luout, '("hereob, f = ", es14.6)') f(j)
+            else if (i < ni .and. m == nn) then
+               f_ = scr(pf+nn-1)
+c               write(luout, '("hereoc, f = ", es14.6)') f_
+            endif
+
+            incl = .true.
+            if ((i==1 .and. m==1) .or. (i==ni .and. m==n(ni)) .or. m==1)
+     &           incl = .false.
+            if (incl) then
+c               write(luout, '("herel3, i,m,j = ", 3i5, es14.6)')
+c     &              i, m, j, f(j)
+               j = j + 1
+            endif
+         enddo
+         
+      enddo
+c      write(luout, '("herel4")')
+
+      if (j /= nb+1) then
+         write(luout, '("j = ", i4, 4x, "nb+1 = ", i4)') j, nb+1
+         call errquit('WFAT: j /= nb+1, this is a bug.', 74, UERR)
+      endif
       
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_eval0_lobatto(n, x, y, scr, f)
+
+      implicit none
+#include "stdio.fh"
+      integer n
+      double precision x(n)
+      double precision y
+      double precision scr(*)   ! minimum size is n*n.
+      double precision f(n)
+
+      integer j, m, i_w
+      double precision lx
+
+      do m = 1, n
+         if (abs(y - x(m)) < 1.0d-8) then
+            f = 0.0d0
+            f(m) = 1.0d0
+c            write(luout, '("match m")')
+c           == Return if the evaluation point is ==
+c           ==   equal to one of the DVR grids   ==
+            return
+         endif
+      enddo
+      
+c     ==== If the evaluation point is not in the same FE ====
+      if (y < x(1) .or. y > x(n)) then
+         f = 0.0d0
+         return
+      endif
+
+c      write(luout, '("herev1")')
+      lx = 1.0d0
+      do m = 1, n
+         lx = lx * (y - x(m))
+      enddo
+
+c      write(luout, '("herev2")')
+      call wfat_barycentric_w(n-1, x, scr)
+      do m = 1, n
+         i_w = 1 + (n-1)*n + (m-1)
+         f(m) = lx * scr(i_w) / (y-x(m))
+      enddo
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_barycentric_w(n, x, w)
+c     Implements the algorithm in Section 3 of Ref. [1] to compute the barycentric weights.
+      implicit none
+#include "stdio.fh"
+      integer n
+      double precision x(0:n)
+      double precision w(0:n,0:n)
+
+      integer j, k
+
+c      write(luout, '("heres0")')
+      w(0,0) = 1.0d0
+      do j = 1, n
+         do k = 0, j-1
+            w(k,j) = (x(k)-x(j)) * w(k,j-1)
+         enddo
+         w(j,j) = 1.0d0
+         do k = 0, j-1
+            w(j,j) = w(j,j) * (x(j)-x(k))
+         enddo
+      enddo
+
+      do j = 0, n
+         w(j,n) = 1 / w(j,n)
+      enddo
+      
+      end
+c     REFERENCES:
+c     [1] SIAM REVIEW Vol. 46, No. 3, pp. 501–517.
+c=======================================================

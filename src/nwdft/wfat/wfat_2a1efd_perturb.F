@@ -1,78 +1,83 @@
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_perturb(geom, m, sphi, orbid, eps, ke, nr,
-     &     nt, nr_m, nt_m, nr_p, nt_p, cf, erg, cfx, cfy, cfz, polb)
+      subroutine wfat_2a1efd_perturb(geom, mch, sphi, orbid, nfe, ndvr, 
+     &     maxn, xq, wq, nr, nt, nt_m, nt_p, eps, cf, erg, cfx, cfy, 
+     &     cfz, polb)
 
       implicit none
 #include "stdio.fh"      
 #include "mafdecls.fh"
 #include "errquit.fh"
       integer geom                         ! [input],
-      integer m                            ! [input],
+      integer mch               ! [input],
       integer sphi                         ! [input],
       integer orbid                        ! [input],
-      double precision eps                 ! [input],
-      double precision ke                  ! [input],
+      integer nfe
+      integer ndvr(nfe)
+      integer maxn
+      double precision xq(maxn,nfe)
+      double precision wq(maxn,nfe)
       integer nr                           ! [input],
       integer nt                           ! [input],
-      integer nr_m                         ! [input],
       integer nt_m                         ! [input],
-      integer nr_p                         ! [input],
       integer nt_p                         ! [input],
-      double precision cf(nr*nt, nr*nt)    ! [input],
+      double precision eps                 ! [input],
+      double precision cf(nr*nt, nr*nt) ! [input],
       double precision erg(nr*nt)          ! [input],
       double precision cfx(1:*)            ! [output], The minimum size is nr_p*nt_p if m=0, if m>0, the minimum size is nr_m*nt_m + nr_p*nt_p.
       double precision cfy(1:*)            ! [output], The minimum size is nr_p*nt_p if m=0, if m>0, the minimum size is nr_m*nt_m + nr_p*nt_p.
       double precision cfz(nr*nt)          ! [output],
       double precision polb(3)             ! [output],
 
-      integer l_cfm, l_egm, l_cfp, l_egp
-      integer k_cfm, k_egm, k_cfp, k_egp
+      integer l_cfm, l_egm, l_cfp, l_egp, l_x
+      integer k_cfm, k_egm, k_cfp, k_egp, k_x
       integer n_m, n_p
       
 c     ==== Solve the m-1 eigenvectors ====
-      if (m >= 1) then
-         n_m = nr_m * nt_m
+      if (mch >= 1) then
+         n_m = nr * nt_m
          if (.not. ma_alloc_get(MT_DBL, n_m**2, 'cf-', l_cfm, k_cfm))
      &        call errquit('WFAT: Cannot allocate cf-', 1, MA_ERR)
          if (.not. ma_alloc_get(MT_DBL, n_m, 'erg-', l_egm, k_egm))
      &        call errquit('WFAT: Cannot allocate erg-', 1, MA_ERR)
-         call wfat_2a1e_solve(m-1, nr_m, nt_m, geom, ke, .false., 1,
-     &        1, eps, dbl_mb(k_cfm), dbl_mb(k_egm))
+         call wfat_2a1efd_solve(mch-1, nfe, ndvr, maxn, xq, wq, nt_m, 
+     &        geom, eps, dbl_mb(k_cfm), dbl_mb(k_egm))
       endif
 
 c     ==== Solve the m+1 eigenvectors ====
-      n_p = nr_p * nt_p
+      n_p = nr * nt_p
       if (.not. ma_alloc_get(MT_DBL, n_p**2, 'cf+', l_cfp, k_cfp))
      &     call errquit('WFAT: Cannot allocate cf+', 1, MA_ERR)
       if (.not. ma_alloc_get(MT_DBL, n_p, 'erg+', l_egp, k_egp))
      &     call errquit('WFAT: Cannot allocate erg+', 1, MA_ERR)
-      call wfat_2a1e_solve(m+1, nr_p, nt_p, geom, ke, .false., 1,
-     &     1, eps, dbl_mb(k_cfp), dbl_mb(k_egp))
-      
+      call wfat_2a1efd_solve(mch+1, nfe, ndvr, maxn, xq, wq, nt_p, geom,
+     &     eps, dbl_mb(k_cfp), dbl_mb(k_egp))
+
 c     ==== Obtain the coefficients of the x, y, z ====
 c     ====    corrections to the wavefunction     ====
-      call wfat_2a1e_perturbcf(geom, m, sphi, orbid, ke, nr,
-     &     nt, nr_m, nt_m, nr_p, nt_p, cf, dbl_mb(k_cfm), dbl_mb(k_cfp),
+      if (.not. ma_alloc_get(MT_DBL, nr, 'xquad_', l_x, k_x))
+     &     call errquit('WFAT: Cannot allocate xquad_', 55, MA_ERR)
+      call wfat_fedvr_basnodes(nfe, ndvr, maxn, xq, dbl_mb(k_x))
+      call wfat_2a1efd_perturbcf(geom, mch, sphi, orbid, nr, nt, 
+     &     nt_m, nt_p, dbl_mb(k_x), cf, dbl_mb(k_cfm), dbl_mb(k_cfp),
      &     erg, dbl_mb(k_egm), dbl_mb(k_egp), cfx, cfy, cfz)
-      
+
 c     ==== Obtain the polarizability ====
-      call wfat_2a1e_polb(m, sphi, orbid, nr_m, nt_m, nr, nt, nr_p, 
-     &     nt_p, ke, dbl_mb(k_egm), erg, dbl_mb(k_egp), dbl_mb(k_cfm),
-     &     cf, dbl_mb(k_cfp), .false., polb)
+      call wfat_2a1efd_polb(mch, sphi, nr, nt, nt_m, nt_p, dbl_mb(k_x),
+     &     cf(:,orbid), cfx, cfy, cfz, polb)
       write(luout, '("Polarizability : ", 3f15.6)') polb
 
 c     ==== Deallocations ====
-      if (m >= 1) then
+      if (mch >= 1) then
          if (.not. ma_free_heap(l_cfm))
-     &        call errquit('WFAT: Cannot deallocate cf-', 1, MA_ERR)
+     &        call errquit('WFAT: Cannot deallocate cf-', 41, MA_ERR)
          if (.not. ma_free_heap(l_egm))
-     &        call errquit('WFAT: Cannot deallocate erg-', 1, MA_ERR)
+     &        call errquit('WFAT: Cannot deallocate erg-', 41, MA_ERR)
       endif
       if (.not. ma_free_heap(l_cfp))
-     &     call errquit('WFAT: Cannot deallocate cf+', 1, MA_ERR)
+     &     call errquit('WFAT: Cannot deallocate cf+', 41, MA_ERR)
       if (.not. ma_free_heap(l_egp))
-     &     call errquit('WFAT: Cannot deallocate erg+', 1, MA_ERR)
+     &     call errquit('WFAT: Cannot deallocate erg+', 41, MA_ERR)
 
       end
 c===============================================================
@@ -80,9 +85,9 @@ c===============================================================
       
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_perturbcf(geom, m, sphi, orbid, ke, nr,
-     &     nt, nr_m, nt_m, nr_p, nt_p, cf, cf_m, cf_p, erg, erg_m,
-     &     erg_p, cfx, cfy, cfz)
+      subroutine wfat_2a1efd_perturbcf(geom, m, sphi, orbid, nr,
+     &     nt, nt_m, nt_p, rq, cf, cf_m, cf_p, erg, erg_m, erg_p, cfx, 
+     &     cfy, cfz)
 
       implicit none
 #include "stdio.fh"      
@@ -92,26 +97,24 @@ c===============================================================
       integer m
       integer sphi
       integer orbid
-      double precision ke
       integer nr
       integer nt
-      integer nr_m
       integer nt_m
-      integer nr_p
       integer nt_p
+      double precision rq(nr)
       double precision cf(nr*nt, nr*nt)
-      double precision cf_m(nr_m*nt_m, nr_m*nt_m)
-      double precision cf_p(nr_p*nt_p, nr_p*nt_p)
+      double precision cf_m(nr*nt_m, nr*nt_m)
+      double precision cf_p(nr*nt_p, nr*nt_p)
       double precision erg(nr*nt)
-      double precision erg_m(nr_m*nt_m)
-      double precision erg_p(nr_p*nt_p)
+      double precision erg_m(nr*nt_m)
+      double precision erg_p(nr*nt_p)
       double precision cfx(1:*)
       double precision cfy(1:*)
       double precision cfz(nr*nt)
 
       integer j0, n, n_m, n_p, i, j, i_, sphi_, ndp
-      integer l_drm, l_dtm, l_drp, l_dtp, l_dr, l_dt, l_dp
-      integer k_drm, k_dtm, k_drp, k_dtp, k_dr, k_dt, k_dp
+      integer l_dtm, l_dtp, l_dt, l_dp
+      integer k_dtm, k_dtp, k_dt, k_dp
       double precision dpo
 
 
@@ -121,12 +124,7 @@ c===============================================================
       
 c     ==== m - 1 ====
       if (m >= 1) then
-         n_m = nr_m * nt_m
-         if (.not. ma_alloc_get(MT_DBL, nr_m*nr, 'dr_dvr-', l_drm, 
-     &        k_drm))
-     &        call errquit('WFAT: Cannot allocate dr_dvr-', 1, MA_ERR)
-         call wfat_dipole_dvrr(m-1, nr_m, m, nr, ke, dbl_mb(k_drm))
-   
+         n_m = nr * nt_m   
          if (.not. ma_alloc_get(MT_DBL, nt_m*nt, 'dt_dvr-', l_dtm,
      &        k_dtm))
      &        call errquit('WFAT: Cannot allocate dt_dvr-', 1, MA_ERR)
@@ -137,11 +135,7 @@ c     ==== m - 1 ====
 
       
 c     ==== m + 1 ====
-      n_p = nr_p * nt_p
-      if (.not. ma_alloc_get(MT_DBL, nr_p*nr, 'dr_dvr+', l_drp, k_drp))
-     &     call errquit('WFAT: Cannot allocate dr_dvr+', 1, MA_ERR)
-      call wfat_dipole_dvrr(m+1, nr_p, m, nr, ke, dbl_mb(k_drp))
-
+      n_p = nr * nt_p
       if (.not. ma_alloc_get(MT_DBL, nt_p*nt, 'dt_dvr+', l_dtp, k_dtp))
      &     call errquit('WFAT: Cannot allocate dt_dvr+', 1, MA_ERR)
       call wfat_dipole_dvrt(m, 1, nt_p, nt, dbl_mb(k_dtp))
@@ -156,18 +150,16 @@ c     ==== Allocate temp vector to hold dipole column ====
 c     ==== x component of the corrected wave function ====
 c     == m-1 sub-component ==
       if (m >= 1) then
-         call wfat_2a1e_dpo_col('x', ke, m-1, m, sphi, sphi, nr_m, nt_m,
-     &        nr, nt, dbl_mb(k_drm), dbl_mb(k_dtm), cf_m, cf(:,j0),
-     &        dbl_mb(k_dp))
+         call wfat_2a1efd_dpo_col('x', m-1, m, sphi, sphi, nr, nt_m,
+     &        nt, rq, dbl_mb(k_dtm), cf_m, cf(:,j0), dbl_mb(k_dp))
          do j = 1, n_m
             dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_m(j))
          enddo
          cfx(1:n_m) = matmul(cf_m, dbl_mb(k_dp:k_dp+n_m-1))
       endif
 c     == m+1 sub-component ==
-      call wfat_2a1e_dpo_col('x', ke, m+1, m, sphi, sphi, nr_p, nt_p,
-     &     nr, nt, dbl_mb(k_drp), dbl_mb(k_dtp), cf_p, cf(:,j0),
-     &     dbl_mb(k_dp))
+      call wfat_2a1efd_dpo_col('x', m+1, m, sphi, sphi, nr, nt_p,
+     &     nt, rq, dbl_mb(k_dtp), cf_p, cf(:,j0), dbl_mb(k_dp))
       do j = 1, n_p
          dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_p(j))
       enddo
@@ -179,18 +171,16 @@ c     ==== y component of the corrected wave function ====
       if (sphi==2) sphi_ = 1
 c     == m-1 sub-component ==
       if (m >= 1) then
-         call wfat_2a1e_dpo_col('y', ke, m-1, m, sphi_, sphi, nr_m, 
-     &        nt_m, nr, nt, dbl_mb(k_drm), dbl_mb(k_dtm), cf_m, 
-     &        cf(:,j0), dbl_mb(k_dp))
+         call wfat_2a1efd_dpo_col('y', m-1, m, sphi_, sphi, nr, nt_m,
+     &        nt, rq, dbl_mb(k_dtm), cf_m, cf(:,j0), dbl_mb(k_dp))
          do j = 1, n_m
             dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_m(j))
          enddo
          cfy(1:n_m) = matmul(cf_m, dbl_mb(k_dp:k_dp+n_m-1))
       endif
 c     == m+1 sub-component ==
-      call wfat_2a1e_dpo_col('y', ke, m+1, m, sphi_, sphi, nr_p, nt_p, 
-     &     nr, nt, dbl_mb(k_drp), dbl_mb(k_dtp), cf_p, cf(:,j0),
-     &     dbl_mb(k_dp))
+      call wfat_2a1efd_dpo_col('y', m+1, m, sphi_, sphi, nr, nt_p, nt, 
+     &     rq, dbl_mb(k_dtp), cf_p, cf(:,j0), dbl_mb(k_dp))
       do j = 1, n_p
          dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_p(j))
       enddo
@@ -198,18 +188,14 @@ c     == m+1 sub-component ==
 
 
 c     ==== m,m ====
-      if (.not. ma_alloc_get(MT_DBL, nr*nr, 'dr_dvr', l_dr, k_dr))
-     &     call errquit('WFAT: Cannot allocate dr_dvr', 1, MA_ERR)
-      call wfat_dipole_dvrr(m, nr, m, nr, ke, dbl_mb(k_dr))
-
       if (.not. ma_alloc_get(MT_DBL, nt*nt, 'dt_dvr', l_dt, k_dt))
      &     call errquit('WFAT: Cannot allocate dt_dvr', 1, MA_ERR)
       call wfat_dipole_dvrt(m, 0, nt, nt, dbl_mb(k_dt))
       
 
 c     ==== zz component of the static polarizability ====
-      call wfat_2a1e_dpo_col('z', ke, m, m, sphi, sphi, nr, nt, nr, nt,
-     &     dbl_mb(k_dr), dbl_mb(k_dt), cf, cf(:,j0), dbl_mb(k_dp))
+      call wfat_2a1efd_dpo_col('z', m, m, sphi, sphi, nr, nt, nt,
+     &     rq, dbl_mb(k_dt), cf, cf(:,j0), dbl_mb(k_dp))
       do j = 1, n
          if (j /= j0) then
             dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg(j))
@@ -222,17 +208,11 @@ c     ==== zz component of the static polarizability ====
 
 c     ==== Deallocations ====
       if (m >= 1) then
-         if (.not. ma_free_heap(l_drm))
-     &        call errquit('WFAT: Cannot deallocate dr_dvr-', 1, MA_ERR)
          if (.not. ma_free_heap(l_dtm))
      &        call errquit('WFAT: Cannot deallocate dt_dvr-', 1, MA_ERR)
       endif
-      if (.not. ma_free_heap(l_drp))
-     &     call errquit('WFAT: Cannot deallocate dr_dvr+', 1, MA_ERR)
       if (.not. ma_free_heap(l_dtp))
      &     call errquit('WFAT: Cannot deallocate dt_dvr+', 1, MA_ERR)
-      if (.not. ma_free_heap(l_dr))
-     &     call errquit('WFAT: Cannot deallocate dr_dvr', 1, MA_ERR)
       if (.not. ma_free_heap(l_dt))
      &     call errquit('WFAT: Cannot deallocate dt_dvr', 1, MA_ERR)
       if (.not. ma_free_heap(l_dp))
@@ -240,7 +220,4 @@ c     ==== Deallocations ====
       
       end
 c===============================================================
-
-
-      
       

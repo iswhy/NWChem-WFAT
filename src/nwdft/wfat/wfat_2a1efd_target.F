@@ -1,65 +1,58 @@
 c==========================================================
 c==========================================================
-      subroutine wfat_2a1efd_target(rtdb, geom, mch, nt, eps)
+      subroutine wfat_2a1efd_target(geom, mch, sphi, orbid, eps, ni, n,
+     &     maxn, xq, wq, nr, nt, cf, erg, dipole)
 
       implicit none
 #include "stdio.fh"
 #include "mafdecls.fh"      
 #include "errquit.fh"
-#include "rtdb.fh"
-      integer rtdb
       integer geom
       integer mch
-      integer nt
+      integer sphi
+      integer orbid
       double precision eps
+      integer ni
+      integer n(ni)
+      integer maxn
+      double precision xq(maxn,ni)
+      double precision wq(maxn,ni)
+      integer nr
+      integer nt
+      double precision cf(nr*nt, nr*nt)
+      double precision erg(nr*nt)
+      double precision dipole(3)
 
-      integer l_n, l_fn, l_cf, l_eg
-      integer k_n, k_fn, k_cf, k_eg
-      integer ni, nr
+      integer l_dt, l_x
+      integer k_dt, k_x
 
-
-      write(luout, '("herex0")')
-      if (.not. rtdb_get(rtdb, 'wfat:2a1efd_nfe', mt_int, 1, ni))
-     &     call errquit('WFAT: Failed reading 2a1e_nfe from rtdb',
-     &     1, RTDB_ERR)
-
-      write(luout, '("herex1")')
-      if (.not. ma_alloc_get(MT_INT, ni, 'ndvr', l_n, k_n))
-     &     call errquit('WFAT: Cannot allocate ndvr', 3, MA_ERR)
-      if (.not. rtdb_get(rtdb, 'wfat:2a1efd_ndvr', mt_int, ni, 
-     &     int_mb(k_n))) call errquit('WFAT: Failed reading 2a1e_ndvr'//
-     &     ' from rtdb', 1, RTDB_ERR)
-
-      write(luout, '("herex2")')
-      if (.not. ma_alloc_get(MT_DBL, ni, 'fenodes', l_fn, k_fn))
-     &     call errquit('WFAT: Cannot allocate fenodes', 3, MA_ERR)
-      if (.not. rtdb_get(rtdb, 'wfat:2a1efd_fenodes', mt_dbl, ni, 
-     &     dbl_mb(k_fn))) call errquit('WFAT: Failed reading '//
-     &     '2a1e_fenodes from rtdb', 1, RTDB_ERR)
       
-
-      write(luout, '("herex3")')
-      nr = (sum(int_mb(k_n:k_n+ni-1)) - ni*2) + (ni - 1)
-      if (.not. ma_alloc_get(MT_DBL, (nr*nt)**2, 'coeff', l_cf, k_cf))
-     &     call errquit('WFAT: Cannot allocate coeff', 3, MA_ERR)
-      if (.not. ma_alloc_get(MT_DBL, nr*nt, 'erg', l_eg, k_eg))
-     &     call errquit('WFAT: Cannot allocate erg', 3, MA_ERR)
+c     ==== Solve the eigenproblem for GS ====
+      call wfat_2a1efd_solve(mch, ni, n, maxn, xq, wq, nt, geom, eps, 
+     &     cf, erg)
 
 
-      write(luout, '("herex4")')
-      call wfat_2a1efd_solve(mch, ni, int_mb(k_n), dbl_mb(k_fn), nt, 
-     &     geom, eps, dbl_mb(k_cf), dbl_mb(k_eg))
+c     ==== Electronic dipole moment ====
+      dipole = 0.0d0
+      if (.not. ma_alloc_get(MT_DBL, (nt*nt)**2, 'dt', l_dt, k_dt))
+     &     call errquit('WFAT: Cannot allocate dt', 26, MA_ERR)
+      if (.not. ma_alloc_get(MT_DBL, nr, 'xquad_', l_x, k_x))
+     &     call errquit('WFAT: Cannot allocate xquad_', 86, MA_ERR)
+      call wfat_fedvr_basnodes(ni, n, maxn, xq, dbl_mb(k_x))
+      call wfat_2a1efd_dpo('z', mch, 0, nr, nt, nt, sphi, sphi,
+     &     cf(:,orbid), cf(:,orbid), dbl_mb(k_x), .false., dbl_mb(k_dt),
+     &     .false., dipole(3))
+
       
-
+c     ==== Analysis ====
+      call wfat_analyze_target(nr, nt, erg, dipole)
+      
+      
 c     ==== Deallocations ====
-      if (.not. ma_free_heap(l_n))
-     &     call errquit('WFAT: Cannot deallocate ndvr', 1, MA_ERR)
-      if (.not. ma_free_heap(l_fn))
-     &     call errquit('WFAT: Cannot deallocate fenodes', 1, MA_ERR)
-      if (.not. ma_free_heap(l_cf))
-     &     call errquit('WFAT: Cannot deallocate coeff', 1, MA_ERR)
-      if (.not. ma_free_heap(l_eg))
-     &     call errquit('WFAT: Cannot deallocate erg', 1, MA_ERR)
+      if (.not. ma_free_heap(l_dt))
+     &     call errquit('WFAT: Cannot deallocate dt', 1, MA_ERR)
+      if (.not. ma_free_heap(l_x))
+     &     call errquit('WFAT: Cannot deallocate xquad_', 1, MA_ERR)
 
       end
 c==========================================================

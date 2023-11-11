@@ -63,6 +63,7 @@ c===============================================================
 #include "rtdb.fh"
 #include "errquit.fh"
 #include "geom.fh"
+#include "stdio.fh"
 #include "mafdecls.fh"
       integer rtdb              ! [input]
       integer geom              ! [output]
@@ -95,6 +96,9 @@ c     ==== Read some quantities from RDB ====
          cd = 0.0d0
          cd(3,1) = ch(2)/sum(ch) * r
          cd(3,2) = -ch(1)/sum(ch) * r
+
+         write(luout, '("Atom1 coordinate = ", 3f8.4)') cd(:,1)
+         write(luout, '("Atom2 coordinate = ", 3f8.4)') cd(:,2)
       else if (nc == 1) then
          cd = 0.0d0
       endif

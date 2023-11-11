@@ -28,14 +28,21 @@ c===============================================================
          pot = pot + (-q)/dist
 
 
-c         if (.not. geom_nuc_charge(geom, q_tot))
-c     &        call errquit('WFAT: geom center info failed.', 45,
-c     &        GEOM_ERR)
-c         nel = int(q_tot)
-c         u = 1.704d0
-c         v = 2.810d0
-c         pot = pot - (nel - (nel-1)*(1-1.0d0/(v/u*(exp(u*dist)-1)+1)))
-c     &        /dist
+cc         if (.not. geom_nuc_charge(geom, q_tot))
+cc     &        call errquit('WFAT: geom center info failed.', 45,
+cc     &        GEOM_ERR)
+cc         nel = int(q_tot)
+cc
+ccc        == Ne ==
+cc         u = 1.704d0
+cc         v = 2.810d0
+cc
+ccc        == Ar ==
+cc         u = 0.933d0
+cc         v = 3.600d0
+cc         
+cc         pot = pot - (nel - (nel-1)*(1-1.0d0/(v/u*(exp(u*dist)-1)+1)))
+cc     &        /dist
       enddo
 
       end

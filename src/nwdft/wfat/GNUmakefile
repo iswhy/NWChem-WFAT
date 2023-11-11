@@ -96,7 +96,11 @@
 	wfat_2a1e_perturb.o \
 	wfat_2a1e_nopw.o \
 	wfat_2a1efd.o \
+	wfat_2a1efd_prepare.o \
 	wfat_2a1efd_target.o \
+	wfat_2a1efd_dipole.o \
+	wfat_2a1efd_potential.o \
+	wfat_2a1efd_perturb.o \
 	wfat_fedvr.o \
 	wfat_3j.o \
 	wfat_gaunt.o \

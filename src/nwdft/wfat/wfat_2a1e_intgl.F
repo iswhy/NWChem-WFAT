@@ -3,7 +3,7 @@ c===============================================================
       subroutine wfat_2a1e_intgl(rtdb, geom, nqn, nid, mid, lmax_,
      &     gq, zi, celm, sphi, mch, nr, nt, ke, orbid, vcf, erg, chmmt0,
      &     eps, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, cfx, cfy, cfz,
-     &     chpos, chmmt, g_il, g_j, g_k)
+     &     fedvr, nfe, ndvr, maxn, xq, wq, chpos, chmmt, g_il, g_j, g_k)
 
       implicit none
 #include "util.fh"
@@ -40,7 +40,14 @@ c===============================================================
       integer nt_p                 ! [input], only used when wfat1=.true.
       double precision cfx(1:*)    ! [input], only used when wfat1=.true.
       double precision cfy(1:*)    ! [input], only used when wfat1=.true.
-      double precision cfz(nr*nt)  ! [input], only used when wfat1=.true.
+cOLD      double precision cfz(nr*nt) ! [input], only used when wfat1=.true.
+      double precision cfz(1:*) ! [input], only used when wfat1=.true.
+      logical fedvr
+      integer nfe
+      integer ndvr(*)              ! size is nfe
+      integer maxn
+      double precision xq(*)       ! size is maxn*nfe
+      double precision wq(*)       ! size is maxn*nfe
       double precision chpos(3)    ! [output],
       double precision chmmt(3)    ! [output],
       integer g_il                 ! [output],
@@ -77,6 +84,7 @@ c===============================================================
 
 
       write(luout, '("ke: ", 2es18.8)') ke, erg
+      write(luout, '("fdint nr = ", i4 )') nr
       
 
 c     ==== Get number of atoms ====
@@ -115,7 +123,7 @@ c     ==== Some tests ====
 
 c     ==== Some checks in wfat1 is used ====
       if (wfat1) then
-         ovl1 = sum(vcf*cfz)
+         ovl1 = sum(vcf*cfz(1:nr*nt))
          nnnr = max(nr*nr, nr_m*nr_m, nr_p*nr_p)
          nnnt = max(nt*nt, nt_m*nt_m, nt_p*nt_p)
          if (.not. ma_alloc_get(MT_DBL, nnnr, 'dr_dvr', l_dr, k_dr))
@@ -163,6 +171,7 @@ c     ==== Allocate WFAT integral, its integrands, and some other ====
      &        nr +
      &        nt +
      &        nr*nt
+         if (fedvr) nscr = nscr + maxn**2 + maxn
       endif
       if (.not. MA_alloc_get(MT_DBL, nscr, 'scratch', l_sc, k_sc))
      &     call errquit('WFAT: scratch allocation failed', 59, MA_ERR)
@@ -255,8 +264,14 @@ c           ==== Calculate vc|psi> ====
      &              nt_m, nr_p, nt_p, ke, eps, zi, vcf, cfx, cfy, cfz, 
      &              chpos, v_m, dbl_mb(k_sc), vc_psi, vc_cpsi)
             else
-               call wfat_2a1e_vcpsi(geom, sphi, mch, nr, nt, ke, eps, 
-     &              zi, vcf, chpos, v_m, dbl_mb(k_sc), vc_psi)
+               if (fedvr) then
+                  call wfat_2a1efd_vcpsi(geom, sphi, mch, nfe, ndvr, 
+     &                 maxn, xq, wq, nr, nt, eps, zi, vcf, chpos, v_m,
+     &                 dbl_mb(k_sc), vc_psi)
+               else
+                  call wfat_2a1e_vcpsi(geom, sphi, mch, nr, nt, ke, eps,
+     &                 zi, vcf, chpos, v_m, dbl_mb(k_sc), vc_psi)
+               endif
             endif
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
