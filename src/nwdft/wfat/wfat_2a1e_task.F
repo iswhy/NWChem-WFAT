@@ -144,7 +144,7 @@ c     ==== Prepare WFAT(1) integrals ====
      &     g_j, nintk, g_k, npb, l_pb, k_pb)
       if (wfat1)
      &     call wfat_2a1e_assign_polb(polb, dbl_mb(k_pb))
-      call errquit('stopping HERE', 99, UERR)
+c      call errquit('stopping HERE', 99, UERR)
 
             
 c     ==== Compute the OEWFAT integrals ====

@@ -123,30 +123,30 @@ c     ==== Some tests ====
 
 c     ==== Some checks in wfat1 is used ====
       if (wfat1) then
-         ovl1 = sum(vcf*cfz(1:nr*nt))
-         nnnr = max(nr*nr, nr_m*nr_m, nr_p*nr_p)
-         nnnt = max(nt*nt, nt_m*nt_m, nt_p*nt_p)
-         if (.not. ma_alloc_get(MT_DBL, nnnr, 'dr_dvr', l_dr, k_dr))
-     &        call errquit('WFAT: Cannot allocate dr_dvr', 22, MA_ERR)
-         if (.not. ma_alloc_get(MT_DBL, nnnt, 'dt_dvr', l_dt, k_dt))
-     &        call errquit('WFAT: Cannot allocate dt_dvr', 25, MA_ERR)
-         call wfat_2a1e_dpo('z', mch, 0, nr, nt, nr, nt, sphi, sphi, ke,
-     &        vcf, cfz, .false., dbl_mb(k_dr), .false., dbl_mb(k_dt), 
-     &        .false., polb_)
-         polb_ = -2 * polb_
-         write(luout, '("<wfn0|wfn_z>, pol_zz = ", 2es21.10)')
-     &        ovl1, polb_
-         call wfat_2a1e_dpo('x', mch+1, -1, nr, nt, nr_p, nt_p, sphi, 
-     &        sphi, ke, vcf, cfx, .false., dbl_mb(k_dr), .false., 
-     &        dbl_mb(k_dt), .false., polb_)
-         polb_ = -2 * polb_
-         write(luout, '("<wfn0|wfn_x>, pol_xx = ", 2es21.10)')
-     &        ovl1, polb_
-         
-         if (.not. ma_free_heap(l_dr))
-     &        call errquit('WFAT: Cannot deallocate dr_dvr', 1, MA_ERR)
-         if (.not. ma_free_heap(l_dt))
-     &        call errquit('WFAT: Cannot deallocate dt_dvr', 1, MA_ERR)
+cc         ovl1 = sum(vcf*cfz(1:nr*nt))
+cc         nnnr = max(nr*nr, nr_m*nr_m, nr_p*nr_p)
+cc         nnnt = max(nt*nt, nt_m*nt_m, nt_p*nt_p)
+cc         if (.not. ma_alloc_get(MT_DBL, nnnr, 'dr_dvr', l_dr, k_dr))
+cc     &        call errquit('WFAT: Cannot allocate dr_dvr', 22, MA_ERR)
+cc         if (.not. ma_alloc_get(MT_DBL, nnnt, 'dt_dvr', l_dt, k_dt))
+cc     &        call errquit('WFAT: Cannot allocate dt_dvr', 25, MA_ERR)
+cc         call wfat_2a1e_dpo('z', mch, 0, nr, nt, nr, nt, sphi, sphi, ke,
+cc     &        vcf, cfz, .false., dbl_mb(k_dr), .false., dbl_mb(k_dt), 
+cc     &        .false., polb_)
+cc         polb_ = -2 * polb_
+cc         write(luout, '("<wfn0|wfn_z>, pol_zz = ", 2es21.10)')
+cc     &        ovl1, polb_
+cc         call wfat_2a1e_dpo('x', mch+1, -1, nr, nt, nr_p, nt_p, sphi, 
+cc     &        sphi, ke, vcf, cfx, .false., dbl_mb(k_dr), .false., 
+cc     &        dbl_mb(k_dt), .false., polb_)
+cc         polb_ = -2 * polb_
+cc         write(luout, '("<wfn0|wfn_x>, pol_xx = ", 2es21.10)')
+cc     &        ovl1, polb_
+cc         
+cc         if (.not. ma_free_heap(l_dr))
+cc     &        call errquit('WFAT: Cannot deallocate dr_dvr', 1, MA_ERR)
+cc         if (.not. ma_free_heap(l_dt))
+cc     &        call errquit('WFAT: Cannot deallocate dt_dvr', 1, MA_ERR)
       endif
 
 
@@ -156,16 +156,18 @@ c     ==== Allocate grid-related arrays ====
 
 c     ==== Allocate WFAT integral, its integrands, and some other ====
       if (wfat1) then
-         nscr = 
-     &        nr +
-     &        nt +
-     &        nr*nt +
-     &        nr_m +
-     &        nt_m +
-     &        nr_m*nt_m +
-     &        nr_p +
-     &        nt_p +
-     &        nr_p*nt_p
+         if (fedvr) then
+            write(luout, '(" nnn = ", 3i4)') nr, nt_m, nt_p
+            nscr = maxn**2 + maxn +
+     &           (nr + nt + nr*nt) +
+     &           (nt_p + nr*nt_p)
+            if (mch >= 1) nscr = nscr + (nt_m + nr*nt_m)
+         else
+            nscr = 
+     &           (nr + nt + nr*nt) +
+     &           (nr_p + nt_p + nr_p*nt_p)
+            if (mch >= 1) nscr = nscr + (nr_m + nt_m + nr_m*nt_m)
+         endif
       else
          nscr = 
      &        nr +
@@ -260,9 +262,17 @@ c                 basis center.
             
 c           ==== Calculate vc|psi> ====
             if (wfat1) then
-               call wfat_2a1e_vcpsi_ord1(geom, sphi, mch, nr, nt, nr_m,
-     &              nt_m, nr_p, nt_p, ke, eps, zi, vcf, cfx, cfy, cfz, 
-     &              chpos, v_m, dbl_mb(k_sc), vc_psi, vc_cpsi)
+               if (fedvr) then
+                  call wfat_2a1efd_vcpsi_ord1(geom, sphi, mch, nfe, 
+     &                 ndvr, maxn, xq, wq, nr, nt, nt_m, nt_p, eps, zi,
+     &                 vcf, cfx, cfy, cfz, chpos, v_m, dbl_mb(k_sc),
+     &                 vc_psi, vc_cpsi)
+               else
+                  call wfat_2a1e_vcpsi_ord1(geom, sphi, mch, nr, nt,
+     &                 nr_m, nt_m, nr_p, nt_p, ke, eps, zi, vcf, cfx,
+     &                 cfy, cfz, chpos, v_m, dbl_mb(k_sc), vc_psi,
+     &                 vc_cpsi)
+               endif
             else
                if (fedvr) then
                   call wfat_2a1efd_vcpsi(geom, sphi, mch, nfe, ndvr, 

@@ -25,24 +25,28 @@ c===============================================================
      &        GEOM_ERR)
          dr = vpt - atp
          dist = sqrt(sum(dr*dr) + eps)
-         pot = pot + (-q)/dist
+c         pot = pot + (-q)/dist
 
 
-cc         if (.not. geom_nuc_charge(geom, q_tot))
-cc     &        call errquit('WFAT: geom center info failed.', 45,
-cc     &        GEOM_ERR)
-cc         nel = int(q_tot)
-cc
-ccc        == Ne ==
-cc         u = 1.704d0
-cc         v = 2.810d0
-cc
-ccc        == Ar ==
-cc         u = 0.933d0
-cc         v = 3.600d0
-cc         
-cc         pot = pot - (nel - (nel-1)*(1-1.0d0/(v/u*(exp(u*dist)-1)+1)))
-cc     &        /dist
+         if (.not. geom_nuc_charge(geom, q_tot))
+     &        call errquit('WFAT: geom center info failed.', 45,
+     &        GEOM_ERR)
+         nel = int(q_tot)
+
+c        == Ne ==
+c         u = 1.704d0
+c         v = 2.810d0
+
+c        == Ar ==
+         u = 0.933d0
+         v = 3.600d0
+
+c        == Kr ==
+         u = 1.340d0
+         v = 4.311d0
+         
+         pot = pot - (nel - (nel-1)*(1-1.0d0/(v/u*(exp(u*dist)-1)+1)))
+     &        /dist
       enddo
 
       end
@@ -156,8 +160,8 @@ c===============================================================
       character*1 sp, sp_
       integer pr, pt, pb, pr_m, pt_m, pb_m, pr_p, pt_p, pb_p, n_m, n_p
       double precision r, t, theta, deg2rad, pot, dr(3), s, a, b, kp, sc
-      double precision phi, scx_m, scx_p, scy_m, scy_p, basx_m, basx_p
-      double precision basy_m, basy_p, basz
+      double precision phi, scx_m, scx_p, scy_m, scy_p, wfnx_m, wfnx_p
+      double precision wfny_m, wfny_p, wfnz
       parameter(deg2rad=0.01745329251994d0)
 
 c     1) If m = 0, the minimum size of scr is nr + nt + nr*nt + nr_p + nt_p + nr_p*nt_p.
@@ -180,20 +184,26 @@ c     pb = pointer to the global basis of the m spectrum
       pt = pr + nr
       pb = pt + nt
       
-c     pr_m = pointer to radial DVR basis of the m-1 spectrum
-c     pt_m = pointer to polar DVR basis of the m-1 spectrum
-c     pb_m = pointer to the global basis of the m-1 spectrum
-      pr_m = pb + nr*nt
-      pt_m = pr_m + nr_m
-      pb_m = pt_m + nt_m
-
 c     pr_p = pointer to radial DVR basis of the m+1 spectrum
 c     pt_p = pointer to polar DVR basis of the m+1 spectrum
 c     pb_p = pointer to the global basis of the m+1 spectrum
-      pr_p = pb_m + nr_m*nt_m
+      pr_p = pb + nr*nt
       pt_p = pr_p + nr_p
       pb_p = pt_p + nt_p
 
+c     pr_m = pointer to radial DVR basis of the m-1 spectrum
+c     pt_m = pointer to polar DVR basis of the m-1 spectrum
+c     pb_m = pointer to the global basis of the m-1 spectrum
+      if (m >= 1) then
+         pr_m = pb_p + nr_p*nt_p
+         pt_m = pr_m + nr_m
+         pb_m = pt_m + nt_m
+      else
+         pr_m = 0
+         pt_m = 0
+         pb_m = 0
+      endif
+      
       
 c     The radial and polar DVR bases are defined in the molecular frame.
 c     This is also the frame where the nuclei's positions are defined.
@@ -255,25 +265,30 @@ c     ==== The potential term ====
       dr = vpt - chpos
       s = zi / sqrt(sum(dr*dr))
 
-
-c     ==== 0th order wave function ====
-      vc_psi = -(pot + s) * sum(vcf(:) * scr(pb:pb+nr*nt-1)) * sc
-
       
-c     ==== 1st order wave function corrections (x,y,z) ====
+c     ==== The 0th order wavefunction evaluated at vpt ====
+      vc_psi = -(pot + s) * sum(vcf(:) * scr(pb:pb+nr*nt-1)) * sc
+      
+c     ==== The m-1 part of the 1st order correction evaluated at vpt ====
       if (m >= 1) then
-         basx_m = sum(cfx(1:n_m) * scr(pb_m:pb_m+n_m-1)) * scx_m
-         basy_m = sum(cfy(1:n_m) * scr(pb_m:pb_m+n_m-1)) * scy_m
+         wfnx_m = sum(cfx(1:n_m) * scr(pb_m:pb_m+n_m-1)) * scx_m
+         wfny_m = sum(cfy(1:n_m) * scr(pb_m:pb_m+n_m-1)) * scy_m
       else if (m == 0) then
-         basx_m = 0.0d0
-         basy_m = 0.0d0
+         wfnx_m = 0.0d0
+         wfny_m = 0.0d0
       endif
-      basx_p = sum(cfx(n_m+1:n_m+n_p) * scr(pb_p:pb_p+n_p-1)) * scx_p
-      basy_p = sum(cfy(n_m+1:n_m+n_p) * scr(pb_p:pb_p+n_p-1)) * scy_p
-      basz = sum(cfz(:) * scr(pb:pb+nr*nt-1)) * sc
-      vc_cpsi(1) = -(pot + s) * (basx_m + basx_p)
-      vc_cpsi(2) = -(pot + s) * (basy_m + basy_p)
-      vc_cpsi(3) = -(pot + s) * basz
+
+c     ==== The m+1 part of the 1st order correction evaluated at vpt ====
+      wfnx_p = sum(cfx(n_m+1:n_m+n_p) * scr(pb_p:pb_p+n_p-1)) * scx_p
+      wfny_p = sum(cfy(n_m+1:n_m+n_p) * scr(pb_p:pb_p+n_p-1)) * scy_p
+
+c     ==== The z part of the 1st order correction evaluated at vpt ====
+      wfnz = sum(cfz(:) * scr(pb:pb+nr*nt-1)) * sc
+
+c     ==== V_c \psi^{(1)} ====
+      vc_cpsi(1) = -(pot + s) * (wfnx_m + wfnx_p)
+      vc_cpsi(2) = -(pot + s) * (wfny_m + wfny_p)
+      vc_cpsi(3) = -(pot + s) * wfnz
       
       end
 c===============================================================

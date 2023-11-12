@@ -573,46 +573,61 @@ c=======================================================
       integer j, i, nn, pw, pf, m
       double precision f_
 
-c      write(luout, '("herel0")')
-      j = 1
+
+c      f(1:nb) = 0.0d0
+      j = 0
       do i = 1, ni
          nn = n(i)
          pw = 1
          pf = pw + nn**2
-c         write(luout, '("xq : ", 3es17.6)') xq(1,i), y, xq(nn,i)
          call wfat_eval0_lobatto(nn, xq(:,i), y, scr(pw), scr(pf))
+c         write(luout, '("scr_pf: ", i5)') i
 c         call wfat_dprintmat(1, nn, 'e', scr(pf))
 
-c         write(luout, '("herel1")')
-         do m = 1, nn
-c            write(luout, '("herel2")')
-            if (i > 1 .and. m == 1) then
-               f(j) = (f_ + scr(pf)) / sqrt(wq(nn,i-1) + wq(1,i))
-c               write(luout, '("hereoa, f = ", es14.6)') f(j)
-            else if (m > 1 .and. m < nn) then
-               f(j) = scr(pf+m-1) / sqrt(wq(m,i))
-c               write(luout, '("hereob, f = ", es14.6)') f(j)
-            else if (i < ni .and. m == nn) then
-               f_ = scr(pf+nn-1)
-c               write(luout, '("hereoc, f = ", es14.6)') f_
-            endif
 
+         do m = 1, nn
+            if (i >= 2 .and. m == 1)
+     &           f(j) = (f_+scr(pf)) / sqrt(wq(n(i-1),i-1) + wq(1,i))
+               
             incl = .true.
             if ((i==1 .and. m==1) .or. (i==ni .and. m==n(ni)) .or. m==1)
      &           incl = .false.
             if (incl) then
-c               write(luout, '("herel3, i,m,j = ", 3i5, es14.6)')
-c     &              i, m, j, f(j)
                j = j + 1
+               if (m >= 2 .and. m <= nn-1) then
+                  f(j) = scr(pf+m-1) / sqrt(wq(m,i))
+               else if (i <= ni-1 .and. m == nn) then
+                  f_ = scr(pf+nn-1)
+               endif
             endif
          enddo
          
+cc         do m = 1, nn
+cc            if (i > 1 .and. m == 1) then
+cc               f(j) = (f_ + scr(pf)) / sqrt(wq(nn,i-1) + wq(1,i))
+cc               write(luout, '("f_ : ", 3i5, 4es14.6)')
+cc     &              i, m, j, f_, scr(pf), wq(nn,i-1), wq(1,i)
+cc            else if (m > 1 .and. m < nn) then
+cc               f(j) = scr(pf+m-1) / sqrt(wq(m,i))
+cc            else if (i < ni .and. m == nn) then
+cc               f_ = scr(pf+nn-1)
+cc            endif
+cc
+cc            incl = .true.
+cc            if ((i==1 .and. m==1) .or. (i==ni .and. m==n(ni)) .or. m==1)
+cc     &           incl = .false.
+cc            if (incl) then
+cc               write(luout, '("i,m,j = ", 3i5, es14.6)')
+cc     &              i, m, j, f(j)
+cc               j = j + 1
+cc            endif
+cc         enddo
+         
       enddo
-c      write(luout, '("herel4")')
 
-      if (j /= nb+1) then
-         write(luout, '("j = ", i4, 4x, "nb+1 = ", i4)') j, nb+1
-         call errquit('WFAT: j /= nb+1, this is a bug.', 74, UERR)
+      if (j /= nb) then
+         write(luout, '("j = ", i4, 4x, "nb = ", i4)') j, nb+1
+         call errquit('WFAT: j /= nb, this is a bug.', 74, UERR)
       endif
       
       end
@@ -635,7 +650,7 @@ c=======================================================
       double precision lx
 
       do m = 1, n
-         if (abs(y - x(m)) < 1.0d-8) then
+         if (abs(y - x(m)) < 1.0d-12) then
             f = 0.0d0
             f(m) = 1.0d0
 c            write(luout, '("match m")')

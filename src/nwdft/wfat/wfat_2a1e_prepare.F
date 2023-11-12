@@ -215,18 +215,23 @@ c===============================================================
 
       if (wfat1) then
 c        ==== The number of radial DVR basis for m-1 spectrum ====
-         if (fedvr) then
-            nr_m = nr
-         else
-            if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr_m', mt_int, 1, nr_m))
-     &           call errquit('WFAT: Failed reading 2a1e_nr_m from '//
+         if (m >= 1) then
+            if (fedvr) then
+               nr_m = nr
+            else
+               if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr_m', mt_int, 1,
+     &              nr_m)) call errquit('WFAT: Failed reading '//
+     &              '2a1e_nr_m from rtdb', 1, RTDB_ERR)
+            endif
+            
+c           ==== The number of polar DVR basis for m-1 spectrum ====
+            if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt_m', mt_int, 1, nt_m))
+     &           call errquit('WFAT: Failed reading 2a1e_nt_m from '//
      &           'rtdb', 1, RTDB_ERR)
+         else
+            nr_m = 0
+            nt_m = 0
          endif
-         
-c        ==== The number of polar DVR basis for m-1 spectrum ====
-         if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt_m', mt_int, 1, nt_m))
-     &        call errquit('WFAT: Failed reading 2a1e_nt_m from rtdb',
-     &        1, RTDB_ERR)
          
 c        ==== The number of radial DVR basis for m+1 spectrum ====
          if (fedvr) then
