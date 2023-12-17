@@ -42,7 +42,7 @@ c==== Imam ====
       character*12 dt_str
       character*16 tag
       character*9 rdm_name(2)
-      logical t1, ismask_g, ismask_j, ismask_k
+      logical t1, ismask_gjk, ismask_g, ismask_j, ismask_k
       integer natom, nbas, ncf, nrd, max_npt, nvc, nsh, nom, ni0, ni_
       integer nch1, npt, natomp, nptp, ncpos, nscr, nil, nmo, nrda
       integer nij0, nij_, nij
@@ -61,10 +61,10 @@ c==== Imam ====
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
       integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch), pr_count
       integer pr_chk(10), kk, g_nptx, g_npt_tot
-      double precision atp(3), znuc, v_c(3), v_m(3), mask_g(2)
-      double precision mask_j(2), mask_k(2), normch, celf, wtcelf
-      double precision numnel, t_now, t_last, t_start, dt_all, dt_prog
-      double precision nptx, npt_tot
+      double precision atp(3), znuc, v_c(3), v_m(3), mask_gjk(2) 
+      double precision mask_g(2), mask_j(2), mask_k(2), normch, celf
+      double precision wtcelf, numnel, t_now, t_last, t_start, dt_all
+      double precision dt_prog, nptx, npt_tot, kp
       double complex czero
       
       parameter (imf = 0)
@@ -86,6 +86,10 @@ c     ==== Get number of bases ====
 
 
 
+      ismask_gjk = .false.
+      if (rtdb_get(rtdb, 'wfat:mask_gjk', mt_dbl, 2, mask_gjk))
+     &     ismask_gjk = .true.
+      
       ismask_g = .false.
       if (rtdb_get(rtdb, 'wfat:mask_g', mt_dbl, 2, mask_g))
      &     ismask_g = .true.
@@ -96,6 +100,7 @@ c     ==== Get number of bases ====
       if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_k', mt_dbl, 2, mask_k))
      &     ismask_k = .true.
 
+      if (ismask_gjk) write(luout, '("Masking gjk")')
       if (ismask_g) write(luout, '("Masking g")')
       if (ismask_j) write(luout, '("Masking j")')
       if (ismask_k) write(luout, '("Masking k")')
@@ -120,9 +125,15 @@ c            associated to the three cartesian components of the dipole operator
       if (wfat1) then
          call wfat_perturbnew_cwfn(nch, spinid, orbid,
      &        dbl_mb(k_cf+nbas*nch), pb)
-         call wfat_check_wfat1ovl(nch, dbl_mb(k_cf),
+         if (ndid == 0)
+     &        call wfat_check_wfat1ovl(nch, dbl_mb(k_cf),
      &        dbl_mb(k_cf+nbas*nch))
       endif
+      if (ga_nodeid() == 0) then
+         write(luout, '("GTO coefficients:")')
+         call wfat_dprintmat(nbas, nch+nch1, 'f', dbl_mb(k_cf))
+      endif
+      call ga_sync()
       if (.not. MA_alloc_get(MT_INT, nch+nch1, 'spinid1', l_si, k_si))
      &     call errquit('WFAT: spinid1 allocation failed', 59, MA_ERR)
       if (.not. MA_alloc_get(MT_DBL, 3*(nch+nch1), 'chpos1',
@@ -130,6 +141,13 @@ c            associated to the three cartesian components of the dipole operator
      &     call errquit('WFAT: chpos1 allocation failed', 59, MA_ERR)
       call wfat_get_wfat1_sppos(wfat1, nch, spinid, chpos, int_mb(k_si),
      &     dbl_mb(k_pos))
+c     NOTES:
+c     k_pos points to a conceptually 2D array where the first nch columns are
+c     identical to the columns of chpos. If wfat1=.true., the next 3*nch columns
+c     are such that every group of three columns are identical to the corresponding
+c     column among the first nch columns. For example, columns within the second
+c     group, i.e. the (nch+4)-th up to (nch+6)-th columns, are duplicates of the
+c     second column.
       
 
 c     ==== Get the reduced density matrix ====
@@ -141,7 +159,6 @@ c     ==== Get the reduced density matrix ====
       
 c     ==== Some analyses and tests (optional) ====
       call wfat_sometests(rtdb, zion, nch, erg, lmax_, chmmt)
-
       call wfat_mulliken(rtdb, geom_hd, bas_hd, nbas, nspin0,
      &                   dbl_mb(k_rd), nch, dbl_mb(k_cf), spinid, 
      &                   chpos)
@@ -152,7 +169,7 @@ c     ==== Allocate grid-related arrays ====
 
 
 c     ==== Allocate WFAT integral, its integrands, and some other ====
-      nscr = 20*nbas + 4*nspin0 + nbas * (3*nbas+1+nspin0) +
+      nscr = 21*nbas + 4*nspin0 + nbas * (3*nbas+1+nspin0) +
      &       4*(nch+nch1)
       nvc = nch + nch1
       if (.not. MA_alloc_get(MT_DBL, nscr, 'vscr', l_sc, k_sc))
@@ -245,8 +262,8 @@ c           ==== Calculate vc|psi> ====
             call wfat_dft_vcpsi_1pt(geom_hd, bas_hd, nbas, nspin0, 
      &           nch+nch1, dbl_mb(k_cf:k_cf+ncf-1), int_mb(k_si), 
      &           dbl_mb(k_pos), v_m, dbl_mb(k_rd:k_rd+nrd-1), zion, smh,
-     &           dbl_mb(k_sc:k_sc+nscr-1),
-     &           dbl_mb(k_vc:k_vc+nvc-1))
+     &           dbl_mb(k_sc:k_sc+nscr-1), ismask_gjk, erg(1), 
+     &           mask_gjk(1), mask_gjk(2), dbl_mb(k_vc:k_vc+nvc-1))
 
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
@@ -503,9 +520,11 @@ c=======================================================
 
       logical t1
       integer i, j, imf
-      double precision v_c(3), r(natom), r_, f
+      double precision v_c(3), r(natom), r_, f, a, b
       parameter( imf=0 )
-      
+
+      a = mask(1) / 2
+      b = mask(2) + mask(1)/2
       do i = 1, nch
          r = 0.0d0
          do j = 1, natom
@@ -513,7 +532,8 @@ c=======================================================
             r(j) = sqrt( sum(v_c**2) )
          enddo
          r_ = minval(r)         
-         f = 0.5d0 * erfc(mask(1) * (r_-mask(2)))
+cOLD         f = 0.5d0 * erfc(mask(1) * (r_-mask(2)))
+         f = 0.5d0 * erfc((r_-b)/a)
 
          intd(:,:,i) = intd(:,:,i) * f
       enddo

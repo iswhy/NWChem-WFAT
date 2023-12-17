@@ -1,7 +1,7 @@
 c=======================================================
 c=======================================================
       subroutine wfat_calc_rate(nat, ef, nch, erg, nqn, nid, mid,
-     &                          zi, srfc, ffc, p_ionyd, ionyd)
+     &                          zi, srfc, uffc, ffc, p_ionyd, ionyd)
 
       implicit none
 #include "errquit.fh"
@@ -10,6 +10,7 @@ c=======================================================
       integer nch, nqn, nid(nqn), mid(nqn)
       double precision ef, erg(nch), zi
       double complex srfc(1:*)
+      logical uffc
       double precision ffc(nqn, nch), p_ionyd(nqn, nch), ionyd
       
       integer ich, iqn, i
@@ -19,9 +20,13 @@ c=======================================================
       i = 1
       do ich = 1, nch
          do iqn = 1, nqn
-      
-            call wfat_field_factor(ef, erg(ich), zi, nid(iqn),
-     &                             mid(iqn), ffc(iqn, ich))
+
+            if (uffc) then
+               ffc(iqn, ich) = 1.0d0
+            else
+               call wfat_field_factor(ef, erg(ich), zi, nid(iqn),
+     &              mid(iqn), ffc(iqn, ich))
+            endif
             srfc_tot = sum(srfc(i : i+nat-1))
             p_ionyd(iqn, ich) = ffc(iqn, ich) * abs(srfc_tot)**2
 
@@ -96,10 +101,10 @@ cdebug            write(luout, '("laser: ", i5, es14.6)') i, las
          dbl_mb(k_pi:k_pi+npi-1) = 0.0d0
          if (las >= 1.0d-13) then
             call wfat_calc_rate(nat, las, nch, erg, nqn, nid, mid,
-     &           zi, srfc, dbl_mb(k_fc), dbl_mb(k_pi), rate)
+     &           zi, srfc, .false., dbl_mb(k_fc), dbl_mb(k_pi), rate)
          else if (las <= -1.0d-13) then
             call wfat_calc_rate(nat, abs(las), nch, erg, nqn, nid, mid,
-     &           zi, srfcn, dbl_mb(k_fc), dbl_mb(k_pi), rate)
+     &           zi, srfcn, .false., dbl_mb(k_fc), dbl_mb(k_pi), rate)
          else
             dbl_mb(k_fc : k_fc+nfc-1) = 0.0d0
             dbl_mb(k_pi : k_pi+npi-1) = 0.0d0

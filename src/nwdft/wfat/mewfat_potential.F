@@ -63,6 +63,8 @@ c     ==== psc = pointer to scratch array ====
             
 
 c     ==== Calculate basis and its derivatives ====
+      call errquit('Use wfat_eval_basis_radf instead of '//
+     &     'wfat_eval_basis_1pt below', 22, UERR)
       call wfat_eval_basis_1pt(geom, bas, 0, vpt,
      &                         scr(pb0 : pb0n), scr(pb1 : pb1n),
      &                         scr(pb2 : pb2n), scr(pb3 : pb3n))
@@ -167,6 +169,8 @@ c     ==== Determine DFT XC level ====
       
 
 c     ==== Calculate basis and its derivatives ====
+      call errquit('Use wfat_eval_basis_radf instead of '//
+     &     'wfat_eval_basis_1pt below', 24, UERR)
       call wfat_eval_basis_1pt(geom, bas, dbas, vpt,
      &                         scr(pb0 : pb0n), scr(pb1 : pb1n),
      &                         scr(pb2 : pb2n), scr(pb3 : pb3n))

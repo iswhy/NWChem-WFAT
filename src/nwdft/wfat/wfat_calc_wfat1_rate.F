@@ -1,7 +1,7 @@
 c============================================================
 c============================================================
       subroutine wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
-     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, justa, ffc, p_rt, rt)
+     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, uffc, ffc, p_rt, rt)
 
       implicit none
 #include "stdio.fh"
@@ -21,14 +21,14 @@ c============================================================
       double precision on(2, nqn, nch)       ! [input],
       double precision chmmt(3,nch)          ! [input],
       double precision pb(3,3,nch)           ! [input],
-      logical justa                          ! [input],
+      logical uffc                          ! [input],
       double precision ffc(nqn, nch)         ! [output],
       double precision p_rt(nqn,nch)         ! [output],
       double precision rt                    ! [output],
       
       integer i, iqn, n, m
       double precision on_, protmat(3,3), mu(3), lpbz, kp, gmm
-      double precision bt0, bt1_1, bt1_2, bt1, aa, bb_, ffc_, bb2
+      double precision bt0, bt1_1, bt1_2, bt1, aa, bb_, bb2
       double complex gn_, an_, an2
 
       
@@ -64,16 +64,15 @@ c     ==== Get the passive rotation matrix ===
 cfordebug            write(luout, '("B_nu = ", f15.7)') bb_
 
             on_ = on(1,iqn,i) + mu(3)*on(2,iqn,i)
-            call wfat_field_factor(ef, erg(i), zi, n, m, ffc(iqn, i))
-            if (justa) then
-               ffc_ = 1.0d0
+            if (uffc) then
+               ffc(iqn,i) = 1.0d0
             else
-               ffc_ = ffc(iqn,i)
+               call wfat_field_factor(ef, erg(i), zi, n, m, ffc(iqn, i))
             endif
 
             gn_ = sum(gn(:,iqn,i))
             an_ = sum(jn(:,iqn,i)) + sum(kn(:,iqn,i))
-            p_rt(iqn,i) = ffc_ *
+            p_rt(iqn,i) = ffc(iqn,i) *
      &           (abs(gn_)**2 * 
      &           (1+aa*ef*log(ef/4/kp**2)+bb_*ef+2*ef*on_) +
      &           2*ef*real(conjg(gn_)*an_))
@@ -85,9 +84,9 @@ c           ==== for debug ====
             bb2 = bb_ + 2 * real(an2)
 
 
-            write(luout, '("A_nu = ", 6f15.7)')
-     &           bt, gm, aa, lpbz, pb(3,3,1), mu(3)
-            write(luout, '("   an = ", 2f15.7)') an2
+c            write(luout, '("A_nu = ", 6f15.7)')
+c     &           bt, gm, aa, lpbz, pb(3,3,1), mu(3)
+c            write(luout, '("   an = ", 2f15.7)') an2
          enddo
       enddo
 
@@ -96,7 +95,7 @@ c           ==== for debug ====
 
 
 c     ==== for debug ====
-      rt = bb2
+c      rt = bb2
       
       end
 c============================================================

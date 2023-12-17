@@ -82,7 +82,7 @@ cOLD      character*5 ftlas(nlas)       ! Function type of envelope, 'gauss' or 
       integer k_kn, k_on, k_jnn, k_knn
       double precision bt_start, bt_last, dbt, dbtr, bt
       double precision gm_start, gm_last, dgm, dgmr, gm
-      double precision yield, a_yield, yieldbt, yieldbtgm, f, mthr, dthr
+      double precision yield, a_yield, yieldbt, yieldbtgm, f, dthr
       double precision deg2rad, pi_const
 
       parameter (deg2rad = 0.01745329251994d0)
@@ -125,9 +125,6 @@ c     ==== When WFAT1 is active ====
          
 cOLD         call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
 cOLD     &        int_mb(k_dgn))
-         if (.not. rtdb_get(rtdb, 'wfat:mthr', mt_dbl, 1, mthr))
-     &        call errquit('WFAT: Failed reading mthr from rtdb',
-     &        1, RTDB_ERR)
          if (.not. rtdb_get(rtdb, 'wfat:dthr', mt_dbl, 1, dthr))
      &        call errquit('WFAT: Failed reading dthr from rtdb',
      &        1, RTDB_ERR)

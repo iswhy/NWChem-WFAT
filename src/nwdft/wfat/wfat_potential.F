@@ -1,8 +1,9 @@
+
 c=======================================================
 c=======================================================
       subroutine wfat_dft_vcpsi_1pt(ghan, bhan, nbas, nspin,
      &           nch, vch, spinid, chpos, vpt, rdm, zi, smh,
-     &           scr, vc_psi)
+     &           scr, mask, erg, amsk, bmsk, vc_psi)
 
 
       implicit none
@@ -22,15 +23,21 @@ cOLD #include "cdft.fh"
       double precision zi
       double precision smh
       double precision scr(1:*)    ! [input], scratch array with min. no. of elements being 20*nbas+4*nspin + nbas * (3*nbas+1+nspin) + 4*nch
+      logical mask
+      double precision erg          !< [Input]. Only used when mask=.true.
+      double precision amsk         !< [Input]. Only used when mask=.true.
+      double precision bmsk         !< [Input]. Only used when mask=.true.
       double precision vc_psi(nch)
 
       character*4 xclvl
       integer nb0, nb1, nb2, nb3, nd0, nd1, nsc1, nsc2, nve, nvn, nvs
+      integer nrf
       integer pb0, pb1, pb2, pb3, pd0, pd1, psc1, psc2, pve, pvn, pvs
-      integer io
+      integer prf
+      integer io, i, ib
       integer dbas
 
-      double precision vn_new
+      double precision vn_new, kp, maskf
 
       logical xc_gotxc, xc_chkgrad, xc_chktau, xc_hascam, xc_hassrhf
       external xc_gotxc, xc_chkgrad, xc_chktau, xc_hascam, xc_hassrhf
@@ -79,6 +86,7 @@ cOLD      nsc1 = nbas * (2*nbas+1+nspin)
       nve = nch
       nvn = nch
       nvs = nch
+      nrf = nbas
 
       pb0 = 1             !! basis functions
       pb1 = pb0 + nb0     !! 1st derivative of basis functions
@@ -91,15 +99,29 @@ cOLD      nsc1 = nbas * (2*nbas+1+nspin)
       pve = psc2 + nsc2   !! vee|psi> array
       pvn = pve + nve     !! vnuc|psi> array
       pvs = pvn + nvn     !! vs|psi> array
+      prf = pvs + nvs     !! radial part of basis functions
+
       
 c     ==== Calculate basis and its derivatives ====
-      call wfat_eval_basis_1pt(ghan, bhan, dbas, vpt,
+      call wfat_eval_basis_radf(ghan, bhan, dbas, vpt,
+     &                         scr(prf : prf+nrf-1),
      &                         scr(pb0 : pb0+nb0-1),
      &                         scr(pb1 : pb1+nb1-1),
      &                         scr(pb2 : pb2+nb2-1),
      &                         scr(pb3 : pb3+nb3-1))     !! 1)
 
-
+cc2      call errquit('stop121', 33, UERR)
+      if (mask) then
+cc2         write(luout, '("sum rf = ", es21.14)') sum(scr(prf:prf+nrf-1))
+         do ib = 1, nbas
+            kp = sqrt(2*abs(erg))
+            call wfat_mask_exp(1, vpt, chpos(:,1), zi, kp, amsk, bmsk,
+     &           scr(prf+ib-1), maskf)
+            scr(pb0+ib-1) = scr(pb0+ib-1) * maskf
+         enddo
+      endif
+         
+      
 c     ==== Calculate vee_psi ====
       call wfat_dft_veepsi_1ptbas(bhan, nbas, nspin, vpt,
      &     scr(pb0 : pb0+nb0-1),
@@ -134,18 +156,6 @@ c     &         scr(pvs : pvs+nvs-1)
       vc_psi = -(scr(pve : pve+nve-1) +
      &           scr(pvn : pvn+nvn-1) +
      &           scr(pvs : pvs+nvs-1))
-
-
-      
-c      write(luout, '("        sum vn_psi = ", e14.5)')
-c     &     sum(scr(pvn : pvn+nvn-1))
-c      write(luout, '("        sum vee_psi = ", e14.5)')
-c     &     sum(scr(pve : pve+nve-1))
-c      write(luout, '("        sum vs_psi = ", e14.5)')
-c     &     sum(scr(pvs : pvs+nvs-1))
-c      write(luout, '("        sum vn_new = ", e14.5)')
-c     &     vn_new
-      
       
       end
 c Notes:      
@@ -260,6 +270,7 @@ c=======================================================
 
       implicit none
 #include "stdio.fh"      
+#include "errquit.fh"
       integer ghan
       integer bhan
       integer nbas
@@ -299,6 +310,9 @@ c     ==== Assign indexes for scratch array ====
 
       
 c     ==== Calculate basis and its derivatives ====
+      call errquit('Think of whether better using '//
+     &     'wfat_eval_basis_radf instead of wfat_eval_basis_1pt below',
+     &     46, UERR)
       call wfat_eval_basis_1pt(ghan, bhan, dbas, vpt,
      &                         scr(pb0 : pb0+nb0-1),
      &                         scr(pb1 : pb1+nb1-1),

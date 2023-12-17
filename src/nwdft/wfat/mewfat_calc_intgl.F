@@ -199,6 +199,9 @@ c     ==== Scratch array ====
       else
          nsc_rs = 0
       endif
+      call errquit('Might need to add nb to nsc below because of '//
+     &     'change inside mewfat_hf_vcpsi_1pt and '//
+     &     'mewfat_hf_vcpsi_1pt, look inside these routines.', 5, UERR)
       nsc = 20*nb + n0(sx) + nb**2 + nb*max(maxval(n0),maxval(n1)) +
      &      sum(n1*n0) + nsc_rs                ! 1)
       if (.not. ma_alloc_get(mt_dbl, nsc, 'scratch', l_sc, k_sc))

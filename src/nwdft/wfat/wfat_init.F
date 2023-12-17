@@ -10,7 +10,7 @@ c=======================================================
 #include "bas.fh"
 #include "sym.fh"
 #include "errquit.fh"
-#include "stdio.fh"      
+#include "stdio.fh"
 #include "wfat.fh"      
 #include "wfat_qm_param.fh"
 #include "wfat_rs.fh"
@@ -46,7 +46,7 @@ c     ====     necessities of inputs    ====
          rtdb_stat = rtdb_parallel(.true.)
       endif
       call ga_sync()
-      
+
 
       if (ndid == 0) then
 c        ==== WFAT module title ====

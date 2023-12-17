@@ -93,7 +93,7 @@ c     ==== the first order correction terms  ====
 
       if (ndid==0) then
          write(luout, '("vch1 = ")')
-         call wfat_dprintmat(nbas0, 3, 'f', vch1(:,:,1))
+         call wfat_dprintmat(nbas0, 3, 'e', vch1(:,:,1))
       endif
       
       vpt = (/ 0.5d0, 0.3d0, 0.4d0/)

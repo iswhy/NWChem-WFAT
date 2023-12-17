@@ -61,7 +61,7 @@ c           maxn*maxn*6*nsub.
       double complex intgl_k1(1:*)    ! [input], only used when wfat1=.true.
       double complex intgl_k2(1:*)    ! [input], only used when wfat1=.true.
       
-      logical gap, justa
+      logical gap, uffc
       integer n_gn, nfc, nrt, nbt, ngm, nat, nsc, nsx
       integer npbd, n_jn, n_kn, n_on, ib, ig, ndid, i, iqn, i_on
       integer l_gn, l_fc, l_rt, l_sc, l_sx, l_pbd
@@ -70,7 +70,7 @@ c           maxn*maxn*6*nsub.
       integer k_jn, k_kn, k_on
       double precision bt_start, bt_last, dbt, dbtr, bt
       double precision gm_start, gm_last, dgm, dgmr, gm
-      double precision rate, mthr, dthr, ooo(2), ooo_(2)
+      double precision rate, dthr, ooo(2), ooo_(2)
       double precision deg2rad, pi_const
 
       parameter (deg2rad = 0.01745329251994d0)
@@ -116,15 +116,12 @@ c     ==== When WFAT1 is active ====
      &        n_kn, l_kn, k_kn, n_on, l_on, k_on)
 cOLD         call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
 cOLD     &        int_mb(k_dgn))
-         if (.not. rtdb_get(rtdb, 'wfat:mthr', mt_dbl, 1, mthr))
-     &        call errquit('WFAT: Failed reading mthr from rtdb',
-     &        1, RTDB_ERR)
          if (.not. rtdb_get(rtdb, 'wfat:dthr', mt_dbl, 1, dthr))
      &        call errquit('WFAT: Failed reading dthr from rtdb',
      &        1, RTDB_ERR)
-         if (.not. rtdb_get(rtdb, 'wfat:justa', mt_log, 1, justa))
-     &        justa = .false.
-         if (justa) write(luout, '("Ionization rate will not include '//
+         if (.not. rtdb_get(rtdb, 'wfat:unit_ffc', mt_log, 1, uffc))
+     &        uffc = .false.
+         if (uffc) write(luout, '("Ionization rate will not include '//
      &        'the field factor")')
          do i = 1, nch
             do iqn = 1, nqn
@@ -204,11 +201,11 @@ c              ==== Calculate ionization rate ====
                   call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid,
      &                 mid, fieldm, erg, zi, dcpl_mb(k_gn),
      &                 dcpl_mb(k_jn), dcpl_mb(k_kn), dbl_mb(k_on), 
-     &                 chmmt, dbl_mb(k_pbd), justa, 
+     &                 chmmt, dbl_mb(k_pbd), uffc, 
      &                 dbl_mb(k_fc), dbl_mb(k_rt), rate)
                else
-                  call wfat_calc_rate(nat, fieldm, nch, erg,
-     &                 nqn, nid, mid, zi, dcpl_mb(k_gn), dbl_mb(k_fc),
+                  call wfat_calc_rate(nat, fieldm, nch, erg, nqn, nid,
+     &                 mid, zi, dcpl_mb(k_gn), uffc, dbl_mb(k_fc),
      &                 dbl_mb(k_rt), rate)
                endif
                

@@ -25,28 +25,28 @@ c===============================================================
      &        GEOM_ERR)
          dr = vpt - atp
          dist = sqrt(sum(dr*dr) + eps)
-c         pot = pot + (-q)/dist
+         pot = pot + (-q)/dist
 
 
-         if (.not. geom_nuc_charge(geom, q_tot))
-     &        call errquit('WFAT: geom center info failed.', 45,
-     &        GEOM_ERR)
-         nel = int(q_tot)
-
-c        == Ne ==
-c         u = 1.704d0
-c         v = 2.810d0
-
-c        == Ar ==
-         u = 0.933d0
-         v = 3.600d0
-
-c        == Kr ==
-         u = 1.340d0
-         v = 4.311d0
-         
-         pot = pot - (nel - (nel-1)*(1-1.0d0/(v/u*(exp(u*dist)-1)+1)))
-     &        /dist
+cc         if (.not. geom_nuc_charge(geom, q_tot))
+cc     &        call errquit('WFAT: geom center info failed.', 45,
+cc     &        GEOM_ERR)
+cc         nel = int(q_tot)
+cc
+ccc        == Ne ==
+ccc         u = 1.704d0
+ccc         v = 2.810d0
+cc
+ccc        == Ar ==
+cc         u = 0.933d0
+cc         v = 3.600d0
+cc
+ccc        == Kr ==
+cc         u = 1.340d0
+cc         v = 4.311d0
+cc         
+cc         pot = pot - (nel - (nel-1)*(1-1.0d0/(v/u*(exp(u*dist)-1)+1)))
+cc     &        /dist
       enddo
 
       end

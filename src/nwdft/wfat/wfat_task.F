@@ -45,7 +45,6 @@ c     ==============================
 c     ==== Initiate WFAT module ====
 c     ==============================
       call wfat_init(rtdb)
-      
 
       res_mode = .false.
 

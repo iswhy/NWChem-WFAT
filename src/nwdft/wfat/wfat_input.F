@@ -30,7 +30,7 @@ c=======================================================
 #include "rtdb.fh"      
       integer rtdb
       
-      logical tt
+      logical tt, ll1, ll2
       character*50 field
       character*255 ss
       integer i1, i2, k
@@ -108,6 +108,19 @@ c     ==== Initial status of WFAT inputs ====
 
       wfat1_exist = .false.
       wfat1_stat = .false.
+
+c     nlgl, dhtr, unit_ffc, tailmask
+      nlgl_exist = .false.
+      nlgl_stat = .false.
+
+      dthr_exist = .false.
+      dthr_stat = .false.
+
+      unit_ffc_exist = .false.
+      unit_ffc_stat = .false.
+
+      wfat_mask_exist = .false.
+      wfat_mask_stat = .false.
 
       perturb_exist = .false.
       perturb_stat = .false.
@@ -304,6 +317,22 @@ c           ==== OPTIONAL INPUTS ====
                wfat1_exist = .true.
                wfat1_stat = .true.
                wfat1 = .true.
+            else if (inp_compare(.false., 'nlgl', field)) then
+               nlgl_exist = .true.
+               nlgl_stat = inp_i(wfat_nlgl)
+            else if (inp_compare(.false., 'diagthr', field)) then
+               dthr_exist = .true.
+               dthr_stat = inp_f(wfat_dthr)
+            else if (inp_compare(.false., 'tailmask', field)) then
+               wfat_mask_exist = .true.
+               ll1 = inp_f(wfat_mask_param(1))
+               ll2 = inp_f(wfat_mask_param(2))
+               wfat_mask_stat = (ll1 .and. ll2)
+               if (wfat_mask_stat) wfat_mask = .true.
+            else if (inp_compare(.false., 'unit_ffactor', field)) then
+               unit_ffc_exist = .true.
+               unit_ffc_stat = .true.
+               unit_ffc = .true.
             else if (inp_compare(.false., 'perturb', field)) then
                perturb_exist = .true.
                perturb_stat = wfat_inp_perturb(
@@ -359,8 +388,8 @@ c     ==== Obtain the theory of previous task ====
       if (.not. rtdb_cput(rtdb, 'wfat:theory', 1, trim(wfat_theory)))
      &     call errquit('WFAT: Error writing theory to rtdb',
      &     1, RTDB_ERR)
-      
 
+      
 c     ==== Check whether the current theory is DFT ====
       if (trim(adjustl(wfat_theory)) /= 'RHF' .and.
      &    trim(adjustl(wfat_theory)) /= 'UHF' .and.

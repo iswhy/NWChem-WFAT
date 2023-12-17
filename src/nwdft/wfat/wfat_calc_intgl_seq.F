@@ -127,6 +127,8 @@ c        ==== Loop over all quadrature points around the current atom ====
 cc            write(luout, '("        v_m = ", 3e14.5)') v_m
 
 c           ==== Calculate vc|psi> ====
+            call errquit('The input list of wfat_dft_vcpsi_1pt has '//
+     &           'been modified', 52, UERR)
             call wfat_dft_vcpsi_1pt(geom_hd, bas_hd, nbas, nspin0, nch,
      &           dbl_mb(k_cf:k_cf+ncf-1), 
      &           dbl_mb(k_cf1:k_cf1+ncf-1), spinid,

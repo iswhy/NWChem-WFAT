@@ -404,8 +404,8 @@ c          status = embed_optimize(rtdb)
       else if (inp_compare(.false., 'rt_tddft', operation)) then
          status = task_rt_tddft(rtdb)
       else if (inp_compare(.false., 'oewfat', operation)) then
-cdebugging         status = task_wfat(rtdb)
-         status = task_wfat_2a1e(rtdb)
+         status = task_wfat(rtdb)
+cdebugging         status = task_wfat_2a1e(rtdb)
       else if (inp_compare(.false., 'mewfat', operation)) then
          status = task_mewfat(rtdb)
       else if (inp_compare(.false., 'freq', operation)) then

@@ -683,6 +683,9 @@ c     L_n^{|m|+2} from n=0 to n=nr-1 evaluated at x.
 
       er = erfc(a*(x-b))
       do i = 1, nr
+         ! WARNING: Below, one might need to divide by x**i instead of x**(i-1)
+         ! in order for the radial basis to behave like hydrogen eigenfunctions
+         ! at large distances, which is r**(n-1) exp(-r/n).
          p = 1 / x**(i-1) / x**(mm/2) * x**(zi/kp)
          d = p - (p-1) / 2 * er
          rfun(i) = sqrt(ke**3) * 1/sqrt(laguerre_norm_i(i-1, m+2)) * 
@@ -690,6 +693,11 @@ c     L_n^{|m|+2} from n=0 to n=nr-1 evaluated at x.
       enddo
 
       end
+c     NOTES:
+c     1) The division by x**(i-1) is to neutralize the highest polynomial term
+c        in the generalized Laguerre polynomial. While the division by x**(mm/2)
+c        is to cancel the same prefactor in the numerator. As a result, the
+c        basis goes to x**(zi/kp) exp(-x/2) as x goes to infinity.
 c==========================================================
       
 
