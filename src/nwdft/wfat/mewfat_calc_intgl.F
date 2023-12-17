@@ -191,6 +191,9 @@ c     ==== Calculate neutral RDM in case of DFT ====
      &        call errquit('MEWFAT: Failed reading SI from RTDB.', 1,
      &        RTDB_ERR)
       endif
+      if (.not. isdft .and. rs)
+     &     call errquit('MEWFAT: Range-separation can only be invoked'//
+     &     ' when DFT is used.', 16, UERR)
 
       
 c     ==== Scratch array ====
@@ -199,10 +202,7 @@ c     ==== Scratch array ====
       else
          nsc_rs = 0
       endif
-      call errquit('Might need to add nb to nsc below because of '//
-     &     'change inside mewfat_hf_vcpsi_1pt and '//
-     &     'mewfat_hf_vcpsi_1pt, look inside these routines.', 5, UERR)
-      nsc = 20*nb + n0(sx) + nb**2 + nb*max(maxval(n0),maxval(n1)) +
+      nsc = 21*nb + n0(sx) + nb**2 + nb*max(maxval(n0),maxval(n1)) +
      &      sum(n1*n0) + nsc_rs                ! 1)
       if (.not. ma_alloc_get(mt_dbl, nsc, 'scratch', l_sc, k_sc))
      &     call errquit('MEWFAT: Cannot allocate scratch', 1, MA_ERR)
@@ -258,7 +258,7 @@ c           ==== Calculate vc|psi> ====
             else
                call mewfat_hf_vcpsi_1pt(geom, bas, nb, sx, sy, n0, n1,
      &              v_m, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, chpos, 
-     &              smh, rs, dbl_mb(k_sc), vcpsi)
+     &              smh, dbl_mb(k_sc), vcpsi)
             endif
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====

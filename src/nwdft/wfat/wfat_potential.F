@@ -22,7 +22,7 @@ cOLD #include "cdft.fh"
       double precision rdm(nbas, nbas, nspin)
       double precision zi
       double precision smh
-      double precision scr(1:*)    ! [input], scratch array with min. no. of elements being 20*nbas+4*nspin + nbas * (3*nbas+1+nspin) + 4*nch
+      double precision scr(1:*)    ! [input], scratch array with min. no. of elements being 21*nbas+4*nspin + nbas * (3*nbas+1+nspin) + 4*nch
       logical mask
       double precision erg          !< [Input]. Only used when mask=.true.
       double precision amsk         !< [Input]. Only used when mask=.true.
@@ -110,9 +110,7 @@ c     ==== Calculate basis and its derivatives ====
      &                         scr(pb2 : pb2+nb2-1),
      &                         scr(pb3 : pb3+nb3-1))     !! 1)
 
-cc2      call errquit('stop121', 33, UERR)
       if (mask) then
-cc2         write(luout, '("sum rf = ", es21.14)') sum(scr(prf:prf+nrf-1))
          do ib = 1, nbas
             kp = sqrt(2*abs(erg))
             call wfat_mask_exp(1, vpt, chpos(:,1), zi, kp, amsk, bmsk,

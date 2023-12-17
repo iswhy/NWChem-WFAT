@@ -1,7 +1,7 @@
 c=======================================================
 c=======================================================
       subroutine mewfat_hf_vcpsi_1pt(geom, bas, nb, sx, sy, n0, n1,
-     &     vpt, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, ccent, smh, rs, 
+     &     vpt, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, ccent, smh, 
      &     scr, vcpsi)
 
       implicit none
@@ -25,12 +25,16 @@ c=======================================================
       double precision zi                             ! [input],
       double precision ccent(3)                       ! [input],
       double precision smh                            ! [input],
-      logical rs                                      ! [input],
-      double precision scr(1:*)                       ! [input], scratch array. Minimum number of elements should be 20*nb + n0(sx) + nb**2 + nb*max(maxval(n0),maxval(n1)) + sum(n1*n0).
+      double precision scr(1:*)                       ! [input], scratch array. 3)
       double precision vcpsi                          ! [output],
 
+c     Notes:
+c     3) The minimum number of elements should be 
+c           21*nb + n0(sx) + nb**2 + nb*max(maxval(n0),maxval(n1)) + sum(n1*n0)
+
       integer nb0, pb0, pb0n, nb1, pb1, pb1n, nb2, pb2, pb2n
-      integer nb3, pb3, pb3n, nsc, psc, pscn, pscn_, ndid
+      integer nb3, pb3, pb3n, nsc, psc, pscn, pscn_, nrf, prf, prfn
+      integer ndid
       double precision vhfpsi, v1psi
 
       ndid = ga_nodeid()
@@ -60,21 +64,23 @@ c     ==== psc = pointer to scratch array ====
       nsc = n0(sx) + nb**2 + nb*max(maxval(n0),maxval(n1)) + sum(n1*n0)
       psc = pb3n + 1
       pscn = psc + nsc - 1
-            
+
+c     ==== prf = pointer to the radial part of basis functions ====
+      nrf = nb
+      prf = pscn + 1
+      prfn = prf + nrf - 1
+      
 
 c     ==== Calculate basis and its derivatives ====
-      call errquit('Use wfat_eval_basis_radf instead of '//
-     &     'wfat_eval_basis_1pt below', 22, UERR)
-      call wfat_eval_basis_1pt(geom, bas, 0, vpt,
+      call wfat_eval_basis_radf(geom, bas, 0, vpt, scr(prf : prfn),
      &                         scr(pb0 : pb0n), scr(pb1 : pb1n),
      &                         scr(pb2 : pb2n), scr(pb3 : pb3n))
 
       
 c     ==== Calculate vhf_psi ====
-cOLD      rs = .false.
       call mewfat_hf_veepsi_1ptbas(bas, nb, n0, n1, sx, sy, vpt,
      &     scr(pb0:pb0n), ocmo0, ocmo1, pcf, rcf, qcf, scf, 
-     &     scr(psc:pscn), rs, 'none', vhfpsi)
+     &     scr(psc:pscn), .false., 'none', vhfpsi)
 
       
 c     ==== Calculate v1_psi = vnuc_psi + vs_psi ====
@@ -122,12 +128,20 @@ c=======================================================
       double precision smh                            ! [input],
       logical rs                                      ! [input],
       character*5 si_type                             ! [input], self-interaction type.
-      double precision scr(1:*)                       ! [input], scratch array. Minimum number of elements should be 20*nb + n0(sx) + nb**2 + nb*max(maxval(n0),maxval(n1)) + sum(n1*n0).
+      double precision scr(1:*)                       ! [input], scratch array.  3)
       double precision vcpsi                          ! [output],
 
+c     Notes:
+c     3) The minimum number of elements should be 
+c           21*nb + n0(sx) + nb**2 + nb*max(maxval(n0),maxval(n1)) + sum(n1*n0) + n_rs
+c        where
+c           n_rs = nb**2 + nb*max(maxval(n0),maxval(n1)) + sum(n1*n0)
+c        when rs = .true. and n_rs = 0 otherwise.
+      
       character*4 xclvl
       integer nb0, pb0, pb0n, nb1, pb1, pb1n, nb2, pb2, pb2n
-      integer nb3, pb3, pb3n, nsc, psc, pscn, pscn_, dbas, nspin
+      integer nb3, pb3, pb3n, nsc, psc, pscn, pscn_, nrf, prf, prfn
+      integer dbas, nspin
       double precision vhfpsi, vxcpsi, v1psi
 
       logical xc_chktau
@@ -159,6 +173,11 @@ c     ==== psc = pointer to scratch array ====
       psc = pb3n + 1
       pscn = psc + nsc - 1
 
+c     ==== prf = pointer to the radial part of basis functions ====
+      nrf = nb
+      prf = pscn + 1
+      prfn = prf + nrf - 1
+
       
 c     ==== Determine DFT XC level ====
       if (xc_chktau()) then
@@ -169,9 +188,7 @@ c     ==== Determine DFT XC level ====
       
 
 c     ==== Calculate basis and its derivatives ====
-      call errquit('Use wfat_eval_basis_radf instead of '//
-     &     'wfat_eval_basis_1pt below', 24, UERR)
-      call wfat_eval_basis_1pt(geom, bas, dbas, vpt,
+      call wfat_eval_basis_radf(geom, bas, dbas, vpt, scr(prf : prfn),
      &                         scr(pb0 : pb0n), scr(pb1 : pb1n),
      &                         scr(pb2 : pb2n), scr(pb3 : pb3n))
 
