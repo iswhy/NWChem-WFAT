@@ -34,6 +34,7 @@ c=================================================
       parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
 
       
+      
       ndid = ga_nodeid()
       task_mewfat = .false.
 
