@@ -1,6 +1,6 @@
 c=================================================
 c=================================================
-      subroutine wfat_print_corb(rtdb, nch, orbid, spinid)
+      subroutine wfat_print_orb1(rtdb, nch, orbid, spinid)
 
       implicit none
 #include "global.fh"
@@ -59,7 +59,7 @@ c=================================================
       i_cf0 = k_cf
       call wfat_get_coef(nch, orbid, spinid, dbl_mb(i_cf0), erg)
       i_cf1 = k_cf + nbas0*nch
-      call wfat_perturbnew_cwfn(nch, spinid, orbid, dbl_mb(i_cf1), pb)
+      call wfat_orb1_property(nch, spinid, orbid, dbl_mb(i_cf1), pb)
 
 
       do i = 1, nch

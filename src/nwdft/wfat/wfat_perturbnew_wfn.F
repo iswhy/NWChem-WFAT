@@ -1,6 +1,6 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_perturbnew_cwfn(nch, spinid, orbid, vch1, pb)
+      subroutine wfat_orb1_property(nch, spinid, orbid, vch1, pb)
 
       implicit none
 #include "errquit.fh"

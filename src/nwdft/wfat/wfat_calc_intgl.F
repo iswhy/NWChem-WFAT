@@ -1,10 +1,11 @@
 c=======================================================
 c=======================================================
 c==== Imam ====
-      subroutine wfat_calc_intgl(rtdb, nch, orbid, spinid, nqn, nid, 
-     &                           mid, lmax_, gqual, smh, res_mode, 
-     &                           wfat1, nlgl, erg, chpos, chmmt, iondip,
-     &                           pb, g_il, g_j, g_k)
+      subroutine wfat_calc_intgl(rtdb, geom, bas, nch, orbid, spinid, 
+     &                           nqn, nid, mid, lmax_, gqual, zi, celm, 
+     &                           smh, res_mode, wfat1, nlgl, nb, ns, 
+     &                           vch, erg, chpos, chmmt, iondip, g_il, 
+     &                           g_j, g_k)
       
       implicit none
 #include "util.fh"
@@ -15,9 +16,9 @@ c==== Imam ====
 #include "bas.fh"
 #include "errquit.fh"
 #include "geom.fh"
-#include "wfat.fh"
-#include "wfat_qm_param.fh"
       integer rtdb                    ! [input]
+      integer geom                    ! [input]
+      integer bas                     ! [input]
       integer nch                     ! [input]
       integer orbid(nch)              ! [input]
       integer spinid(nch)             ! [input]
@@ -26,15 +27,19 @@ c==== Imam ====
       integer mid(nqn)                ! [input]
       integer lmax_                   ! [input]
       integer gqual                   ! [input]
+      double precision zi             ! [input]
+      integer celm                    ! [input]
       double precision smh            ! [input]
       logical res_mode                ! [input]
       logical wfat1                   ! [input]
       integer nlgl                    ! [input], only used when wfat1=.true.
-      double precision erg(nch)       ! [output]
-      double precision chpos(3, nch)  ! [output]
-      double precision chmmt(3, nch)  ! [output]
-      double precision iondip(3, nch) ! [output]
-      double precision pb(1:*)        ! [output], only calculated when wfat1=.true.. When wfat1=.true., pb should have the size of at least 9*nch.
+      integer nb                      ! [input]
+      integer ns                      ! [input]
+      double precision vch(nb,*)      ! [input], the minimum number of columns is nch if wfat1 is .false., otherwise 4*nch.
+      double precision erg(nch)       ! [input]
+      double precision chpos(3, nch)  ! [input]
+      double precision chmmt(3, nch)  ! [input]
+      double precision iondip(3, nch) ! [input]
       integer g_il                    ! [output], global array handle for intgl. For structure factors.
       integer g_j                     ! [output], only calculated when wfat1=.true.
       integer g_k(2)                  ! [output], only calculated when wfat1=.true.
@@ -43,15 +48,15 @@ c==== Imam ====
       character*16 tag
       character*9 rdm_name(2)
       logical t1, ismask_gjk, ismask_g, ismask_j, ismask_k
-      integer natom, nbas, ncf, nrd, max_npt, nvc, nsh, nom, ni0, ni_
+      integer natom, nrd, max_npt, nvc, nsh, nom, ni0, ni_
       integer nch1, npt, natomp, nptp, ncpos, nscr, nil, nmo, nrda
       integer nij0, nij_, nij
       integer nom1, nik1_0, nik1_, nik1, nom2, nik2_0, nik2_, nik2
       integer i, j, ic, icent, ipt, ipt_i, ipt_f
       integer jpt, ich, iqn, ish, i_vc, ndid
-      integer l_cf, l_rd, l_pt, l_wt, l_vc, l_om, l_i0
+      integer l_rd, l_pt, l_wt, l_vc, l_om, l_i0
       integer l_i_, l_sc, l_il, l_icp, l_ipp, l_si, l_pos
-      integer k_cf, k_rd, k_pt, k_wt, k_vc, k_om, k_i0
+      integer k_rd, k_pt, k_wt, k_vc, k_om, k_i0
       integer k_i_, k_sc, k_il, k_icp, k_ipp, k_si, k_pos
       integer k_mo, k_rda
       integer l_ij0, l_ij_, l_ij, l_om1, l_ik1_0, l_ik1_, l_ik1, l_om2
@@ -77,13 +82,8 @@ c==== Imam ====
 
       
 c     ==== Get number of atoms ====
-      if (.not. geom_ncent(geom_hd, natom))
+      if (.not. geom_ncent(geom, natom))
      &     call errquit('WFAT: Getting natom failed', 51, GEOM_ERR)
-c     ==== Get number of bases ====
-      if (.not. bas_numbf(bas_hd, nbas))
-     &     call errquit('WFAT: Getting nbas failed in ', 53, UERR)
-
-
 
 
       ismask_gjk = .false.
@@ -117,21 +117,14 @@ c            associated to the three cartesian components of the dipole operator
       else
          nch1 = 0
       endif
-      ncf = nbas * (nch + nch1)
-      if (.not. MA_alloc_get(MT_DBL, ncf, 'vch', l_cf, k_cf))
-     &     call errquit('WFAT: vch allocation failed', 59, MA_ERR)
-      call wfat_orb_property(rtdb, nch, orbid, spinid, dbl_mb(k_cf), 
-     &                       erg, chpos, chmmt, iondip)
-      if (wfat1) then
-         call wfat_perturbnew_cwfn(nch, spinid, orbid,
-     &        dbl_mb(k_cf+nbas*nch), pb)
-         if (ndid == 0)
-     &        call wfat_check_wfat1ovl(nch, dbl_mb(k_cf),
-     &        dbl_mb(k_cf+nbas*nch))
+
+      if (wfat1 .and. ndid == 0) then
+         call wfat_check_wfat1ovl(nch, vch(:,1:nch), 
+     &        vch(:,nch+1:4*nch))
       endif
       if (ga_nodeid() == 0) then
          write(luout, '("GTO coefficients:")')
-         call wfat_dprintmat(nbas, nch+nch1, 'f', dbl_mb(k_cf))
+         call wfat_dprintmat(nb, nch+nch1, 'f', vch)
       endif
       call ga_sync()
       if (.not. MA_alloc_get(MT_INT, nch+nch1, 'spinid1', l_si, k_si))
@@ -151,16 +144,16 @@ c     second column.
       
 
 c     ==== Get the reduced density matrix ====
-      nrd = nbas * nbas * nspin0
+      nrd = nb * nb * ns
       if (.not. MA_alloc_get(MT_DBL, nrd, 'rdm', l_rd, k_rd))
      &     call errquit('WFAT: rdm allocation failed', 59, MA_ERR)
       call wfat_get_rdm(dbl_mb(k_rd:k_rd+nrd-1))
 
       
 c     ==== Some analyses and tests (optional) ====
-      call wfat_sometests(rtdb, zion, nch, erg, lmax_, chmmt)
-      call wfat_mulliken(rtdb, geom_hd, bas_hd, nbas, nspin0,
-     &                   dbl_mb(k_rd), nch, dbl_mb(k_cf), spinid, 
+      call wfat_sometests(rtdb, zi, nch, erg, lmax_, chmmt)
+      call wfat_mulliken(rtdb, geom, bas, nb, ns,
+     &                   dbl_mb(k_rd), nch, vch, spinid, 
      &                   chpos)
 
 
@@ -169,8 +162,7 @@ c     ==== Allocate grid-related arrays ====
 
 
 c     ==== Allocate WFAT integral, its integrands, and some other ====
-      nscr = 21*nbas + 4*nspin0 + nbas * (3*nbas+1+nspin0) +
-     &       4*(nch+nch1)
+      nscr = 21*nb + 4*ns + nb * (3*nb+1+ns) + 4*(nch+nch1)
       nvc = nch + nch1
       if (.not. MA_alloc_get(MT_DBL, nscr, 'vscr', l_sc, k_sc))
      &     call errquit('WFAT: vscr allocation failed', 59, MA_ERR)
@@ -182,7 +174,7 @@ c     ==== Allocate WFAT integral, its integrands, and some other ====
 
 c     ==== Obtaining grid ranges for the current process ====
       call wfat_alloc_gridrange(natom, l_icp, k_icp, l_ipp, k_ipp)
-      call wfat_get_gridrange(geom_hd, ndid, gqual, int_mb(k_icp),
+      call wfat_get_gridrange(geom, ndid, gqual, int_mb(k_icp),
      &                        int_mb(k_ipp), natomp, nptp)
 c      write(luout, '("node:", i3, "  atom1,pt1:", i3, i7, '//
 c     &     '"  atom2,pt2:", i3, i7, "  npoint:", i7)')
@@ -198,9 +190,9 @@ c     ==== Calculate WFAT(1) Omega ====
      &        l_ik1_, k_ik1_, l_ik1, k_ik1,
      &        nom2, nik2_0, nik2_, nik2, l_om2, k_om2, l_ik2_0, k_ik2_0,
      &        l_ik2_, k_ik2_, l_ik2, k_ik2)
-         call wfat_omega_wfat1(geom_hd, nch, nqn, erg, chpos, nid,
+         call wfat_omega_wfat1(geom, nch, nqn, erg, chpos, nid,
      &        mid, lmax_, natomp, nptp, int_mb(k_icp), int_mb(k_ipp),
-     &        gqual, nlgl, zion, dcpl_mb(k_om1), dcpl_mb(k_om2))
+     &        gqual, nlgl, zi, dcpl_mb(k_om1), dcpl_mb(k_om2))
       endif
       
 
@@ -241,7 +233,7 @@ c     ==== Loop over atoms ====
       
       do ic = 1, natomp
          icent = int_mb(k_icp + ic - 1)
-         if (.not. geom_cent_get(geom_hd, icent, tag, atp, znuc))
+         if (.not. geom_cent_get(geom, icent, tag, atp, znuc))
      &        call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
 
          call wfat_get_gridpt(int(znuc), gqual, max_npt, npt,
@@ -254,21 +246,21 @@ c        ==== Loop over all quadrature points around the current atom ====
          do ipt = ipt_i, ipt_f
             ipt0 = k_pt + 3*(ipt-1)
             v_c(1:3) = dbl_mb(ipt0 : ipt0+2)
-            call geom_cent2cent(geom_hd, icent, v_c, imf, v_m, t1)
+            call geom_cent2cent(geom, icent, v_c, imf, v_m, t1)
 cc            write(luout, '("        v_m = ", 3e14.5)') v_m
 
             
 c           ==== Calculate vc|psi> ====
-            call wfat_dft_vcpsi_1pt(geom_hd, bas_hd, nbas, nspin0, 
-     &           nch+nch1, dbl_mb(k_cf:k_cf+ncf-1), int_mb(k_si), 
-     &           dbl_mb(k_pos), v_m, dbl_mb(k_rd:k_rd+nrd-1), zion, smh,
+            call wfat_dft_vcpsi_1pt(geom, bas, nb, ns, 
+     &           nch+nch1, vch, int_mb(k_si), 
+     &           dbl_mb(k_pos), v_m, dbl_mb(k_rd:k_rd+nrd-1), zi, smh,
      &           dbl_mb(k_sc:k_sc+nscr-1), ismask_gjk, erg(1), 
      &           mask_gjk(1), mask_gjk(2), dbl_mb(k_vc:k_vc+nvc-1))
 
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
-            call wfat_omega_1pt(geom_hd, v_m, nch, erg,
-     &           chpos, nqn, nid, mid, lmax_, int(zion),
+            call wfat_omega_1pt(geom, v_m, nch, erg,
+     &           chpos, nqn, nid, mid, lmax_, int(zi),
      &           dcpl_mb(k_om:k_om+nom-1))
             
 c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
@@ -297,21 +289,21 @@ c              =====           and K^{(n,m)}_{l,m'}                ====
             endif
 
             
-            if (ismask_g) call wfat_mask_intd(geom_hd, natom, nch, erg, 
+            if (ismask_g) call wfat_mask_intd(geom, natom, nch, erg, 
      &           nqn, nsh, v_m, mask_g, dcpl_mb(k_i0))
-            if (ismask_j .and. wfat1) call wfat_mask_intd(geom_hd, 
+            if (ismask_j .and. wfat1) call wfat_mask_intd(geom, 
      &           natom, 3*nch, erg, nqn, nsh, v_m, mask_j,
      &           dcpl_mb(k_ij0))
             if (ismask_k .and. wfat1) then
-               call wfat_mask_intd(geom_hd, natom, nch, erg, nqn, nsh,
+               call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh,
      &              v_m, mask_k, dcpl_mb(k_ik1_0))
-               call wfat_mask_intd(geom_hd, natom, nch, erg, nqn, nsh,
+               call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh,
      &              v_m, mask_k, dcpl_mb(k_ik2_0))
             endif
                
             
 c           ==== Quadrature summation ====
-            call wfat_celf_1pt(geom_hd, icent, v_c, wf_msm, celf)
+            call wfat_celf_1pt(geom, icent, v_c, celm, celf)
             wtcelf = celf * dbl_mb(k_wt+ipt-1)
 
             i_l = k_i_ + (icent-1) * nsh*nqn*nch
@@ -407,8 +399,6 @@ c         call ga_zero(g_k(2))
 
       
 c     ==== Deallocations ====
-      if (.not. MA_free_heap(l_cf))
-     &     call errquit('WFAT: vch deallocation failed', 61, MA_ERR)
       if (.not. MA_free_heap(l_rd))
      &     call errquit('WFAT: rdm deallocation failed', 61, MA_ERR)
       call wfat_dealloc_quadgrid(l_pt, l_wt)

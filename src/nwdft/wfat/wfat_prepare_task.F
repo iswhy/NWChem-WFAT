@@ -278,6 +278,49 @@ c=================================================
       end
 c=================================================
 
+c=================================================
+c=================================================
+      subroutine wfat_prep_cf(nch, nb, wfat1, ncf, nch1, l_cf, k_cf)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer nch         ! [input]
+      integer nb          ! [input]
+      logical wfat1       ! [input]
+      integer ncf         ! [output]
+      integer nch1        ! [output]
+      integer l_cf, k_cf  ! [output]
+
+
+      if (wfat1) then
+         nch1 = 3*nch
+      else
+         nch1 = 0
+      endif
+      ncf = nb * (nch + nch1)
+      if (.not. MA_alloc_get(MT_DBL, ncf, 'vch', l_cf, k_cf))
+     &     call errquit('WFAT: vch allocation failed', 59, MA_ERR)
+
+      end
+c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_erase_cf(l_cf)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer l_cf
+
+      if (.not. MA_free_heap(l_cf))
+     &     call errquit('WFAT: vch deallocation failed', 3, MA_ERR)
+
+      end
+c=================================================
+
 
 c=================================================
 c=================================================

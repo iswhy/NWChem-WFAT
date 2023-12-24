@@ -9,6 +9,7 @@ c===============================================================
 #include "global.fh"
 #include "msgids.fh"
 #include "mafdecls.fh"
+#include "wfat.fh"
 #include "wfat_qm_param.fh"
 #include "wfat_field_param.fh"
       integer rtdb
@@ -22,12 +23,12 @@ c===============================================================
       logical dd, extf, corb_print, perturb
       character*32 theory
       character*2 prtb_type
-      integer ndid, gqual, i, lmax, nlgl, is, npb, ndpo
-      integer l_nd, l_or0, l_sp, l_or, l_npa, l_mpa, l_eg
+      integer ndid, gqual, i, lmax, nlgl, is, npb, ndpo, ncf, nch1
+      integer l_nd, l_or0, l_sp, l_or, l_npa, l_mpa, l_eg, l_cf
       integer l_ps, l_cmm, l_idp, l_in, l_ftl, l_al, l_wl, l_pl, l_tl
       integer l_dl, l_pb, l_dpo, l_dps, l_pbs, l_inj, l_ink1, l_ink2
       integer l_dgs, l_dgss, l_ndgs
-      integer k_nd, k_or0, k_sp, k_or, k_npa, k_mpa, k_eg
+      integer k_nd, k_or0, k_sp, k_or, k_npa, k_mpa, k_eg, k_cf
       integer k_ps, k_cmm, k_idp, k_in, k_ftl, k_al, k_wl, k_pl, k_tl
       integer k_dl, k_pb, k_dpo, k_dps, k_pbs, k_inj, k_ink1, k_ink2
       integer k_dgs, k_dgss, k_ndgs
@@ -157,19 +158,30 @@ c     ==== Printing the corrected ionizing orbital ====
       if (.not. rtdb_get(rtdb, 'wfat:corb_print', mt_log, 
      &     1, corb_print)) corb_print = .false.
       if (corb_print)
-     &     call wfat_print_corb(rtdb, nch, int_mb(k_or), int_mb(k_sp))
+     &     call wfat_print_orb1(rtdb, nch, int_mb(k_or), int_mb(k_sp))
+
+      
+c     ==== GTO coefficients of ionized orbitals and their properties ====
+      call wfat_prep_cf(nch, nbas0, wfat1, ncf, nch1, l_cf, k_cf)
+      call wfat_orb_property(rtdb, nch, int_mb(k_or), int_mb(k_sp), 
+     &     dbl_mb(k_cf), dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
+     &     dbl_mb(k_idp))
+      if (wfat1)
+     &     call wfat_orb1_property(nch, int_mb(k_sp), int_mb(k_or),
+     &     dbl_mb(k_cf+nbas0*nch), dbl_mb(k_pb))
 
       
       smh = 0.0d0
       call util_get_rtdb_state(rtdb, os, oc, or)
       if (os .and. .not. or) then
 c        ==== Calculate WFAT integrals on 'start' startup mode ====
-         call wfat_calc_intgl(rtdb, nch, int_mb(k_or), int_mb(k_sp),
-     &                        nqn, int_mb(k_npa), int_mb(k_mpa),
-     &                        lmax, gqual, smh, res_mode, wfat1, nlgl,
-     &                        dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
-     &                        dbl_mb(k_idp), dbl_mb(k_pb), 
-     &                        g_il, g_j, g_k)
+         call wfat_calc_intgl(rtdb, geom_hd, bas_hd, nch, int_mb(k_or), 
+     &                        int_mb(k_sp), nqn, int_mb(k_npa), 
+     &                        int_mb(k_mpa), lmax, gqual, zion, wf_msm, 
+     &                        smh, res_mode, wfat1, nlgl, nbas0, nspin0,
+     &                        dbl_mb(k_cf), dbl_mb(k_eg), dbl_mb(k_ps), 
+     &                        dbl_mb(k_cmm), dbl_mb(k_idp), g_il, g_j, 
+     &                        g_k)
          
 c        ==== Binary-print the integrals freshly calculated ====
          if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,
@@ -262,20 +274,11 @@ c        ==== Printing the WFAT integrals ====
          endif
 
 
-c        ============================================
-c        ==== Calculate and print key quantities ====
-c        ============================================
+c        =============================================
+c        ==== Calculate and print some quantities ====
+c        =============================================
          if (td=='td') then
             if (pr_srfc .or. pr_yild .or. pr_avbeta .or. pr_avgamma)
-cOLD     &           call wfat_calc_td(rtdb, geom_hd, pr_srfc, pr_yild, 
-cOLD     &           pr_avbeta, pr_avgamma, nlas, las_env,
-cOLD     &           dbl_mb(k_al), dbl_mb(k_wl), dbl_mb(k_pl), dbl_mb(k_tl),
-cOLD     &           dbl_mb(k_dl), ntime, tmax, extf, nch, int_mb(k_or0), 
-cOLD     &           int_mb(k_sp), dbl_mb(k_eg), dbl_mb(k_cmm), nqn,
-cOLD     &           int_mb(k_npa), int_mb(k_mpa), lmax, zion,
-cOLD     &           dcpl_mb(k_in), wfat1, nbas0, nspin0, int_mb(k_or),
-cOLD     &           dbl_mb(k_dpo), dbl_mb(k_pb), dbl_mb(k_ps),
-cOLD     &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
      &           call wfat_calc_td(rtdb, geom_hd, pr_srfc, pr_yild, 
      &           pr_avbeta, pr_avgamma, nlas, las_env, dbl_mb(k_al), 
      &           dbl_mb(k_wl), dbl_mb(k_pl), dbl_mb(k_tl), dbl_mb(k_dl),
@@ -287,13 +290,6 @@ cOLD     &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
      &           dcpl_mb(k_ink1), dcpl_mb(k_ink2))
          else
             if (pr_srfc .or. pr_rate)
-cOLD     &           call wfat_calc_ti(rtdb, geom_hd, pr_srfc, pr_rate,
-cOLD     &           fieldmag, nch, int_mb(k_or0), int_mb(k_sp), 
-cOLD     &           dbl_mb(k_eg), dbl_mb(k_cmm), nqn, int_mb(k_npa),
-cOLD     &           int_mb(k_mpa), lmax, zion, dcpl_mb(k_in), wfat1, nbas0,
-cOLD     &           nspin0, int_mb(k_or), dbl_mb(k_dpo), dbl_mb(k_pb),
-cOLD     &           dbl_mb(k_ps), dcpl_mb(k_inj), dcpl_mb(k_ink1),
-cOLD     &           dcpl_mb(k_ink2))
      &           call wfat_calc_ti(rtdb, geom_hd, pr_srfc, pr_rate, 
      &           fieldmag, nch, int_mb(k_or0), int_mb(k_sp), 
      &           dbl_mb(k_eg), dbl_mb(k_cmm), nqn, int_mb(k_npa),
@@ -324,6 +320,7 @@ c     ==== Deallocations ====
       if (.not. MA_free_heap(l_nd))
      &     call errquit('WFAT: numden deallocation failed',
      &     3, MA_ERR)
+      call wfat_erase_cf(l_cf)
       call wfat_erase_channels(l_or0, l_sp, l_or)
       call wfat_erase_paraqn(l_npa, l_mpa)
       if (td=='td') 
