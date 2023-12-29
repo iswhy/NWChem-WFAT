@@ -78,10 +78,10 @@ c        ==== Do the quadrature summation ====
             gm = atan(dbl_mb(k_yy+j-1), dbl_mb(k_xx+j-1)) / deg2rad
 
 c           ==== Calculate structure factor ====
-            call wfat_get_srfc0(geom, bt, gm, nch, erg,
-     &           nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_sf))
-            call wfat_get_srfc0(geom, 180.0d0-bt, 180.0d0+gm,
-     &           nch, erg, nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_sfn))
+            call wfat_get_srfc0(geom, bt, gm, nch, erg, nqn, mid, 
+     &           lmax, chmmt, intgl, .false., dcpl_mb(k_sf))
+            call wfat_get_srfc0(geom, 180.0d0-bt, 180.0d0+gm, nch, erg,
+     &           nqn, mid, lmax, chmmt, intgl, .false., dcpl_mb(k_sfn))
 
 c           ==== Calculate ionization yield ====
             call wfat_calc_yield(nat, zi, nlas, ftlas, alas, wlas, 

@@ -289,15 +289,15 @@ c              =====           and K^{(n,m)}_{l,m'}                ====
             endif
 
             
-            if (ismask_g) call wfat_mask_intd(geom, natom, nch, erg, 
+            if (ismask_g) call wfat_mask_intd(geom, natom, nch,
      &           nqn, nsh, v_m, mask_g, dcpl_mb(k_i0))
             if (ismask_j .and. wfat1) call wfat_mask_intd(geom, 
-     &           natom, 3*nch, erg, nqn, nsh, v_m, mask_j,
+     &           natom, 3*nch, nqn, nsh, v_m, mask_j,
      &           dcpl_mb(k_ij0))
             if (ismask_k .and. wfat1) then
-               call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh,
+               call wfat_mask_intd(geom, natom, nch, nqn, nsh,
      &              v_m, mask_k, dcpl_mb(k_ik1_0))
-               call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh,
+               call wfat_mask_intd(geom, natom, nch, nqn, nsh,
      &              v_m, mask_k, dcpl_mb(k_ik2_0))
             endif
                
@@ -494,17 +494,16 @@ c=======================================================
       
 c=======================================================
 c=======================================================
-      subroutine wfat_mask_intd(geom, natom, nch, erg, nqn, nsh, v_m,
+      subroutine wfat_mask_intd(geom, natom, nch, nqn, nsh, v_m,
      &     mask, intd)
 
       implicit none
       integer geom
       integer natom                           ! [input], the total number of atoms that corresponds to the geometry handle 'geom'.
       integer nch
-      double precision erg(nch)
       integer nqn
       integer nsh
-      double precision v_m(3)                 ! [input], the Cartesian coordinate of the point in molecular-frame
+      double precision v_m(3)                 ! [input], the Cartesian coordinate of the evaluation point in molecular-frame.
       double precision mask(2)
       double complex intd(nsh, nqn, nch)
 

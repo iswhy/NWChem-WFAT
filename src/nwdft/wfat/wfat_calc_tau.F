@@ -377,65 +377,55 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_collect_tau0(geom, nch, nqn, erg, chpos, nid, mid,
-     &     bt, gm, natp, nptp, centid, ptlim, gq, zi, tau0)
+      subroutine wfat_collect_tau0(geom, nch, nqn, chpos, erg, nid, 
+     &     mid, bt, gm, nptp, zi, v_m, tau0)
 
       implicit none
-#include "stdio.fh"      
-#include "mafdecls.fh"
-#include "errquit.fh"
+#include "stdio.fh"
       integer geom
       integer nch
       integer nqn
-      double precision erg(nch)     ! [input],
       double precision chpos(3,nch)
+      double precision erg(nch)     ! [input],
       integer nid(nqn)              ! [input], 
       integer mid(nqn)              ! [input], 
       double precision bt           ! [input], beta orientation angle in degrees.
       double precision gm           ! [input], gamma orientation angle in degrees.
-      integer natp                  ! [input], the number of atoms for the current process.
       integer nptp                  ! [input], the number of quadrature points for the current process.
-      integer centid(natp)          ! [input],
-      integer ptlim(2,natp)         ! [input],
-      integer gq                    ! [input],
       double precision zi           ! [input],
-      double complex tau0(nqn, nch, nptp)
+      double precision v_m(3,nptp)  ! in molecular frame.
+      double complex tau0(nptp, nqn, nch)
 
-      integer l_r, l_t, l_p
-      integer k_r, k_t, k_p
-      integer i, j, n, m
-
-
-c     ==== Coordinates in molecular frame ====
-      if (.not. MA_alloc_get(MT_DBL, nptp, 'r', l_r, k_r))
-     &     call errquit('WFAT: r allocation failed', 59, MA_ERR)
-      if (.not. MA_alloc_get(MT_DBL, nptp, 't', l_t, k_t))
-     &     call errquit('WFAT: t allocation failed', 59, MA_ERR)
-      if (.not. MA_alloc_get(MT_DBL, nptp, 'p', l_p, k_p))
-     &     call errquit('WFAT: p allocation failed', 59, MA_ERR)
+      logical t1
+      integer i, j, k, n, m
+      double precision r, t, p, v_f(3), v_r(3), protmat(3,3)
 
       
+      call wfat_passrot(bt, gm, protmat)
+      
       do i = 1, nch
-c        ==== Get the grid points with the current channel center ====
-         call wfat_get_gridpt_rot(geom, natp, centid, ptlim, chpos(:,i),
-     &        gq, bt, gm, dbl_mb(k_r), dbl_mb(k_t), dbl_mb(k_p))
-
          do j = 1, nqn
             n = nid(j)
             m = mid(j)
-            call wfat_calc_tau0(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
-     &           dbl_mb(k_p), erg(i), zi, tau0(j,i,:))
+
+            do k = 1, nptp
+c              v_m = grid point in molecular frame
+c              v_f = grid point in unrotated channel-center frame (the axes of the
+c                    unrotated frame are parallel to those of the molecular frame)
+c              v_r = grid point in rotated channel-center frame
+               call geom_cent2arb(geom, 0, v_m(:,k), chpos(:,i), v_f,
+     &              t1)
+               v_r = matmul(transpose(protmat), v_f)
+               r = sqrt(sum(v_r*v_r))
+               t = acos(v_r(3)/r)
+               p = atan(v_r(2), v_r(1))
+         
+               call wfat_calc_tau0(n, m, 1, r, t, p, erg(i), zi, 
+     &              tau0(k,j,i))
+            enddo
+            
          enddo
       enddo
-      
-
-c     ==== Deallocations ====
-      if (.not. MA_free_heap(l_r))
-     &     call errquit('WFAT: r deallocation failed', 61, MA_ERR)
-      if (.not. MA_free_heap(l_t))
-     &     call errquit('WFAT: t deallocation failed', 61, MA_ERR)
-      if (.not. MA_free_heap(l_p))
-     &     call errquit('WFAT: p deallocation failed', 61, MA_ERR)
       
       end
 c=======================================================
@@ -471,7 +461,8 @@ c=======================================================
       integer l_r, l_t, l_p
       integer k_r, k_t, k_p
       integer i, j, n, m
-      
+
+      call errquit('this subroutine is unfinished', 99, UERR)
 
 c     ==== Coordinates in molecular frame ====
       if (.not. MA_alloc_get(MT_DBL, nptp, 'r', l_r, k_r))
@@ -490,9 +481,6 @@ c        ==== Get the grid points with the current channel center ====
          do j = 1, nqn
             n = nid(j)
             m = mid(j)
-c            call wfat_calc_tau0(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
-c     &           dbl_mb(k_p), erg(i), zi, tau0(j,i,:))
-
             call wfat_calc_tau1(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
      &           dbl_mb(k_p), erg(i), zi, bt, gm, chmmt,
      &           tau1(j,i,:))
@@ -566,6 +554,143 @@ c=======================================================
 
       if (.not. MA_free_heap(l_tm))
      &     call errquit('WFAT: temp deallocation failed', 46, MA_ERR)
+
+      end
+c=======================================================
+      
+
+c=======================================================
+c=======================================================
+      subroutine wfat_collect_tau0_OLD(geom, nch, nqn, erg, chpos, nid, 
+     &     mid, bt, gm, natp, nptp, centid, ptlim, gq, zi, tau0)
+
+      implicit none
+#include "stdio.fh"      
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer geom
+      integer nch
+      integer nqn
+      double precision erg(nch)     ! [input],
+      double precision chpos(3,nch)
+      integer nid(nqn)              ! [input], 
+      integer mid(nqn)              ! [input], 
+      double precision bt           ! [input], beta orientation angle in degrees.
+      double precision gm           ! [input], gamma orientation angle in degrees.
+      integer natp                  ! [input], the number of atoms for the current process.
+      integer nptp                  ! [input], the number of quadrature points for the current process.
+      integer centid(natp)          ! [input],
+      integer ptlim(2,natp)         ! [input],
+      integer gq                    ! [input],
+      double precision zi           ! [input],
+      double complex tau0(nqn, nch, nptp)
+
+      integer l_r, l_t, l_p
+      integer k_r, k_t, k_p
+      integer i, j, n, m
+
+
+c     ==== Coordinates in molecular frame ====
+      if (.not. MA_alloc_get(MT_DBL, nptp, 'r', l_r, k_r))
+     &     call errquit('WFAT: r allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nptp, 't', l_t, k_t))
+     &     call errquit('WFAT: t allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nptp, 'p', l_p, k_p))
+     &     call errquit('WFAT: p allocation failed', 59, MA_ERR)
+
+      
+      do i = 1, nch
+c        ==== Get the grid points with the current channel center ====
+         call wfat_get_gridpt_rot(geom, natp, centid, ptlim, chpos(:,i),
+     &        gq, bt, gm, dbl_mb(k_r), dbl_mb(k_t), dbl_mb(k_p))
+
+         do j = 1, nqn
+            n = nid(j)
+            m = mid(j)
+            call wfat_calc_tau0(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
+     &           dbl_mb(k_p), erg(i), zi, tau0(j,i,:))
+         enddo
+      enddo
+      
+
+c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_r))
+     &     call errquit('WFAT: r deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_t))
+     &     call errquit('WFAT: t deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_p))
+     &     call errquit('WFAT: p deallocation failed', 61, MA_ERR)
+      
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_collect_tau1_OLD(geom, nch, nqn, erg, chpos, nid,
+     &     mid, bt, gm, natp, nptp, centid, ptlim, gq, zi, chmmt, tau1)
+
+      implicit none
+#include "stdio.fh"      
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer geom
+      integer nch
+      integer nqn
+      double precision erg(nch)     ! [input],
+      double precision chpos(3,nch)
+      integer nid(nqn)              ! [input], 
+      integer mid(nqn)              ! [input], 
+      double precision bt           ! [input], beta orientation angle in degrees.
+      double precision gm           ! [input], gamma orientation angle in degrees.
+      integer natp                  ! [input], the number of atoms for the current process.
+      integer nptp                  ! [input], the number of quadrature points for the current process.
+      integer centid(natp)          ! [input],
+      integer ptlim(2,natp)         ! [input],
+      integer gq                    ! [input],
+      double precision zi           ! [input],
+      double precision chmmt(3)     ! [input],
+      double complex tau1(nqn, nch, nptp)
+
+      integer l_r, l_t, l_p
+      integer k_r, k_t, k_p
+      integer i, j, n, m
+      
+
+c     ==== Coordinates in molecular frame ====
+      if (.not. MA_alloc_get(MT_DBL, nptp, 'r', l_r, k_r))
+     &     call errquit('WFAT: r allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nptp, 't', l_t, k_t))
+     &     call errquit('WFAT: t allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nptp, 'p', l_p, k_p))
+     &     call errquit('WFAT: p allocation failed', 59, MA_ERR)
+
+      
+      do i = 1, nch
+c        ==== Get the grid points with the current channel center ====
+         call wfat_get_gridpt_rot(geom, natp, centid, ptlim, chpos(:,i),
+     &        gq, bt, gm, dbl_mb(k_r), dbl_mb(k_t), dbl_mb(k_p))
+
+         do j = 1, nqn
+            n = nid(j)
+            m = mid(j)
+c            call wfat_calc_tau0(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
+c     &           dbl_mb(k_p), erg(i), zi, tau0(j,i,:))
+
+            call wfat_calc_tau1(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
+     &           dbl_mb(k_p), erg(i), zi, bt, gm, chmmt,
+     &           tau1(j,i,:))
+         enddo
+      enddo
+      
+
+c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_r))
+     &     call errquit('WFAT: r deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_t))
+     &     call errquit('WFAT: t deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_p))
+     &     call errquit('WFAT: p deallocation failed', 61, MA_ERR)
 
       end
 c=======================================================

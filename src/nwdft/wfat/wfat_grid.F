@@ -891,7 +891,7 @@ c     coordinates in a rotated frame of reference.
             v_c(1:3) = dbl_mb(i_pt : i_pt+2)
             call geom_cent2arb(geom, icent, v_c, vcent, v_f, t1)
             
-c           v_f = position in molecular frame
+c           v_f = position in channel-center frame
 c           v_r = position in the rotated frame, e.g. lab frame
             v_r = matmul(transpose(protmat), v_f)
             j = j + 1
@@ -915,6 +915,71 @@ c        current process in a parallel execution, the output argument
 c        nptp of the subroutine wfat_get_gridrange can be used to 
 c        compute the above minimum number of elements of r, t, and p.
 c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_collect_mfgrid(geom, gq, natp, nptp, centid,
+     &     ptlim, gpt, gwt)
+
+      implicit none
+#include "mafdecls.fh"
+#include "errquit.fh"
+#include "geom.fh"
+      integer geom
+      integer gq
+      integer natp
+      integer nptp
+      integer centid(natp)
+      integer ptlim(2,natp)
+      double precision gpt(3,nptp)
+      double precision gwt(nptp)
+
+      character*16 tag
+      integer k, i, ic, j, l_pt, k_pt, l_wt, k_wt, i_pt1, i_pt2
+      integer max_nptc, nptc
+      double precision atp(3), zc
+
+
+      call wfat_get_gridmaxpt(gq, max_npt)
+      if (.not. MA_alloc_get(MT_DBL, max_npt, 'grid pt', l_pt, k_pt))
+     &     call errquit('WFAT: grid_pt allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, max_npt, 'grid wt', l_wt, k_wt))
+     &     call errquit('WFAT: grid_wt allocation failed', 59, MA_ERR)
+      
+
+      k = 0
+      do i = 1, natp
+         ic = centid(i)
+         if (.not. geom_cent_get(geom, ic, tag, atp, zc))
+     &        call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
+         
+c        nptc = The number of points centered around the center ic.
+c        dbl_mb(k_pt) = The grid points centered around the center ic.
+c        dbl_mb(k_wt) = The grid weights centered around the center ic.
+         call wfat_get_gridpt(int(zc), gq, max_nptc, nptc,
+     &                        dbl_mb(k_pt), dbl_mb(k_wt))
+         do j = ptlim(1,i), ptlim(2,i)
+            k = k + 1
+            if (k > nptp) call errquit('WFAT: The Iterator k exceeds '//
+     &           'nptp. This is a bug, check the wfat_collect_mfgrid '//
+     &           'subroutine.', 99, UERR)
+            i_pt1 = k_pt + (j-1)*3
+            i_pt2 = i_pt1 + 2
+            gpt(:,k) = dbl_mb(i_pt1:i_pt2)
+            gwt(k) = dbl_mb(k_wt+j-1)
+         enddo
+      enddo
+
+
+      if (.not. MA_free_heap(l_pt))
+     &     call errquit('WFAT: grid_pt deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_wt))
+     &     call errquit('WFAT: grid_wt deallocation failed', 61, MA_ERR)
+            
+      end
+c=================================================
+      
       
       
 

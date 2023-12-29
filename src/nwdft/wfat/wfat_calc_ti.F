@@ -176,12 +176,12 @@ c              ==== Calculate structure factors ====
                if (wfat1) then
                   call wfat_get_srfc1(bt, gm, nat, nch, nqn, lmax, mid, 
      &                 erg, chmmt, intgl, intgl_j, intgl_k1, intgl_k2, 
-     &                 nsub, maxn, dgs, ndgs, dthr, dps, pbs, 
+     &                 nsub, maxn, dgs, ndgs, dthr, dps, pbs, .false.,
      &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_pbd), 
      &                 dcpl_mb(k_gn), dcpl_mb(k_jn), dcpl_mb(k_kn))
                else
-                  call wfat_get_srfc0(geom, bt, gm, nch, erg,
-     &                 nqn, mid, lmax, chmmt, intgl, dcpl_mb(k_gn))
+                  call wfat_get_srfc0(geom, bt, gm, nch, erg, nqn, mid, 
+     &                 lmax, chmmt, intgl, .false., dcpl_mb(k_gn))
                endif
                
 

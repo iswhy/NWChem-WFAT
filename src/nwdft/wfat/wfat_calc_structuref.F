@@ -67,12 +67,10 @@ c=======================================================
 c=======================================================
 c=======================================================
 c==== Imam ====
-      subroutine wfat_get_srfc0(geom, bt, gm, nch, erg, nqn, 
-     &                          mid, lmax_, chmmt, intgl, srfc)
+      subroutine wfat_get_srfc0(geom, bt, gm, nch, erg, nqn, mid, 
+     &                          lmax_, chmmt, intgl, nopw, srfc)
       
       implicit none
-c     #include "cdft.fh"
-ccOLD #include "wfat_qm_param.fh"
 #include "errquit.fh"
 #include "geom.fh"
 #include "stdio.fh"
@@ -80,17 +78,31 @@ ccOLD #include "wfat_qm_param.fh"
       integer nch, nqn, mid(nqn), lmax_
       double precision bt, gm                    ! [input], orientation angle in degree.
       double precision erg(nch), chmmt(3,nch)
-      double complex intgl(1:*)    !! 1)
-      double complex srfc(1:*)     !! 2)
+      double complex intgl(1:*)    ! 1)
+      logical nopw                 ! 3)
+      double complex srfc(1:*)     ! 2)
       
-      integer ich, iqn, l, m, i_lm, icent, i, j, nat, nsh
+      integer ich, iqn, l, m, i_lm, icent, i, j, nat, nsh, l0
       double precision btr, gmr, wgf, mu(3), kappa, protmat(3,3)
       double precision deg2rad
       double complex g_nu0, g_nu, czero, imnum
       parameter ( deg2rad = 0.01745329251994d0 )
       parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
       parameter ( imnum = cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
+      
+c     3) When nopw=.true., this subroutine simply multiplies the input asymptotic
+c        coefficients with the dipole-moment containing exponential factor to yield
+c        the structure factor. Also, when nopw=.true., lmax_ must be zero.
+      
 
+c     NOTE:
+C     Consider replacing the executable portion of this subroutine by a call
+c     to wfat_calc_gn followed by a call to wfat_calc_srfc0.
+      
+      if (nopw .and. lmax_ /= 0)
+     &     call errquit('WFAT: If nopw is .true., then lmax_ must be '//
+     &     'equal to zero (wfat_get_srfc0).', 43, UERR)
+      
       
 c     ==== Get number of atoms ====
       if (.not. geom_ncent(geom, nat))
@@ -114,9 +126,19 @@ c     ==== Begin calculating structure factor ====
       
             do icent = 1, nat
                g_nu = czero
-               do l = abs(mid(iqn)), lmax_
+               if (nopw) then
+                  l0 = 0
+               else
+                  l0 = abs(mid(iqn))
+               endif
+               
+               do l = l0, lmax_
                   do m = -l, l
-                     call wfat_wignerf(l, mid(iqn), m, btr, wgf)
+                     if (nopw) then
+                        wgf = 1.0d0
+                     else
+                        call wfat_wignerf(l, mid(iqn), m, btr, wgf)
+                     endif
 c check                  call wfat_wignerf(l, mid(iqn), m, -btr, wgf)
 c check                  if (abs(btr) < 1.0d-13) write(*, '("wigner:", e15.6, i3, i3, i3, e15.6)') btr, l, mid(iqn), m, wgf
                      
@@ -250,20 +272,28 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_calc_gn(nat, nqn, mid, lmax, bt, gm, intgl, gn)
+      subroutine wfat_calc_gn(nat, nqn, mid, lmax, bt, gm, intgl, nopw,
+     &     gn)
 
       implicit none
+#include "errquit.fh"
       integer nat, nqn, mid(nqn), lmax
       double precision bt, gm                    ! [input], orientation angle in degree.
       double complex intgl((1+lmax)**2, nat, nqn)    !! 1) nsh * natom * nqn * nch
+      logical nopw
       double complex gn(nat, nqn)                    !! 2)
 
-      integer iqn, ic, l, m, i_lm
+      integer iqn, ic, l, m, i_lm, l0
       double precision btr, gmr, deg2rad, wgf
       double complex gn0, czero, imnum
       parameter ( deg2rad = 0.01745329251994d0 )
       parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
       parameter ( imnum = cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
+
+
+      if (nopw .and. lmax /= 0)
+     &     call errquit('WFAT: If nopw is .true., then lmax must be '//
+     &     'equal to zero (wfat_calc_gn).', 43, UERR)
       
       
       btr = bt * deg2rad
@@ -271,12 +301,22 @@ c=======================================================
       
 c     ==== Begin calculating asymptotic coefficients ====
       do iqn = 1, nqn
+
          do ic = 1, nat
-            
             gn(ic, iqn) = czero
-            do l = abs(mid(iqn)), lmax
+            if (nopw) then
+               l0 = 0
+            else
+               l0 = abs(mid(iqn))
+            endif
+            
+            do l = l0, lmax
                do m = -l, l
-                  call wfat_wignerf(l, mid(iqn), m, btr, wgf)
+                  if (nopw) then
+                     wgf = 1.0d0
+                  else
+                     call wfat_wignerf(l, mid(iqn), m, btr, wgf)
+                  endif
                   
                   i_lm = l**2 + l + m + 1
                   gn0 = intgl(i_lm,ic,iqn) * wgf *

@@ -405,8 +405,8 @@ c     ==== Allocation of structure factors and TMD ====
       if (.not. MA_alloc_get(MT_DCPL, nsf, 'srfc', l_sf, k_sf))
      &     call errquit('WFAT: srfc allocation failed', 2, MA_ERR)
       call wfat_get_srfc0(geom, bt_tmd, gm_tmd, nch, erg,
-     &                          nqn, mid, lmax, chmmt, intgl,
-     &                          dcpl_mb(k_sf))
+     &                    nqn, mid, lmax, chmmt, intgl, .false.,
+     &                    dcpl_mb(k_sf))
       ntmd = nat * nch
       if (.not. MA_alloc_get(MT_DCPL, ntmd, 'tmd', l_tm, k_tm))
      &     call errquit('WFAT: tmd allocation failed', 2, MA_ERR)

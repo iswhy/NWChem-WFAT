@@ -2,7 +2,7 @@ c============================================================
 c============================================================
       subroutine wfat_get_srfc1(bt, gm, nat, nch, nqn, lmax, mid, erg, 
      &     chmmt, intl, intl_j, intl_k1, intl_k2, nsub, maxn, dgs, ndgs,
-     &     dthr, dps, pbs, scr, scrx, pb, gn, jn, kn)
+     &     dthr, dps, pbs, nopw, scr, scrx, pb, gn, jn, kn)
 
       implicit none
 #include "stdio.fh"      
@@ -26,6 +26,7 @@ c============================================================
       double precision dthr
       double precision dps(maxn, maxn, 3, nsub)   ! [input], The electronic dipole moment matrix in each degenerate subspace. The 3 indices in the 3rd dimension corresponds to x, y, z.
       double precision pbs(maxn, maxn, 6, nsub)   ! [input], The static polarizability matrix in each degenerate subspace. The 6 indices in the 3rd dimension corresponds to xx, yy, zz, xy, xz, yz.
+      logical nopw                                ! [input],
       double precision scr(1:*)                   ! [output], scratch array, its minimum size is maxn**2 + maxn.
       double complex scrx(1:*)                    ! [output], scratch array, its minimum size is nat*nqn*nch.
       double precision pb(3,3,nch)                ! [output], the molecular frame polarizability.
@@ -36,7 +37,12 @@ c============================================================
       logical isdiag
       integer p_hi, p_ev, p_lc, i, nn, k, j, i_hi, jj
       double precision protmat(3,3), cu(3)
-      
+
+
+      if (nopw .and. lmax /= 0)
+     &     call errquit('WFAT: If nopw is .true., then lmax must be '//
+     &     'equal to zero (wfat_get_srfc1).', 43, UERR)
+
       
 c     ==== Double precision scratch pointer ====
       p_hi = 1
@@ -102,11 +108,10 @@ c        ====   channels within the current degenerate subspace  ====
          do j = 1, nn
             jj = dgs(j,i)
             call wfat_calc_gn(nat, nqn, mid, lmax, bt, gm, 
-     &           intl(:,:,:,jj), gn(:,:,jj))
-            call wfat_calc_an(nat, nqn, mid, lmax, bt, gm, 
-     &           chmmt(:,jj), intl_j(:,:,:,:,jj),
-     &           intl_k1(:,:,:,jj), intl_k2(:,:,:,jj), jn(:,:,jj),
-     &           kn(:,:,jj))
+     &           intl(:,:,:,jj), nopw, gn(:,:,jj))
+            call wfat_calc_an(nat, nqn, mid, lmax, bt, gm, chmmt(:,jj), 
+     &           intl_j(:,:,:,:,jj), intl_k1(:,:,:,jj), 
+     &           intl_k2(:,:,:,jj), nopw, jn(:,:,jj), kn(:,:,jj))
          enddo
 
          
@@ -153,10 +158,11 @@ c============================================================
 c============================================================
 c============================================================
       subroutine wfat_calc_an(nat, nqn, mid, lmax, bt, gm, mmt,
-     &     intl_j, intl_k1, intl_k2, jn, kn)
+     &     intl_j, intl_k1, intl_k2, nopw, jn, kn)
 c     DESCRIPTION:
 c     Performs the summation of the partial wave expansion of the WFAT(1) integrals.
       implicit none
+#include "errquit.fh"
       integer nat
       integer nqn
       integer mid(nqn)
@@ -167,16 +173,22 @@ c     Performs the summation of the partial wave expansion of the WFAT(1) integr
       double complex intl_j((1+lmax)**2, nat, nqn, 3)  ! [input],
       double complex intl_k1((1+lmax)**2, nat, nqn)    ! [input],
       double complex intl_k2((1+lmax)**2, nat, nqn)    ! [input],
+      logical nopw
       double complex jn(nat, nqn)              ! [output],
       double complex kn(nat, nqn)              ! [output],
 
-      integer iqn, ic, l, m, ish, i
+      integer iqn, ic, l, m, ish, i, l0
       double precision protmat(3,3), cu(3), btr, gmr, mu(3), deg2rad
       double precision wgf
       double complex aa, bb, czero, imnum
       parameter ( deg2rad = 0.01745329251994d0 )
       parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
       parameter ( imnum = cmplx(0.0d0, 1.0d0, kind=kind(1.0d0)) )
+
+
+      if (nopw .and. lmax /= 0)
+     &     call errquit('WFAT: If nopw is .true., then lmax must be '//
+     &     'equal to zero (wfat_calc_an).', 43, UERR)
 
       
 c     ==== Get the passive rotation matrix ===
@@ -195,11 +207,17 @@ c     same dipole moment vector. This is the assumption which must be satisfied,
 c     otherwise the ionization rate cannot be calculated by this code.
       mu = matmul(transpose(protmat), -mmt)
       do iqn = 1, nqn
-         do ic = 1, nat
 
+         do ic = 1, nat
             jn(ic, iqn) = czero
             kn(ic, iqn) = czero
-            do l = abs(mid(iqn)), lmax
+            if (nopw) then
+               l0 = 0
+            else
+               l0 = abs(mid(iqn))
+            endif
+            
+            do l = l0, lmax
                do m = -l, l
                   ish = l**2 + l + m + 1
                   
@@ -211,7 +229,12 @@ c     otherwise the ionization rate cannot be calculated by this code.
                      bb = bb + cu(i)*intl_j(ish,ic,iqn,i)
                   enddo
 
-                  call wfat_wignerf(l, mid(iqn), m, btr, wgf)
+                  if (nopw) then
+                     wgf = 1.0d0
+                  else
+                     call wfat_wignerf(l, mid(iqn), m, btr, wgf)
+                  endif
+                  
                   jn(ic, iqn) = jn(ic, iqn) +
      &                          bb * wgf * exp(-imnum * m * gmr)
                   kn(ic, iqn) = kn(ic, iqn) +

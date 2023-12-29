@@ -3,7 +3,7 @@ c=======================================================
 c=======================================================
       subroutine wfat_dft_vcpsi_1pt(ghan, bhan, nbas, nspin,
      &           nch, vch, spinid, chpos, vpt, rdm, zi, smh,
-     &           scr, mask, erg, amsk, bmsk, vc_psi)
+     &           scr, mask, ergmask, amsk, bmsk, vc_psi)
 
 
       implicit none
@@ -18,13 +18,13 @@ cOLD #include "cdft.fh"
       double precision vch(nbas, nch)    ! [input], nbasis*nch
       integer spinid(nch)
       double precision chpos(3, nch)
-      double precision vpt(3)
+      double precision vpt(3)      ! [input], Cartesian coordinate of the evaluation point in the molecular frame.
       double precision rdm(nbas, nbas, nspin)
       double precision zi
       double precision smh
       double precision scr(1:*)    ! [input], scratch array with min. no. of elements being 21*nbas+4*nspin + nbas * (3*nbas+1+nspin) + 4*nch
       logical mask
-      double precision erg          !< [Input]. Only used when mask=.true.
+      double precision ergmask      !< [Input]. Only used when mask=.true.
       double precision amsk         !< [Input]. Only used when mask=.true.
       double precision bmsk         !< [Input]. Only used when mask=.true.
       double precision vc_psi(nch)
@@ -112,7 +112,7 @@ c     ==== Calculate basis and its derivatives ====
 
       if (mask) then
          do ib = 1, nbas
-            kp = sqrt(2*abs(erg))
+            kp = sqrt(2*abs(ergmask))
             call wfat_mask_exp(1, vpt, chpos(:,1), zi, kp, amsk, bmsk,
      &           scr(prf+ib-1), maskf)
             scr(pb0+ib-1) = scr(pb0+ib-1) * maskf
@@ -378,6 +378,58 @@ cOLD     &                'CAM functionals.', 1, UERR)
      &                'short-range Hartree-Fock functionals.', 1, UERR)
       endif
 
+
+      end
+c=======================================================
+      
+
+c=======================================================
+c=======================================================
+      subroutine wfat_collect_vcpsi(geom, bas, nb, ns, nch, nptp, vch,
+     &     spinid, chpos, vpt, rdm, zi, smh, ismask, ergmask, amsk, 
+     &     bmsk, vc_psi)
+
+      implicit none
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer geom
+      integer bas
+      integer nb
+      integer ns
+      integer nch
+      integer nptp
+      double precision vch(nb,nch)
+      integer spinid(nch)
+      double precision chpos(3,nch)
+      double precision vpt(3,nptp)
+      double precision rdm(nb,nb,ns)
+      double precision zi
+      double precision smh
+      logical ismask
+      double precision ergmask
+      double precision amsk         !< [Input]. Only used when mask=.true.
+      double precision bmsk         !< [Input]. Only used when mask=.true.
+      double precision vc_psi(nptp,nch)
+
+      integer nscr, i, l_sc, k_sc, l_vc, k_vc
+
+      nscr = 21*nb + 4*ns + nb * (3*nb+1+ns) + 4*nch
+      if (.not. MA_alloc_get(MT_DBL, nscr, 'scratch', l_sc, k_sc))
+     &     call errquit('WFAT: scratch allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nch, 'vc_psi', l_vc, k_vc))
+     &     call errquit('WFAT: vc_psi allocation failed', 59, MA_ERR)
+      
+      do i = 1, nptp
+         call wfat_dft_vcpsi_1pt(geom, bas, nb, ns, nch, vch, spinid, 
+     &           chpos, vpt(:,i), rdm, zi, smh, dbl_mb(k_sc), ismask,
+     &           ergmask, amsk, bmsk, dbl_mb(k_vc))
+         vc_psi(i,:) = dbl_mb(k_vc:k_vc+nch-1)
+      enddo
+
+      if (.not. MA_free_heap(l_sc))
+     &     call errquit('WFAT: scratch deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_vc))
+     &     call errquit('WFAT: vc_psi deallocation failed', 61, MA_ERR)
 
       end
 c=======================================================

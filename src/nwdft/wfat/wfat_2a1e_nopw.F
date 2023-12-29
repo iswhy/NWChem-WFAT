@@ -486,13 +486,13 @@ c           =====           and K^{(n,m)}_{l,m'}                ====
             
 c           ==== Apply masks to the integrands ====
             if (ismask_g)
-     &           call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh,
+     &           call wfat_mask_intd(geom, natom, nch, nqn, nsh,
      &           v_m, mask_g, dcpl_mb(k_i0))
             if (ismask_j .and. wfat1)
-     &           call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh, 
+     &           call wfat_mask_intd(geom, natom, nch, nqn, nsh, 
      &           v_m, mask_j, dcpl_mb(k_ij0))
             if (ismask_k .and. wfat1) 
-     &           call wfat_mask_intd(geom, natom, nch, erg, nqn, nsh,
+     &           call wfat_mask_intd(geom, natom, nch, nqn, nsh,
      &           v_m, mask_k, dcpl_mb(k_ik0))
 
 
