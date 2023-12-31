@@ -175,13 +175,12 @@ c     ==== GTO coefficients of ionized orbitals and their properties ====
       call util_get_rtdb_state(rtdb, os, oc, or)
       if (os .and. .not. or) then
 c        ==== Calculate WFAT integrals on 'start' startup mode ====
-         call wfat_calc_intgl(rtdb, geom_hd, bas_hd, nch, int_mb(k_or), 
-     &                        int_mb(k_sp), nqn, int_mb(k_npa), 
-     &                        int_mb(k_mpa), lmax, gqual, zion, wf_msm, 
-     &                        smh, res_mode, wfat1, nlgl, nbas0, nspin0,
-     &                        dbl_mb(k_cf), dbl_mb(k_eg), dbl_mb(k_ps), 
-     &                        dbl_mb(k_cmm), dbl_mb(k_idp), g_il, g_j, 
-     &                        g_k)
+         call wfat_calc_intgl(rtdb, geom_hd, bas_hd, nch, int_mb(k_sp), 
+     &                        nqn, int_mb(k_npa), int_mb(k_mpa), lmax, 
+     &                        gqual, zion, wf_msm, smh, res_mode, wfat1,
+     &                        nlgl, nbas0, nspin0, dbl_mb(k_cf), 
+     &                        dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
+     &                        dbl_mb(k_idp), g_il, g_j, g_k)
          
 c        ==== Binary-print the integrals freshly calculated ====
          if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,

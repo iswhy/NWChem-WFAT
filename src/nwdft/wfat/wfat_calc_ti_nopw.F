@@ -3,8 +3,71 @@ c=======================================================
       subroutine wfat_calc_ti_nopw()
 
       implicit none
+#include "global.fh"      
+#include "errquit.fh"
+#include "stdio.fh"
+#include "mafdecls.fh"
+#include "rtdb.fh"
+#include "geom.fh"
+      integer rtdb                    ! [input]
+      integer geom              ! [input]
+      integer bas
+      logical pr_srfc                 ! [input], if .true. then print structure factor.
+      logical pr_rate                 ! [input], if .true. then print ion yield.
+      double precision fieldm
+      integer nb
+      integer ns
+      double precision rdm(nb,nb,ns)
+      integer nch               ! [input], number of ionized channels.
+      integer orbid0(nch)       ! [input], orbital ID of ionized channels.
+      double precision vch(nb,nch)
+      integer spinid(nch)             ! [input], spin value (1 or 2) of ionized channels.
+      double precision erg(nch)       ! [input]
+      double precision chmmt(3,nch)   ! [input]
+      double precision chpos(3,nch) ! [input]
+      integer nqn                     ! [input]
+      integer nid(nqn)                ! [input]
+      integer mid(nqn)                ! [input]
+      double precision zi       ! [input]
+      integer gq
+      integer celm
+      logical ismask_e
+      double precision ergmask        ! [input]. Only used when ismask_e=.true.. Must always be supplied regardless.
+      double precision amsk           ! [input]. Only used when ismask_e=.true.. Must always be supplied regardless.
+      double precision bmsk           ! [input]. Only used when ismask_e=.true.. Must always be supplied regardless.
+      logical ismask                  ! [input], 
+      double precision mask_param(2)  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
+      logical wfat1                   ! [input]
+      integer nsub                    ! [input]. Only used when wfat1=.true..
+      integer maxn                    ! [input]. Only used when wfat1=.true..
+      integer dgs(1:*)                ! [input]. Only used when wfat1=.true..
+      integer ndgs(1:*)               ! [input]. Only used when wfat1=.true..
+      double precision dps(1:*)       ! [input]. Only used when wfat1=.true..
+      double precision pbs(1:*)       ! [input]. Only used when wfat1=.true..
+
+      logical gap, uffc
+      integer l_sg, l_fc, l_rt, l_icp, l_ipp, l_pt, l_wt, l_vc, l_cl
+      integer l_ma, l_tu0, l_tu1, l_acg, l_acj, l_ack, l_dum, l_sc, l_sx
+      integer l_pbd, l_sj, l_sk, l_on
+      integer k_sg, k_fc, k_rt, k_icp, k_ipp, k_pt, k_wt, k_vc, k_cl
+      integer k_ma, k_tu0, k_tu1, k_acg, k_acj, k_ack, k_dum, k_sc, k_sx
+      integer k_pbd, k_sj, k_sk, k_on
+      integer natom, n_sg, nfc, nrt, n_pt, n_wt, n_acg, n_acj, n_ack
+      integer n_dum, nsc, nsx, npbd, n_sj, n_sk, n_on
+      integer nbt, ngm, natp, nptp, i, iqn, i_on, ig, ib
+      double precision bt_start, bt_last, dbt, dbtr, gm_start, gm_last
+      double precision dgm, dgmr, dthr
+      double precision deg2rad
+      parameter(deg2rad=0.01745329251994d0)
 
 
+      
+c     ==== Allocation of structure factors and ion yields ====
+      if (.not. geom_ncent(geom, natom))
+     &     call errquit('WFAT: Getting natom failed', 31, GEOM_ERR)
+      call wfat_prep_rate(natom, nqn, nch, n_sg, l_sg, k_sg, nfc,
+     &     l_fc, k_fc, nrt, l_rt, p_rt)
+      
 c     ==== Obtaining info on beta ====
       call wfat_get_beta(rtdb, bt_start, bt_last, nbt, dbt)
       dbtr = dbt * deg2rad
@@ -13,30 +76,110 @@ c     ==== Obtaining info on gamma ====
       call wfat_get_gamma(rtdb, gm_start, gm_last, ngm, dgm)
       dgmr = dgm * deg2rad
 
+c     ==== Calculate and gather grid points ====
+      call wfat_alloc_gridrange(natom, l_icp, k_icp, l_ipp, k_ipp)
       call wfat_get_gridrange(geom, ndid, gq, int_mb(k_icp),
      &     int_mb(k_ipp), natp, nptp)
-
+      call wfat_prep_allgrid(nptp, n_pt, l_pt, k_pt, n_wt, l_wt,
+     &     k_wt)
       call wfat_collect_mfgrid(geom, gq, natp, nptp, int_mb(k_icp),
      &     int_mb(k_ipp), dbl_mb(k_pt), dbl_mb(k_wt))
-      
+
+c     ==== Get the reduced density matrix ====
+cOLD      nrd = nb * nb * ns
+cOLD      if (.not. MA_alloc_get(MT_DBL, nrd, 'rdm', l_rd, k_rd))
+cOLD     &     call errquit('WFAT: rdm allocation failed', 81, MA_ERR)
+cOLD      call wfat_get_rdm(dbl_mb(k_rd))
+
+c     ==== Calculate and gather V_c|psi> at all grid points ====
+      if (.not. MA_alloc_get(MT_DBL, nptp*nch, 'vc_psi', l_vc, k_vc))
+     &     call errquit('WFAT: vc_psi allocation failed', 81, MA_ERR)
       call wfat_collect_vcpsi(geom, bas, nb, ns, nch, nptp, vch,
      &     spinid, chpos, dbl_mb(k_pt), dbl_mb(k_rd), zi, smh,
      &     ismask_e, ergmask, amsk, bmsk, dbl_mb(k_vc))
-      
+
+c     ==== Calculate and gather the cell ====
+c     ====  function at all grid points  ====
+      if (.not. MA_alloc_get(MT_DBL, nptp, 'celf', l_cl, k_cl))
+     &     call errquit('WFAT: celf allocation failed', 81, MA_ERR)
       call wfat_collect_celf(geom, natp, nptp, int_mb(k_icp), 
      &     int_mb(k_ipp), celm, dbl_mb(k_pt), dbl_mb(k_cl))
 
-      if (ismask)
-     &     call wfat_collect_maskf(geom, natom, nptp, dbl_mb(k_pt),
-     &     mask_param, dbl_mb(k_ma))
+c     ==== Calculate and gather the mask ====
+c     ====  function at all grid points  ====
+      if (ismask) then
+         if (.not. MA_alloc_get(MT_DBL, nptp, 'maskf', l_ma, k_ma))
+     &        call errquit('WFAT: maskf allocation failed', 81, MA_ERR)
+         call wfat_collect_maskf(geom, natom, nptp, dbl_mb(k_pt),
+     &        mask_param, dbl_mb(k_ma))
+      endif
+
+c     ==== Allocate tau and as. coeff. at all grid points ====
+      if (.not. MA_alloc_get(MT_DCPL, nptp*nqn*nch, 'tau0',
+     &     l_tu0, k_tu0))
+     &     call errquit('WFAT: tau0 allocation failed', 81, MA_ERR)
+c      if (wfat1) then
+c         if (.not. MA_alloc_get(MT_DCPL, nptp*nqn*nch, 'tau1',
+c     &        l_tu1, k_tu1))
+c     &        call errquit('WFAT: tau1 allocation failed', 81, MA_ERR)
+c      endif
+      call wfat_prep_acoef(natom, nqn, nch, wfat1, n_acg, l_acg,
+     &     k_acg, n_acj, l_acj, k_acj, n_ack, l_ack, k_ack, n_dum,
+     &     l_dum, k_dum)
       
 
+c     ==== When WFAT1 is active ====
+      if (wfat1) then
+         call wfat_prepare_an(maxn, natom, nch, nqn, nsc, l_sc, k_sc, 
+     &        nsx, l_sx, k_sx, npbd, l_pbd, k_pbd, n_sj, l_sj, k_sj,
+     &        n_sk, l_sk, k_sk, n_on, l_on, k_on)
+         if (.not. rtdb_get(rtdb, 'wfat:dthr', mt_dbl, 1, dthr))
+     &        call errquit('WFAT: Failed reading dthr from rtdb',
+     &        1, RTDB_ERR)
+         if (.not. rtdb_get(rtdb, 'wfat:unit_ffc', mt_log, 1, uffc))
+     &        uffc = .false.
+         if (uffc) write(luout, '("Ionization rate will not include '//
+     &        'the field factor")')
+         do i = 1, nch
+            do iqn = 1, nqn
+               i_on = k_on + 2*nqn*(i-1) + 2*(iqn-1)
+               call wfat_calc_o(nid(iqn), mid(iqn), erg(i), zi,
+     &              dbl_mb(i_on))
+               write(luout, '("o_nu : ", 2i4, 2es21.12)')
+     &              i, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
+            enddo
+         enddo
+      endif
+
+      
+c     ==== Initializing the printings ====
+      if (ndid == 0)
+     &     call wfat_print_field_factor(fieldm, nch, nqn, erg, nid, mid,
+     &     zi)
+      if (ndid == 0 .and. pr_srfc) then
+         call wfat_initprint_structuref(nch, orbid0, spinid, nqn, nid,
+     &        mid)
+c         if (wfat1) call wfat_initprint_srfc1(nch, orbid0, spinid, nqn,
+c     &        nid, mid)
+      endif
+      if (ndid == 0 .and. pr_rate)
+     &     call wfat_initprint_rate(nch, orbid0, spinid, nqn, nid, mid)
+      
+
+c     ==== Scan over the orientation angles ====
       do ig = 1, ngm
          gm = gm_start + dgm*(ig-1)
 
          do ib = 1, nbt
             bt = bt_start + dbt*(ib-1)
 
+            if (ib /= nbt) then
+               gap = .false.
+            else
+               gap = .true.
+            endif
+            
+c           ==== Calculate tau ====
             if (pr_srfc .or. pr_rate) then
                call wfat_collect_tau0(geom, nch, nqn, chpos, erg, nid, 
      &              mid, bt, gm, nptp, zi, dbl_mb(k_pt), dcpl_mb(k_tu0))
@@ -44,7 +187,7 @@ c     ==== Obtaining info on gamma ====
 c                  call wfat_collect_tau1()
                endif            
                                              
-
+c              ==== Calculate the structure factors ====
                if (wfat1) then
 c                  call wfat_calc_acf_nopw(bt, gm, nch, nqn, natp, nptp, 
 c     &                 natom, int_mb(k_icp), int_mb(k_ipp), 
@@ -77,12 +220,11 @@ c     &                 dcpl_mb(k_sj), dcpl_mb(k_sk))
      &                 0, chmmt, dcpl_mb(k_acg), .true., dcpl_mb(k_sg))
                endif
 
-
 c              ==== Print structure factor ====
                if (ndid == 0 .and. pr_srfc) then
-                  call wfat_print_structuref(nat, bt, gm, nch, nqn,
+                  call wfat_print_structuref(natom, bt, gm, nch, nqn,
      &                 dcpl_mb(k_sg), gap)
-c                  if (wfat1) call wfat_print_srfc1(nat, bt, gm, nch, 
+c                  if (wfat1) call wfat_print_srfc1(natom, bt, gm, nch, 
 c     &                 nqn, dcpl_mb(k_sj), dcpl_mb(k_sk), gap)
                endif
             endif
@@ -90,26 +232,54 @@ c     &                 nqn, dcpl_mb(k_sj), dcpl_mb(k_sk), gap)
             if (pr_rate) then
 c              ==== Calculate ionization rate ====
                if (wfat1) then
-c                  call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid,
+c                  call wfat_calc_wfat1_rate(bt, gm, natom, nqn, nch, nid,
 c     &                 mid, fieldm, erg, zi, dcpl_mb(k_sg),
 c     &                 dcpl_mb(k_sj), dcpl_mb(k_sk), dbl_mb(k_on), 
 c     &                 chmmt, dbl_mb(k_pbd), uffc, 
 c     &                 dbl_mb(k_fc), dbl_mb(k_rt), rate)
                else
-                  call wfat_calc_rate(nat, fieldm, nch, erg, nqn, nid,
+                  call wfat_calc_rate(natom, fieldm, nch, erg, nqn, nid,
      &                 mid, zi, dcpl_mb(k_sg), uffc, dbl_mb(k_fc),
      &                 dbl_mb(k_rt), rate)
                endif
                
 c              ==== Print ionization rate ====
                if (ndid == 0 .and. pr_rate)
-     &              call wfat_print_rate(bt, gm, nch, nqn, 
-     &              dbl_mb(k_rt), rate, gap)
+     &              call wfat_print_rate(bt, gm, nch, nqn, dbl_mb(k_rt),
+     &              rate, gap)
             endif
             
          enddo
       enddo
-      
+
+
+c     ==== Terminating printings ====      
+      if (ndid==0 .and. pr_srfc) then
+         call wfat_endprint_structuref()
+c         if (wfat1) call wfat_endprint_srfc1()
+      endif
+      if (ndid==0 .and. pr_rate) call wfat_endprint_rate()
+
+
+c     ==== Deallocations ====
+      call wfat_erase_allgrid(l_pt, l_wt)
+      call wfat_erase_acoef(l_acg, l_acj, l_ack, l_dum)
+      if (.not. MA_free_heap(l_rd))
+     &     call errquit('WFAT: rdm deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_vc))
+     &     call errquit('WFAT: vc_psi deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_cl))
+     &     call errquit('WFAT: celf deallocation failed', 3, MA_ERR)
+      if (ismask) then
+         if (.not. MA_free_heap(l_ma))
+     &        call errquit('WFAT: maskf deallocation failed', 3, MA_ERR)
+      endif
+      if (.not. MA_free_heap(l_tu0))
+     &     call errquit('WFAT: tau0 deallocation failed', 3, MA_ERR)
+      if (wfat1) then
+         if (.not. MA_free_heap(l_tu1))
+     &        call errquit('WFAT: tau1 deallocation failed', 3, MA_ERR)
+      endif
 
       end
 c=======================================================

@@ -372,8 +372,8 @@ c     ==== Allocate WFAT integral, its integrands, and some other ====
      &     k_i0, l_i_, k_i_, l_il, k_il)
       if (.not. MA_alloc_get(MT_DBL, nqn*nptp, 'tau0', l_tu0, k_tu0))
      &     call errquit('WFAT: tau0 allocation failed', 59, MA_ERR)
-      call wfat_collect_tau0(geom, nch, nqn, erg, chpos, nid, mid, bt,
-     &     gm, natomp, nptp, int_mb(k_icp), int_mb(k_ipp), gq, zi,
+      call wfat_collect_tau0_OLD(geom, nch, nqn, erg, chpos, nid, mid, 
+     &     bt, gm, natomp, nptp, int_mb(k_icp), int_mb(k_ipp), gq, zi,
      &     dcpl_mb(k_tu0))
 
       if (wfat1) then
@@ -382,9 +382,9 @@ c     ==== Allocate WFAT integral, its integrands, and some other ====
      &        nik0, nik_, nik, l_ik0, k_ik0, l_ik_, k_ik_, l_ik, k_ik)
          if (.not. MA_alloc_get(MT_DBL, nqn*nptp, 'tau1', l_tu1, k_tu1))
      &        call errquit('WFAT: tau1 allocation failed', 59, MA_ERR)
-         call wfat_collect_tau1(geom, nch, nqn, erg, chpos, nid, mid,
-     &        bt, gm, natomp, nptp, int_mb(k_icp), int_mb(k_ipp), gq, 
-     &        zi, chmmt, dcpl_mb(k_tu1))
+         call wfat_collect_tau1_OLD(geom, nch, nqn, erg, chpos, nid, 
+     &        mid, bt, gm, natomp, nptp, int_mb(k_icp), int_mb(k_ipp), 
+     &        gq, zi, chmmt, dcpl_mb(k_tu1))
       endif
 
       

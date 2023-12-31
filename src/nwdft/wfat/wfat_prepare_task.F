@@ -324,6 +324,163 @@ c=================================================
 
 c=================================================
 c=================================================
+      subroutine wfat_prep_acoef(nat, nqn, nch, wfat1, n_acg, l_acg,
+     &     k_acg, n_acj, l_acj, k_acj, n_ack, l_ack, k_ack, n_dum,
+     &     l_dum, k_dum)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer nat
+      integer nqn
+      integer nch
+      logical wfat1
+      integer n_acg, l_acg, k_acg
+      integer n_acj, l_acj, k_acj
+      integer n_ack, l_ack, k_ack
+      integer n_dum, l_dum, k_dum
+
+      double complex czero
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
+      
+      n_acg = nat * nqn * nch
+      if (.not. MA_alloc_get(MT_DCPL, n_acg, 'acg', l_acg, k_acg))
+     &     call errquit('WFAT: acg allocation failed', 81, MA_ERR)
+      if (wfat1) then
+         n_acj = nat * nqn * nch
+         if (.not. MA_alloc_get(MT_DCPL, n_acj, 'acj', l_acj, k_acj))
+     &        call errquit('WFAT: acj allocation failed', 81, MA_ERR)
+         n_ack = nat * nqn * nch
+         if (.not. MA_alloc_get(MT_DCPL, n_ack, 'ack', l_ack, k_ack))
+     &        call errquit('WFAT: ack allocation failed', 81, MA_ERR)
+         n_dum = nat * nqn * nch
+         if (.not. MA_alloc_get(MT_DCPL, n_dum, 'dummy', l_dum, k_dum))
+     &        call errquit('WFAT: dummy allocation failed', 59, MA_ERR)
+         dcpl_mb(k_dum:k_dum+n_dum-1) = czero
+      else
+         n_acj = 1
+         n_ack = 1
+         n_dum = 1
+      endif
+
+      end
+c=================================================
+
+      
+c=================================================
+c=================================================
+      subroutine wfat_erase_acoef(l_acg, l_acj, l_ack, l_dum)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer l_acg, l_acj, l_ack, l_dum
+
+      if (.not. MA_free_heap(l_acg))
+     &     call errquit('WFAT: acg deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_acj))
+     &     call errquit('WFAT: acj deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_ack))
+     &     call errquit('WFAT: ack deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_dum))
+     &     call errquit('WFAT: dum deallocation failed', 3, MA_ERR)
+      
+      end
+c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_prep_rate(nat, nqn, nch, n_gn, l_gn, k_gn, nfc,
+     &     l_fc, k_fc, nrt, l_rt, p_rt)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer nat
+      integer nqn
+      integer nch
+      integer n_gn, l_gn, k_gn
+      integer nfc, l_fc, k_fc
+      integer nrt, l_rt, p_rt
+
+      n_gn = nat * nqn * nch
+      if (.not. MA_alloc_get(MT_DCPL, n_gn, 'srfc', l_gn, k_gn))
+     &     call errquit('WFAT: srfc allocation failed', 2, MA_ERR)
+      nfc = nqn * nch
+      if (.not. MA_alloc_get(MT_DBL, nfc, 'ffc', l_fc, k_fc))
+     &     call errquit('WFAT: ffc allocation failed', 2, MA_ERR)
+      nrt = nqn * nch
+      if (.not. MA_alloc_get(MT_DBL, nrt, 'p_rate', l_rt, k_rt))
+     &     call errquit('WFAT: p_rate allocation failed', 2, MA_ERR)
+
+      end
+c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_erase_rate(l_gn, l_fc, l_rt)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer l_gn, l_fc, l_rt
+      
+      if (.not. MA_free_heap(l_gn))
+     &     call errquit('WFAT: srfc deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_fc))
+     &     call errquit('WFAT: ffc deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_rt))
+     &     call errquit('WFAT: p_rate deallocation failed', 3, MA_ERR)
+      
+      end
+c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_prep_allgrid(nptp, n_pt, l_pt, k_pt, n_wt,
+     &     l_wt, k_wt)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer nptp
+      integer n_pt, l_pt, k_pt
+      integer n_wt, l_wt, k_wt
+
+      n_pt = 3 * nptp
+      if (.not. MA_alloc_get(MT_DBL, n_pt, 'grid_pt', l_pt, k_pt))
+     &     call errquit('WFAT: grid_pt allocation failed', 2, MA_ERR)
+      n_wt = nptp
+      if (.not. MA_alloc_get(MT_DBL, n_wt, 'grid_wt', l_wt, k_wt))
+     &     call errquit('WFAT: grid_wt allocation failed', 2, MA_ERR)
+
+      end
+c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_erase_allgrid(l_pt, l_wt)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer l_pt, l_wt
+      
+      if (.not. MA_free_heap(l_pt))
+     &     call errquit('WFAT: grid_pt deallocation failed', 3, MA_ERR)
+      if (.not. MA_free_heap(l_wt))
+     &     call errquit('WFAT: grid_wt deallocation failed', 3, MA_ERR)
+      
+      end
+c=================================================
+      
+
+c=================================================
+c=================================================
       subroutine wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, 
      &           nintj, g_j, nintk, g_k, npb, l_pb, k_pb)
 

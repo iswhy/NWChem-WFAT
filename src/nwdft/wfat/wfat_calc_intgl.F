@@ -1,7 +1,7 @@
 c=======================================================
 c=======================================================
 c==== Imam ====
-      subroutine wfat_calc_intgl(rtdb, geom, bas, nch, orbid, spinid, 
+      subroutine wfat_calc_intgl(rtdb, geom, bas, nch, spinid, 
      &                           nqn, nid, mid, lmax_, gqual, zi, celm, 
      &                           smh, res_mode, wfat1, nlgl, nb, ns, 
      &                           vch, erg, chpos, chmmt, iondip, g_il, 
@@ -20,8 +20,7 @@ c==== Imam ====
       integer geom                    ! [input]
       integer bas                     ! [input]
       integer nch                     ! [input]
-      integer orbid(nch)              ! [input]
-      integer spinid(nch)             ! [input]
+      integer spinid(nch)             ! [input], The spin of each column of vch.
       integer nqn                     ! [input]
       integer nid(nqn)                ! [input]
       integer mid(nqn)                ! [input]
@@ -46,7 +45,6 @@ c==== Imam ====
 
       character*12 dt_str
       character*16 tag
-      character*9 rdm_name(2)
       logical t1, ismask_gjk, ismask_g, ismask_j, ismask_k
       integer natom, nrd, max_npt, nvc, nsh, nom, ni0, ni_
       integer nch1, npt, natomp, nptp, ncpos, nscr, nil, nmo, nrda

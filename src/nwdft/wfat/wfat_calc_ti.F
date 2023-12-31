@@ -51,15 +51,15 @@ c           maxn*maxn*6*nsub.
       double precision zi             ! [input]
       double complex intgl(1:*)       ! [input]
       logical wfat1                   ! [input]
-      integer nsub                    ! [input]
-      integer maxn                    ! [input]
-      integer dgs(1:*)                ! [input]
-      integer ndgs(1:*)               ! [input]
-      double precision dps(1:*)       ! [input]
-      double precision pbs(1:*)       ! [input]
-      double complex intgl_j(1:*)     ! [input], only used when wfat1=.true.
-      double complex intgl_k1(1:*)    ! [input], only used when wfat1=.true.
-      double complex intgl_k2(1:*)    ! [input], only used when wfat1=.true.
+      integer nsub                    ! [input]. Only used when wfat1=.true..
+      integer maxn                    ! [input]. Only used when wfat1=.true..
+      integer dgs(1:*)                ! [input]. Only used when wfat1=.true..
+      integer ndgs(1:*)               ! [input]. Only used when wfat1=.true..
+      double precision dps(1:*)       ! [input]. Only used when wfat1=.true..
+      double precision pbs(1:*)       ! [input]. Only used when wfat1=.true..
+      double complex intgl_j(1:*)     ! [input]. Only used when wfat1=.true..
+      double complex intgl_k1(1:*)    ! [input]. Only used when wfat1=.true..
+      double complex intgl_k2(1:*)    ! [input]. Only used when wfat1=.true..
       
       logical gap, uffc
       integer n_gn, nfc, nrt, nbt, ngm, nat, nsc, nsx
@@ -98,15 +98,8 @@ c     ==== Obtaining info on gamma ====
 c     ==== Allocation of structure factors and ion yields ====
       if (.not. geom_ncent(geom, nat))
      &     call errquit('WFAT: Getting natom failed', 31, GEOM_ERR)
-      n_gn = nat * nqn * nch
-      if (.not. MA_alloc_get(MT_DCPL, n_gn, 'srfc', l_gn, k_gn))
-     &     call errquit('WFAT: srfc allocation failed', 2, MA_ERR)
-      nfc = nqn * nch
-      if (.not. MA_alloc_get(MT_DBL, nfc, 'ffc', l_fc, k_fc))
-     &     call errquit('WFAT: ffc allocation failed', 2, MA_ERR)
-      nrt = nqn * nch
-      if (.not. MA_alloc_get(MT_DBL, nrt, 'p_rate', l_rt, k_rt))
-     &     call errquit('WFAT: p_rate allocation failed', 2, MA_ERR)
+      call wfat_prepare_rate(nat, nqn, nch, n_gn, l_gn, k_gn, nfc,
+     &     l_fc, k_fc, nrt, l_rt, p_rt)
 
 
 c     ==== When WFAT1 is active ====
@@ -141,13 +134,11 @@ cfordebug               call wfat_calc_o(0, 0, -0.917956d0, 1.0d0, ooo_)
          enddo
       endif
 
-
+      
+c     ==== Initializing the printings ====
       if (ndid == 0)
      &     call wfat_print_field_factor(fieldm, nch, nqn, erg, nid, mid,
      &     zi)
-
-      
-c     ==== Initializing the printings ====
       if (ndid == 0 .and. pr_srfc) then
          call wfat_initprint_structuref(nch, orbid0, spinid, nqn,
      &        nid, mid)
@@ -228,15 +219,7 @@ c     ==== Terminating printings ====
 
       
 c     ==== Deallocations ====
-      if (.not. MA_free_heap(l_gn))
-     &     call errquit('WFAT: srfc deallocation failed',
-     &     3, MA_ERR)
-      if (.not. MA_free_heap(l_fc))
-     &     call errquit('WFAT: ffc deallocation failed',
-     &     3, MA_ERR)
-      if (.not. MA_free_heap(l_rt))
-     &     call errquit('WFAT: p_rate deallocation failed',
-     &     3, MA_ERR)
+      call wfat_erase_rate(l_gn, l_fc, l_rt)
       if (wfat1) call wfat_erase_an(l_sc, l_sx, l_pbd, l_jn, l_kn, l_on)
 
       end
