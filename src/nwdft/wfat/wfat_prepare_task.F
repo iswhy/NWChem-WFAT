@@ -392,7 +392,7 @@ c=================================================
 c=================================================
 c=================================================
       subroutine wfat_prep_rate(nat, nqn, nch, n_gn, l_gn, k_gn, nfc,
-     &     l_fc, k_fc, nrt, l_rt, p_rt)
+     &     l_fc, k_fc, nrt, l_rt, k_rt)
 
       implicit none
 #include "errquit.fh"
@@ -402,7 +402,7 @@ c=================================================
       integer nch
       integer n_gn, l_gn, k_gn
       integer nfc, l_fc, k_fc
-      integer nrt, l_rt, p_rt
+      integer nrt, l_rt, k_rt
 
       n_gn = nat * nqn * nch
       if (.not. MA_alloc_get(MT_DCPL, n_gn, 'srfc', l_gn, k_gn))

@@ -98,8 +98,8 @@ c     ==== Obtaining info on gamma ====
 c     ==== Allocation of structure factors and ion yields ====
       if (.not. geom_ncent(geom, nat))
      &     call errquit('WFAT: Getting natom failed', 31, GEOM_ERR)
-      call wfat_prepare_rate(nat, nqn, nch, n_gn, l_gn, k_gn, nfc,
-     &     l_fc, k_fc, nrt, l_rt, p_rt)
+      call wfat_prep_rate(nat, nqn, nch, n_gn, l_gn, k_gn, nfc,
+     &     l_fc, k_fc, nrt, l_rt, k_rt)
 
 
 c     ==== When WFAT1 is active ====

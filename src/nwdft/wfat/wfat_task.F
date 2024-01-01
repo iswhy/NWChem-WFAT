@@ -23,12 +23,12 @@ c===============================================================
       logical dd, extf, corb_print, perturb
       character*32 theory
       character*2 prtb_type
-      integer ndid, gqual, i, lmax, nlgl, is, npb, ndpo, ncf, nch1
-      integer l_nd, l_or0, l_sp, l_or, l_npa, l_mpa, l_eg, l_cf
+      integer ndid, gqual, i, lmax, nlgl, is, npb, ndpo, ncf, nch1, nrd
+      integer l_nd, l_or0, l_sp, l_or, l_npa, l_mpa, l_eg, l_cf, l_rd
       integer l_ps, l_cmm, l_idp, l_in, l_ftl, l_al, l_wl, l_pl, l_tl
       integer l_dl, l_pb, l_dpo, l_dps, l_pbs, l_inj, l_ink1, l_ink2
       integer l_dgs, l_dgss, l_ndgs
-      integer k_nd, k_or0, k_sp, k_or, k_npa, k_mpa, k_eg, k_cf
+      integer k_nd, k_or0, k_sp, k_or, k_npa, k_mpa, k_eg, k_cf, k_rd
       integer k_ps, k_cmm, k_idp, k_in, k_ftl, k_al, k_wl, k_pl, k_tl
       integer k_dl, k_pb, k_dpo, k_dps, k_pbs, k_inj, k_ink1, k_ink2
       integer k_dgs, k_dgss, k_ndgs
@@ -171,6 +171,13 @@ c     ==== GTO coefficients of ionized orbitals and their properties ====
      &     dbl_mb(k_cf+nbas0*nch), dbl_mb(k_pb))
 
       
+c     ==== Get the reduced density matrix ====
+      nrd = nbas0 * nbas0 * nspin0
+      if (.not. MA_alloc_get(MT_DBL, nrd, 'rdm', l_rd, k_rd))
+     &     call errquit('WFAT: rdm allocation failed', 81, MA_ERR)
+      call wfat_get_rdm(dbl_mb(k_rd))
+      
+      
       smh = 0.0d0
       call util_get_rtdb_state(rtdb, os, oc, or)
       if (os .and. .not. or) then
@@ -178,9 +185,10 @@ c        ==== Calculate WFAT integrals on 'start' startup mode ====
          call wfat_calc_intgl(rtdb, geom_hd, bas_hd, nch, int_mb(k_sp), 
      &                        nqn, int_mb(k_npa), int_mb(k_mpa), lmax, 
      &                        gqual, zion, wf_msm, smh, res_mode, wfat1,
-     &                        nlgl, nbas0, nspin0, dbl_mb(k_cf), 
-     &                        dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
-     &                        dbl_mb(k_idp), g_il, g_j, g_k)
+     &                        nlgl, nbas0, nspin0, dbl_mb(k_rd), 
+     &                        dbl_mb(k_cf), dbl_mb(k_eg), dbl_mb(k_ps),
+     &                        dbl_mb(k_cmm), dbl_mb(k_idp), g_il, g_j, 
+     &                        g_k)
          
 c        ==== Binary-print the integrals freshly calculated ====
          if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,
@@ -319,6 +327,8 @@ c     ==== Deallocations ====
       if (.not. MA_free_heap(l_nd))
      &     call errquit('WFAT: numden deallocation failed',
      &     3, MA_ERR)
+      if (.not. MA_free_heap(l_rd))
+     &     call errquit('WFAT: rdm deallocation failed', 61, MA_ERR)
       call wfat_erase_cf(l_cf)
       call wfat_erase_channels(l_or0, l_sp, l_or)
       call wfat_erase_paraqn(l_npa, l_mpa)

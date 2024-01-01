@@ -937,12 +937,12 @@ c=================================================
 
       character*16 tag
       integer k, i, ic, j, l_pt, k_pt, l_wt, k_wt, i_pt1, i_pt2
-      integer max_nptc, nptc
+      integer max_npt, nptc
       double precision atp(3), zc
 
 
       call wfat_get_gridmaxpt(gq, max_npt)
-      if (.not. MA_alloc_get(MT_DBL, max_npt, 'grid pt', l_pt, k_pt))
+      if (.not. MA_alloc_get(MT_DBL, 3*max_npt, 'grid pt', l_pt, k_pt))
      &     call errquit('WFAT: grid_pt allocation failed', 59, MA_ERR)
       if (.not. MA_alloc_get(MT_DBL, max_npt, 'grid wt', l_wt, k_wt))
      &     call errquit('WFAT: grid_wt allocation failed', 59, MA_ERR)
@@ -957,7 +957,7 @@ c=================================================
 c        nptc = The number of points centered around the center ic.
 c        dbl_mb(k_pt) = The grid points centered around the center ic.
 c        dbl_mb(k_wt) = The grid weights centered around the center ic.
-         call wfat_get_gridpt(int(zc), gq, max_nptc, nptc,
+         call wfat_get_gridpt(int(zc), gq, max_npt, nptc,
      &                        dbl_mb(k_pt), dbl_mb(k_wt))
          do j = ptlim(1,i), ptlim(2,i)
             k = k + 1

@@ -1,9 +1,9 @@
 c=======================================================
 c=======================================================
 c==== Imam ====
-      subroutine wfat_calc_intgl(rtdb, geom, bas, nch, spinid, 
-     &                           nqn, nid, mid, lmax_, gqual, zi, celm, 
-     &                           smh, res_mode, wfat1, nlgl, nb, ns, 
+      subroutine wfat_calc_intgl(rtdb, geom, bas, nch, spinid, nqn, nid,
+     &                           mid, lmax_, gqual, zi, celm, smh, 
+     &                           res_mode, wfat1, nlgl, nb, ns, rdm, 
      &                           vch, erg, chpos, chmmt, iondip, g_il, 
      &                           g_j, g_k)
       
@@ -34,6 +34,7 @@ c==== Imam ====
       integer nlgl                    ! [input], only used when wfat1=.true.
       integer nb                      ! [input]
       integer ns                      ! [input]
+      double precision rdm(nb,nb,ns)  ! 
       double precision vch(nb,*)      ! [input], the minimum number of columns is nch if wfat1 is .false., otherwise 4*nch.
       double precision erg(nch)       ! [input]
       double precision chpos(3, nch)  ! [input]
@@ -47,16 +48,15 @@ c==== Imam ====
       character*16 tag
       logical t1, ismask_gjk, ismask_g, ismask_j, ismask_k
       integer natom, nrd, max_npt, nvc, nsh, nom, ni0, ni_
-      integer nch1, npt, natomp, nptp, ncpos, nscr, nil, nmo, nrda
+      integer nch1, npt, natomp, nptp, ncpos, nscr, nil, nmo
       integer nij0, nij_, nij
       integer nom1, nik1_0, nik1_, nik1, nom2, nik2_0, nik2_, nik2
       integer i, j, ic, icent, ipt, ipt_i, ipt_f
       integer jpt, ich, iqn, ish, i_vc, ndid
-      integer l_rd, l_pt, l_wt, l_vc, l_om, l_i0
+      integer l_pt, l_wt, l_vc, l_om, l_i0
       integer l_i_, l_sc, l_il, l_icp, l_ipp, l_si, l_pos
-      integer k_rd, k_pt, k_wt, k_vc, k_om, k_i0
+      integer k_pt, k_wt, k_vc, k_om, k_i0
       integer k_i_, k_sc, k_il, k_icp, k_ipp, k_si, k_pos
-      integer k_mo, k_rda
       integer l_ij0, l_ij_, l_ij, l_om1, l_ik1_0, l_ik1_, l_ik1, l_om2
       integer l_ik2_0, l_ik2_, l_ik2
       integer k_ij0, k_ij_, k_ij, k_om1, k_ik1_0, k_ik1_, k_ik1, k_om2
@@ -140,18 +140,10 @@ c     column among the first nch columns. For example, columns within the second
 c     group, i.e. the (nch+4)-th up to (nch+6)-th columns, are duplicates of the
 c     second column.
       
-
-c     ==== Get the reduced density matrix ====
-      nrd = nb * nb * ns
-      if (.not. MA_alloc_get(MT_DBL, nrd, 'rdm', l_rd, k_rd))
-     &     call errquit('WFAT: rdm allocation failed', 59, MA_ERR)
-      call wfat_get_rdm(dbl_mb(k_rd:k_rd+nrd-1))
-
       
 c     ==== Some analyses and tests (optional) ====
       call wfat_sometests(rtdb, zi, nch, erg, lmax_, chmmt)
-      call wfat_mulliken(rtdb, geom, bas, nb, ns,
-     &                   dbl_mb(k_rd), nch, vch, spinid, 
+      call wfat_mulliken(rtdb, geom, bas, nb, ns, rdm, nch, vch, spinid,
      &                   chpos)
 
 
@@ -249,9 +241,8 @@ cc            write(luout, '("        v_m = ", 3e14.5)') v_m
 
             
 c           ==== Calculate vc|psi> ====
-            call wfat_dft_vcpsi_1pt(geom, bas, nb, ns, 
-     &           nch+nch1, vch, int_mb(k_si), 
-     &           dbl_mb(k_pos), v_m, dbl_mb(k_rd:k_rd+nrd-1), zi, smh,
+            call wfat_dft_vcpsi_1pt(geom, bas, nb, ns, nch+nch1, vch, 
+     &           int_mb(k_si), dbl_mb(k_pos), v_m, rdm, zi, smh,
      &           dbl_mb(k_sc:k_sc+nscr-1), ismask_gjk, erg(1), 
      &           mask_gjk(1), mask_gjk(2), dbl_mb(k_vc:k_vc+nvc-1))
 
@@ -397,8 +388,6 @@ c         call ga_zero(g_k(2))
 
       
 c     ==== Deallocations ====
-      if (.not. MA_free_heap(l_rd))
-     &     call errquit('WFAT: rdm deallocation failed', 61, MA_ERR)
       call wfat_dealloc_quadgrid(l_pt, l_wt)
       if (.not. MA_free_heap(l_sc))
      &     call errquit('WFAT: vscr deallocation failed', 61, MA_ERR)

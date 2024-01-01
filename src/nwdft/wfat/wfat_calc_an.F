@@ -6,6 +6,7 @@ c============================================================
 
       implicit none
 #include "stdio.fh"      
+#include "errquit.fh"
       double precision bt
       double precision gm
       integer nat

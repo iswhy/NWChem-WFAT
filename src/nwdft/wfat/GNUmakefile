@@ -19,6 +19,7 @@
 	wfat_calc_tmd.o \
 	wfat_calc_ti.o \
 	wfat_calc_td.o \
+	wfat_calc_ti_nopw.o \
 	wfat_intgl_io.o \
 	wfat_field_factor.o \
 	wfat_celf.o \

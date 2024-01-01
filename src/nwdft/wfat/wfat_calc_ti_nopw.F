@@ -1,6 +1,10 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_calc_ti_nopw()
+      subroutine wfat_calc_ti_nopw(rtdb, geom, bas, pr_srfc, pr_rate,
+     &     fieldm, nb, ns, rdm, nch, orbid0, vch, spinid, erg, chmmt, 
+     &     chpos, nqn, nid, mid, zi, gq, celm, smh, ismask_e, ergmask,
+     &     amsk, bmsk, ismask, mask_param, wfat1, nsub, maxn, dgs, ndgs,
+     &     dps, pbs)
 
       implicit none
 #include "global.fh"      
@@ -20,7 +24,7 @@ c=======================================================
       double precision rdm(nb,nb,ns)
       integer nch               ! [input], number of ionized channels.
       integer orbid0(nch)       ! [input], orbital ID of ionized channels.
-      double precision vch(nb,nch)
+      double precision vch(nb,*)      ! [input], the minimum number of columns is nch if wfat1 is .false., otherwise 4*nch.
       integer spinid(nch)             ! [input], spin value (1 or 2) of ionized channels.
       double precision erg(nch)       ! [input]
       double precision chmmt(3,nch)   ! [input]
@@ -31,6 +35,7 @@ c=======================================================
       double precision zi       ! [input]
       integer gq
       integer celm
+      double precision smh
       logical ismask_e
       double precision ergmask        ! [input]. Only used when ismask_e=.true.. Must always be supplied regardless.
       double precision amsk           ! [input]. Only used when ismask_e=.true.. Must always be supplied regardless.
@@ -54,19 +59,22 @@ c=======================================================
       integer k_pbd, k_sj, k_sk, k_on
       integer natom, n_sg, nfc, nrt, n_pt, n_wt, n_acg, n_acj, n_ack
       integer n_dum, nsc, nsx, npbd, n_sj, n_sk, n_on
-      integer nbt, ngm, natp, nptp, i, iqn, i_on, ig, ib
+      integer ndid, nbt, ngm, natp, nptp, i, iqn, i_on, ig, ib
       double precision bt_start, bt_last, dbt, dbtr, gm_start, gm_last
-      double precision dgm, dgmr, dthr
+      double precision dgm, dgmr, dthr, bt, gm, rate
       double precision deg2rad
       parameter(deg2rad=0.01745329251994d0)
 
 
+      call ga_sync()
+      ndid = ga_nodeid()
+      
       
 c     ==== Allocation of structure factors and ion yields ====
       if (.not. geom_ncent(geom, natom))
      &     call errquit('WFAT: Getting natom failed', 31, GEOM_ERR)
       call wfat_prep_rate(natom, nqn, nch, n_sg, l_sg, k_sg, nfc,
-     &     l_fc, k_fc, nrt, l_rt, p_rt)
+     &     l_fc, k_fc, nrt, l_rt, k_rt)
       
 c     ==== Obtaining info on beta ====
       call wfat_get_beta(rtdb, bt_start, bt_last, nbt, dbt)
@@ -85,18 +93,16 @@ c     ==== Calculate and gather grid points ====
       call wfat_collect_mfgrid(geom, gq, natp, nptp, int_mb(k_icp),
      &     int_mb(k_ipp), dbl_mb(k_pt), dbl_mb(k_wt))
 
-c     ==== Get the reduced density matrix ====
-cOLD      nrd = nb * nb * ns
-cOLD      if (.not. MA_alloc_get(MT_DBL, nrd, 'rdm', l_rd, k_rd))
-cOLD     &     call errquit('WFAT: rdm allocation failed', 81, MA_ERR)
-cOLD      call wfat_get_rdm(dbl_mb(k_rd))
-
 c     ==== Calculate and gather V_c|psi> at all grid points ====
       if (.not. MA_alloc_get(MT_DBL, nptp*nch, 'vc_psi', l_vc, k_vc))
      &     call errquit('WFAT: vc_psi allocation failed', 81, MA_ERR)
       call wfat_collect_vcpsi(geom, bas, nb, ns, nch, nptp, vch,
-     &     spinid, chpos, dbl_mb(k_pt), dbl_mb(k_rd), zi, smh,
+     &     spinid, chpos, dbl_mb(k_pt), rdm, zi, smh,
      &     ismask_e, ergmask, amsk, bmsk, dbl_mb(k_vc))
+c      if (wfat1) then
+c     &     call wfat_collect_vcpsi(geom, bas, nb, ns, nch, nptp, vch1,
+c     &     spinid, chpos, dbl_mb(k_pt), rdm, zi, smh,
+c     &     ismask_e, ergmask, amsk, bmsk, dbl_mb(k_cvc))
 
 c     ==== Calculate and gather the cell ====
 c     ====  function at all grid points  ====
@@ -164,6 +170,7 @@ c     &        nid, mid)
       endif
       if (ndid == 0 .and. pr_rate)
      &     call wfat_initprint_rate(nch, orbid0, spinid, nqn, nid, mid)
+      call ga_sync()
       
 
 c     ==== Scan over the orientation angles ====
@@ -264,8 +271,6 @@ c         if (wfat1) call wfat_endprint_srfc1()
 c     ==== Deallocations ====
       call wfat_erase_allgrid(l_pt, l_wt)
       call wfat_erase_acoef(l_acg, l_acj, l_ack, l_dum)
-      if (.not. MA_free_heap(l_rd))
-     &     call errquit('WFAT: rdm deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_vc))
      &     call errquit('WFAT: vc_psi deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_cl))
@@ -281,6 +286,8 @@ c     ==== Deallocations ====
      &        call errquit('WFAT: tau1 deallocation failed', 3, MA_ERR)
       endif
 
+      call ga_sync()
+      
       end
 c=======================================================
 
@@ -316,7 +323,9 @@ c=======================================================
       integer nac, nac_p, l_acp, k_acp, g_ac
       double complex czero
       parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
-      
+
+
+      call ga_sync()
 
       nac = natom * nqn * nch
       if (.not. ga_create(mt_dcpl, nac, 1, 'acf', 0, 0, g_ac))
