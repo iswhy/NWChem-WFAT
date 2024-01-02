@@ -51,6 +51,7 @@
 	wfat_numdens.o \
 	wfat_degenerate.o \
 	wfat_orb_property.o \
+	wfat_mask.o \
 	wfat_eval_mo.o \
 	wfat_eval_vector.o \
 	wfat_eval_laser.o \

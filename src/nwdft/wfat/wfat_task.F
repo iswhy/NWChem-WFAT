@@ -20,7 +20,7 @@ c===============================================================
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
       logical rtdb_stat, wfat1, res_mode, os, oc, or, int_nosave
-      logical dd, extf, corb_print, perturb
+      logical dd, extf, corb_print, perturb, ismask_i, ismask_e
       character*32 theory
       character*2 prtb_type
       integer ndid, gqual, i, lmax, nlgl, is, npb, ndpo, ncf, nch1, nrd
@@ -36,7 +36,7 @@ c===============================================================
       integer nch, nqn, nerg, ncpos, ncmm, niond, nsh, nintg, nintj
       integer nintk, prtb_ord, ndgsub, max_ndgsub
       double precision fieldmag, smh, prtb_bt, prtb_gm, ctr(3)
-      double precision tmax
+      double precision mask_param(2), ergmask, amsk, bmsk, tmax
 
       
       ndid = ga_nodeid()
@@ -176,99 +176,116 @@ c     ==== Get the reduced density matrix ====
       if (.not. MA_alloc_get(MT_DBL, nrd, 'rdm', l_rd, k_rd))
      &     call errquit('WFAT: rdm allocation failed', 81, MA_ERR)
       call wfat_get_rdm(dbl_mb(k_rd))
-      
+
+
+c     ==== Get mask parameters ====
+      call wfat_get_masks(rtdb, dbl_mb(k_eg), ismask_i, mask_param, 
+     &     ismask_e, ergmask, amsk, bmsk)
+
       
       smh = 0.0d0
       call util_get_rtdb_state(rtdb, os, oc, or)
-      if (os .and. .not. or) then
-c        ==== Calculate WFAT integrals on 'start' startup mode ====
-         call wfat_calc_intgl(rtdb, geom_hd, bas_hd, nch, int_mb(k_sp), 
-     &                        nqn, int_mb(k_npa), int_mb(k_mpa), lmax, 
-     &                        gqual, zion, wf_msm, smh, res_mode, wfat1,
-     &                        nlgl, nbas0, nspin0, dbl_mb(k_rd), 
-     &                        dbl_mb(k_cf), dbl_mb(k_eg), dbl_mb(k_ps),
-     &                        dbl_mb(k_cmm), dbl_mb(k_idp), g_il, g_j, 
-     &                        g_k)
-         
-c        ==== Binary-print the integrals freshly calculated ====
-         if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,
-     &        int_nosave))
-     &        call errquit('WFAT: Cannot read intgl_nosave from RTDB',
-     &        1, RTDB_ERR)    
-         if (ndid == 0 .and. .not. int_nosave) then
-            call wfat_store_intgl(rtdb, nsh, natm, nqn, nch,
-     &           dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
-     &           dbl_mb(k_idp), g_il)
-         else if (ndid == 0 .and. int_nosave) then
-            write(luout, '("ATTENTION: WFAT integrals are not saved.")')
+      if (lmax >= 0) then
+         if (os .and. .not. or) then
+c           ==== Calculate WFAT integrals on 'start' startup mode ====
+            call wfat_calc_intgl(rtdb, geom_hd, bas_hd, nch, 
+     &           int_mb(k_sp), nqn, int_mb(k_npa), int_mb(k_mpa), lmax, 
+     &           gqual, zion, wf_msm, smh, res_mode, wfat1, nlgl, nbas0,
+     &           nspin0, dbl_mb(k_rd), dbl_mb(k_cf), dbl_mb(k_eg), 
+     &           dbl_mb(k_ps), dbl_mb(k_cmm), dbl_mb(k_idp), g_il, g_j,
+     &           g_k)
+            
+c           ==== Binary-print the integrals freshly calculated ====
+            if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,
+     &           int_nosave)) call errquit('WFAT: Cannot read '//
+     &           'intgl_nosave from RTDB', 1, RTDB_ERR)
+            if (ndid == 0 .and. .not. int_nosave) then
+               call wfat_store_intgl(rtdb, nsh, natm, nqn, nch,
+     &              dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
+     &              dbl_mb(k_idp), g_il)
+            else if (ndid == 0 .and. int_nosave) then
+               write(luout, '("ATTENTION: WFAT integrals are not '//
+     &              'saved.")')
+            endif
+            call ga_sync()
+         else if (.not. os .and. or) then
+c           ==== Binary-load WFAT integrals on 'restart' startup mode ====
+            if (ndid == 0) then
+               call wfat_load_intgl(rtdb, nsh, natm, nqn, nch,
+     &              dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
+     &              dbl_mb(k_idp), g_il)
+               call wfat_print_orb_property(nch, int_mb(k_or), 
+     &              int_mb(k_sp), dbl_mb(k_eg), dbl_mb(k_ps),
+     &              dbl_mb(k_cmm), dbl_mb(k_idp))
+            endif
+            call ga_sync()
+            
+            call ga_brdcst(msg_wfat_eg, dbl_mb(k_eg),
+     &                     ma_sizeof(MT_DBL, nch, MT_BYTE), 0)
+            call ga_brdcst(msg_wfat_cmm, dbl_mb(k_cmm),
+     &                     ma_sizeof(MT_DBL, 3*nch, MT_BYTE), 0)
+         else
+            call errquit('WFAT: WFAT module requires the startup '//
+     &           'directive to be either ''start'' or ''restart''.',
+     &           1, UERR)
          endif
-         call ga_sync()
-      else if (.not. os .and. or) then
-c        ==== Binary-load WFAT integrals on 'restart' startup mode ====
-         if (ndid == 0) then
-            call wfat_load_intgl(rtdb, nsh, natm, nqn, nch,
-     &           dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
-     &           dbl_mb(k_idp), g_il)
-            call wfat_print_orb_property(nch, int_mb(k_or), 
-     &           int_mb(k_sp), dbl_mb(k_eg), dbl_mb(k_ps),
-     &           dbl_mb(k_cmm), dbl_mb(k_idp))
-         endif
-         call ga_sync()
-         
-         call ga_brdcst(msg_wfat_eg, dbl_mb(k_eg),
-     &                  ma_sizeof(MT_DBL, nch, MT_BYTE), 0)
-         call ga_brdcst(msg_wfat_cmm, dbl_mb(k_cmm),
-     &                  ma_sizeof(MT_DBL, 3*nch, MT_BYTE), 0)
       else
-         call errquit('WFAT: WFAT module requires the startup '//
-     &        'directive to be either ''start'' or ''restart''.',
-     &        1, UERR)
+         if (.not. os .and. or) 
+     &        call errquit('WFAT: When performing WFAT calculation '//
+     &        'without partial wave expansion, the job must be a '//
+     &        'start type. Restart is not allowed', 38, UERR)
       endif
-      
+
+
+c     ==== Take care of the dipole moments and polarizabilities ====
+c     ====      in case of WFAT(1) and degenerate channels      ====
+      if (wfat1) then
+c        ==== Rearrange ionization channel IDs ====
+c        ====    into degenerate subspaces     ====
+         call wfat_dgn_nsub_ch(nspin0, nch, int_mb(k_or),
+     &        int_mb(k_sp), ndgsub, max_ndgsub)
+         call wfat_prep_wfat1_dgn(wfat1, ndgsub, max_ndgsub, l_dgs,
+     &        k_dgs, l_dgss, k_dgss, l_ndgs, k_ndgs, l_dps, k_dps,
+     &        l_pbs, k_pbs)
+         call wfat_dgn_sub(nch, int_mb(k_or), int_mb(k_sp), ndgsub, 
+     &        max_ndgsub, int_mb(k_dgs), int_mb(k_dgss),
+     &        int_mb(k_ndgs))
+
+         ndpo = nbas0 * nbas0 * nspin0 * 3
+         if (.not. MA_alloc_get(MT_DBL, ndpo, 'dpmo', l_dpo, k_dpo))
+     &        call errquit('WFAT: dpmo allocation failed', 59, MA_ERR)
+         ctr = 0.0d0
+         call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
+
+c        ==== Obtain degenerate subspaces dipole moment ====
+         call wfat_dpmo_dgn_sub(nch, int_mb(k_or), ndgsub, 
+     &        max_ndgsub, int_mb(k_dgs), int_mb(k_dgss), 
+     &        int_mb(k_ndgs), nbas0, nspin0, dbl_mb(k_dpo),
+     &        dbl_mb(k_dps))
+
+c        ==== Obtain degenerate subspaces polarizability ====
+         call wfat_polb_dgn_sub(nch, int_mb(k_or), ndgsub, 
+     &        max_ndgsub, int_mb(k_dgs), int_mb(k_dgss), 
+     &        int_mb(k_ndgs), nbas0, nspin0, dbl_mb(k_dpo),
+     &        dbl_mb(k_moerg), dbl_mb(k_pbs))
+      endif
+         
 
 c     ==== Ionization calculations and printings ====
-      if (ndid == 0) then
+      if (lmax >= 0 .and. ndid == 0) then
          rtdb_stat = rtdb_parallel(.false.)
          if (.not. MA_alloc_get(MT_DCPL, nintg, 'intgl', l_in, k_in))
      &        call errquit('WFAT: Cannot allocate intgl.', 2, MA_ERR)
          call ga_get(g_il, 1, nintg, 1, 1, dcpl_mb(k_in), nintg)
-         
 
 c        ==== When WFAT(1) is in use ====
-         call wfat_prep_wfat1_ti(wfat1, nbas0, nspin0, nintj, nintk,
-     &        ndpo, l_dpo, k_dpo, l_inj, k_inj, l_ink1, k_ink1,
-     &        l_ink2, k_ink2)
+         call wfat_prep_wfat1_ti(nintj, nintk, l_inj, k_inj, l_ink1, 
+     &        k_ink1, l_ink2, k_ink2)
          if (wfat1) then
             call ga_get(g_j, 1, nintj, 1, 1, dcpl_mb(k_inj), nintj)
             call ga_get(g_k(1), 1, nintk, 1, 1, dcpl_mb(k_ink1), nintk)
             call ga_get(g_k(2), 1, nintk, 1, 1, dcpl_mb(k_ink2), nintk)
-
-c           ==== Rearrange ionization channel IDs ====
-c           ====    into degenerate subspaces     ====
-            call wfat_dgn_nsub_ch(nspin0, nch, int_mb(k_or),
-     &           int_mb(k_sp), ndgsub, max_ndgsub)
-            call wfat_prep_wfat1_dgn(wfat1, ndgsub, max_ndgsub, l_dgs,
-     &           k_dgs, l_dgss, k_dgss, l_ndgs, k_ndgs, l_dps, k_dps,
-     &           l_pbs, k_pbs)
-            call wfat_dgn_sub(nch, int_mb(k_or), int_mb(k_sp), ndgsub, 
-     &           max_ndgsub, int_mb(k_dgs), int_mb(k_dgss),
-     &           int_mb(k_ndgs))
-            ctr = 0.0d0
-            call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
-
-c           ==== Obtain degenerate subspaces dipole moment ====
-            call wfat_dpmo_dgn_sub(nch, int_mb(k_or), ndgsub, 
-     &           max_ndgsub, int_mb(k_dgs), int_mb(k_dgss), 
-     &           int_mb(k_ndgs), nbas0, nspin0, dbl_mb(k_dpo),
-     &           dbl_mb(k_dps))
-
-c           ==== Obtain degenerate subspaces polarizability ====
-            call wfat_polb_dgn_sub(nch, int_mb(k_or), ndgsub, 
-     &           max_ndgsub, int_mb(k_dgs), int_mb(k_dgss), 
-     &           int_mb(k_ndgs), nbas0, nspin0, dbl_mb(k_dpo),
-     &           dbl_mb(k_moerg), dbl_mb(k_pbs))
          endif
-
          
 c        ==== Printing the WFAT integrals ====
          if (wfat1) then
@@ -316,9 +333,19 @@ c        =============================================
          
          if (.not. MA_free_heap(l_in))
      &        call errquit('WFAT: intgl deallocation failed', 3, MA_ERR)
-         call wfat_erase_wfat1_ti(l_dpo, l_inj, l_ink1, l_ink2)
+         call wfat_erase_wfat1_ti(l_inj, l_ink1, l_ink2)
          call wfat_erase_wfat1_dgn(l_dgs, l_dgss, l_ndgs, l_dps, l_pbs)
          rtdb_stat = rtdb_parallel(.true.)
+
+      else if (lmax < 0) then
+         call wfat_calc_ti_nopw(rtdb, geom_hd, bas_hd, pr_srfc, pr_rate,
+     &        fieldmag, nbas0, nspin0, dbl_mb(k_rd), nch, int_mb(k_or0),
+     &        dbl_mb(k_cf), int_mb(k_sp), dbl_mb(k_eg), dbl_mb(k_cmm),
+     &        dbl_mb(k_ps), nqn, int_mb(k_npa), int_mb(k_mpa), zion,
+     &        gqual, wf_msm, smh, ismask_e, ergmask, amsk, bmsk,
+     &        ismask_i, mask_param, wfat1, ndgsub, max_ndgsub,
+     &        int_mb(k_dgs), int_mb(k_ndgs), dbl_mb(k_dps),
+     &        dbl_mb(k_pbs))
       endif
       call ga_sync()
       
@@ -338,8 +365,10 @@ c     ==== Deallocations ====
       if (.not. ga_destroy(g_il))
      &     call errquit('WFAT: Cannot destroy intgl.', 1, GA_ERR)
       call wfat_erase_wfat1_intgl(g_j, g_k, l_pb)
-      
-
+      if (wfat1) then
+         if (.not. MA_free_heap(l_dpo))
+     &        call errquit('WFAT: dpmo deallocation failed', 3, MA_ERR)
+      endif
 
       call wfat_terminate(rtdb)
 

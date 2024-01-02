@@ -567,19 +567,14 @@ c=================================================
 
 c=================================================
 c=================================================
-      subroutine wfat_prep_wfat1_ti(wfat1, nb, ns, nintj, nintk, ndpo,
-     &     l_dpo, k_dpo, l_inj, k_inj, l_ink1, k_ink1, l_ink2, k_ink2)
+      subroutine wfat_prep_wfat1_ti(nintj, nintk, l_inj, k_inj,
+     &     l_ink1, k_ink1, l_ink2, k_ink2)
 
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
-      logical wfat1             ! [input],
-      integer nb                ! [input],
-      integer ns                ! [input],
       integer nintj             ! [input],
       integer nintk             ! [input],
-      integer ndpo              ! [output],
-      integer l_dpo, k_dpo      ! [output],
       integer l_inj, k_inj      ! [output],
       integer l_ink1, k_ink1    ! [output],
       integer l_ink2, k_ink2    ! [output],
@@ -587,15 +582,8 @@ c=================================================
       double complex czero
       parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
       
-      if (wfat1) then
-         ndpo = nb * nb * ns * 3
-      else
-         ndpo = 1
-      endif
-
-      if (.not. MA_alloc_get(MT_DBL, ndpo, 'dpmo', l_dpo, k_dpo))          !! 1)
-     &     call errquit('WFAT: dpmo allocation failed', 59, MA_ERR)
-      if (.not. MA_alloc_get(MT_DCPL, nintj, 'intgl_j', l_inj, k_inj))
+      
+      if (.not. MA_alloc_get(MT_DCPL, nintj, 'intgl_j', l_inj, k_inj))          !! 1)
      &     call errquit('WFAT: intgl_j allocation failed', 59, MA_ERR)
       if (.not. MA_alloc_get(MT_DCPL, nintk, 'intgl_k1',
      &     l_ink1, k_ink1))
@@ -610,7 +598,7 @@ c=================================================
       
       end
 c     NOTES:
-c     1) dpmo, intgl_j, intgl_k1, and intgl_k2 are allocated regardless of the value
+c     1) intgl_j, intgl_k1, and intgl_k2 are allocated regardless of the value
 c        of wfat1 because these arrays will be input to the wfat_calc_ti subroutine
 c        later.
 c=================================================
@@ -672,18 +660,15 @@ c=================================================
 
 c=================================================
 c=================================================
-      subroutine wfat_erase_wfat1_ti(l_dpo, l_inj, l_ink1, l_ink2)
+      subroutine wfat_erase_wfat1_ti(l_inj, l_ink1, l_ink2)
 
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
-      integer l_dpo
       integer l_inj
       integer l_ink1
       integer l_ink2
 
-      if (.not. MA_free_heap(l_dpo))
-     &     call errquit('WFAT: dpmo deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_inj))
      &     call errquit('WFAT: intgl_j deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_ink1))

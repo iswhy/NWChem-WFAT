@@ -735,41 +735,4 @@ c
 c=======================================================
       
       
-c=======================================================
-c=======================================================
-      subroutine wfat_mask_exp(nq, vpt, orig, zi, kp, a, b, rf, mask)
-
-      implicit none
-#include "stdio.fh"
-      integer nq
-      double precision vpt(3,nq)
-      double precision orig(3)
-      double precision zi
-      double precision kp
-      double precision a
-      double precision b
-      double precision rf(nq)
-      double precision mask(nq)
-
-      integer i
-      double precision p, x, dv(3), r, a_, b_
-
-      a_ = a / 2
-      b_ = b + a/2
-      do i = 1, nq
-         dv = vpt(:,i) - orig
-         r = sqrt(sum(dv*dv))
-         x = kp * r
-         if (abs(rf(i)) > 1.0d-20) then
-            p = 1 / rf(i) * (2*x)**(zi/kp-1) * exp(-x)
-            mask(i) = p - (p-1) / 2 * erfc((r-b_)/a_)
-         else
-            mask(i) = 0.0d0
-         endif
-cc2         if ( isnan(mask(i)) )
-cc2     &        write(luout, '("maskf : ", 4es21.12)') r, x, p, rf(i)
-      enddo
-
-      end
-c=======================================================
       

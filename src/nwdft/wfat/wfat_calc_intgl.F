@@ -479,43 +479,6 @@ cfordebug     &     abs(intd_k2(1,1,1))
 c=======================================================
 
       
-c=======================================================
-c=======================================================
-      subroutine wfat_mask_intd(geom, natom, nch, nqn, nsh, v_m,
-     &     mask, intd)
-
-      implicit none
-      integer geom
-      integer natom                           ! [input], the total number of atoms that corresponds to the geometry handle 'geom'.
-      integer nch
-      integer nqn
-      integer nsh
-      double precision v_m(3)                 ! [input], the Cartesian coordinate of the evaluation point in molecular-frame.
-      double precision mask(2)
-      double complex intd(nsh, nqn, nch)
-
-      logical t1
-      integer i, j, imf
-      double precision v_c(3), r(natom), r_, f, a, b
-      parameter( imf=0 )
-
-      a = mask(1) / 2
-      b = mask(2) + mask(1)/2
-      do i = 1, nch
-         r = 0.0d0
-         do j = 1, natom
-            call geom_cent2cent(geom, imf, v_m, j, v_c, t1)
-            r(j) = sqrt( sum(v_c**2) )
-         enddo
-         r_ = minval(r)         
-cOLD         f = 0.5d0 * erfc(mask(1) * (r_-mask(2)))
-         f = 0.5d0 * erfc((r_-b)/a)
-
-         intd(:,:,i) = intd(:,:,i) * f
-      enddo
-
-      end
-c=======================================================
 
       
 cOLDc=======================================================

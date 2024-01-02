@@ -1196,9 +1196,9 @@ c     ==== Check parabolic quantum numbers ====
      &        'WFAT', '''gamma_tmd''', 'f', w, r)
       endif
 
-      if (lmax_need) then
-         call wfat_ival_atleast(wfat_lmax, 0, 'WFAT', '''lmax''', w, r)
-      endif
+cOLD      if (lmax_need) then
+cOLD         call wfat_ival_atleast(wfat_lmax, 0, 'WFAT', '''lmax''', w, r)
+cOLD      endif
 
       if (gqual_need) then
          call wfat_ival_inrange(wfat_gqual, 1, 4, 'WFAT', 

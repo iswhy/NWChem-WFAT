@@ -17,14 +17,14 @@ c===============================================================
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom
       logical res_mode, wfat1, rtdb_stat, fedvr
-      integer l_cf, l_eg, l_npa, l_mpa, l_in, l_dpo, l_inj, l_ink1
+      integer l_cf, l_eg, l_npa, l_mpa, l_in, l_inj, l_ink1
       integer l_ink2, l_pb, l_cfx, l_cfy, l_cfz, l_ndvr, l_fen, l_xquad
       integer l_wquad
-      integer k_cf, k_eg, k_npa, k_mpa, k_in, k_dpo, k_inj, k_ink1
+      integer k_cf, k_eg, k_npa, k_mpa, k_in, k_inj, k_ink1
       integer k_ink2, k_pb, k_cfx, k_cfy, k_cfz, k_ndvr, k_fen, k_xquad
       integer k_wquad
       integer mch, sphi, spinid, orbid, nr, nt, maxiter, i_cf, i_eg
-      integer lmax, gqual, nqn, nsh, nintg, g_il, ndid, nlgl, ndpo
+      integer lmax, gqual, nqn, nsh, nintg, g_il, ndid, nlgl
       integer nintj, nintk, g_j, g_k(2), npb, nr_m, nt_m, nr_p, nt_p
       integer ndgsub, max_ndgsub, dgs(1,1), ndgs(1), nfe, maxn, idum
       double precision eps, init_ke, out_ke, edip(3), chpos(3), chmmt(3)
@@ -187,9 +187,8 @@ c     ==== Ionization calculations and printings ====
 
 
 c        ==== When WFAT(1) is in use ====
-         call wfat_prep_wfat1_ti(wfat1, nr*nt, 2, nintj, nintk,
-     &        ndpo, l_dpo, k_dpo, l_inj, k_inj, l_ink1, k_ink1,
-     &        l_ink2, k_ink2)
+         call wfat_prep_wfat1_ti(nintj, nintk, l_inj, k_inj, l_ink1, 
+     &        k_ink1, l_ink2, k_ink2)
          if (wfat1) then
             call ga_get(g_j, 1, nintj, 1, 1, dcpl_mb(k_inj), nintj)
             call ga_get(g_k(1), 1, nintk, 1, 1, dcpl_mb(k_ink1), nintk)
@@ -197,13 +196,17 @@ c        ==== When WFAT(1) is in use ====
 clater            ctr = 0.0d0
 clater            call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
 
-            ndgsub = 1
+            ndgsub = 1               ! 1)
             max_ndgsub = 1
             dgs(1,1) = 1
             ndgs(1) = 1
             dps(1,1,:,1) = chmmt
             pbs(1,1,:,1) = 0.0d0
             pbs(1,1,1:3,1) = polb
+c           1) The dipole moment matrix in the eigenstate basis of linear
+c              molecules is always diagonal. Hence, any degenerate eigenstate
+c              maybe treated in the same ways as nondegenerate ones in the
+c              perturbation analysis.
          endif
          
 
