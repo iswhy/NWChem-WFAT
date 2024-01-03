@@ -369,21 +369,24 @@ c=================================================
       
 c=================================================
 c=================================================
-      subroutine wfat_erase_acoef(l_acg, l_acj, l_ack, l_dum)
+      subroutine wfat_erase_acoef(wfat1, l_acg, l_acj, l_ack, l_dum)
 
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
+      logical wfat1
       integer l_acg, l_acj, l_ack, l_dum
 
       if (.not. MA_free_heap(l_acg))
      &     call errquit('WFAT: acg deallocation failed', 3, MA_ERR)
-      if (.not. MA_free_heap(l_acj))
-     &     call errquit('WFAT: acj deallocation failed', 3, MA_ERR)
-      if (.not. MA_free_heap(l_ack))
-     &     call errquit('WFAT: ack deallocation failed', 3, MA_ERR)
-      if (.not. MA_free_heap(l_dum))
-     &     call errquit('WFAT: dum deallocation failed', 3, MA_ERR)
+      if (wfat1) then
+         if (.not. MA_free_heap(l_acj))
+     &        call errquit('WFAT: acj deallocation failed', 3, MA_ERR)
+         if (.not. MA_free_heap(l_ack))
+     &        call errquit('WFAT: ack deallocation failed', 3, MA_ERR)
+         if (.not. MA_free_heap(l_dum))
+     &        call errquit('WFAT: dum deallocation failed', 3, MA_ERR)
+      endif
       
       end
 c=================================================

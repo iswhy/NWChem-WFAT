@@ -334,7 +334,9 @@ c        =============================================
          if (.not. MA_free_heap(l_in))
      &        call errquit('WFAT: intgl deallocation failed', 3, MA_ERR)
          call wfat_erase_wfat1_ti(l_inj, l_ink1, l_ink2)
-         call wfat_erase_wfat1_dgn(l_dgs, l_dgss, l_ndgs, l_dps, l_pbs)
+         if (wfat1)
+     &        call wfat_erase_wfat1_dgn(l_dgs, l_dgss, l_ndgs, l_dps,
+     &        l_pbs)
          rtdb_stat = rtdb_parallel(.true.)
 
       else if (lmax < 0) then

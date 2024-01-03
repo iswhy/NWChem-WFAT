@@ -155,6 +155,8 @@ c     ==== When WFAT1 is active ====
      &              i, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
             enddo
          enddo
+      else
+         uffc = .false.
       endif
 
       
@@ -179,6 +181,8 @@ c     ==== Scan over the orientation angles ====
 
          do ib = 1, nbt
             bt = bt_start + dbt*(ib-1)
+
+            write(luout, '("no pw: bt, gm = ", 2f10.6)') bt, gm
 
             if (ib /= nbt) then
                gap = .false.
@@ -270,7 +274,7 @@ c         if (wfat1) call wfat_endprint_srfc1()
 
 c     ==== Deallocations ====
       call wfat_erase_allgrid(l_pt, l_wt)
-      call wfat_erase_acoef(l_acg, l_acj, l_ack, l_dum)
+      call wfat_erase_acoef(wfat1, l_acg, l_acj, l_ack, l_dum)
       if (.not. MA_free_heap(l_vc))
      &     call errquit('WFAT: vc_psi deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_cl))
@@ -326,6 +330,13 @@ c=======================================================
 
 
       call ga_sync()
+      acf = czero               ! 1)
+c     1) It is necessary to populate acf with zeros in the beginning because
+c        the wfat_assign_acf_nopw_p subroutine below does not modify every
+c        element of acf (it only modifies elements that correspond to the centers
+c        of the current process). This means that the elements that are not
+c        modified will have their whatever initial values at the input of this
+c        subroutine.
 
       nac = natom * nqn * nch
       if (.not. ga_create(mt_dcpl, nac, 1, 'acf', 0, 0, g_ac))
@@ -345,14 +356,20 @@ c     ==== Transfer the values of the asymptotic coefficients in ====
 c     ====   the current process to their respective positions   ====
 c     ====          in the array that holds all atoms            ====
       call wfat_assign_acf_nopw_p(nch, nqn, natp, natom, centid,
-     &     dcpl_mb(k_acp), acf)
+     &     dcpl_mb(k_acp), acf)    ! 2)
+c     2) At this point, acf contains the current process' contribution to the
+c        asymptotic coefficients. It will be added with the contributions of
+c        all the other processes below.
 
 c     ==== Accumulate the asymptotic coefficients across all processes ====
       call ga_sync()
       call ga_acc(g_ac, 1, nac, 1, 1, acf, nac, 1.0d0)      
       call ga_sync()
-      acf = czero
-      call ga_get(g_ac, 1, nac, 1, 1, acf, nac)
+      acf = czero    ! For safety
+      call ga_get(g_ac, 1, nac, 1, 1, acf, nac)       ! 3)
+c     3) Now, acf contains the complete (actual) asymptotic coefficients. At
+c        at this point, all MPI processes should hold the same numerical
+c        values for acf.
 
 c     ==== Deallocations ====
       if (.not. MA_free_heap(l_acp))
@@ -399,6 +416,8 @@ c=======================================================
      &     vc_psi, tau0, celf, wt, ismask, maskf, acf)
 
       implicit none
+#include "stdio.fh"
+#include "global.fh"
       integer nch
       integer nqn
       integer natp
@@ -434,7 +453,12 @@ c=======================================================
                   
                   acf(ic,j,i) = acf(ic,j,i) +
      &                          conjg(tau0(kk,j,i)) * vc_psi(kk,i) * 
-     &                          mfun * celf(kk)
+     &                          mfun * celf(kk) * wt(kk)
+
+cfordebug                  if (ga_nodeid() == 0)
+cfordebug     &                 write(luout, '("@grid: ", i8, 2es20.10, '//
+cfordebug     &                 '3es20.10)')
+cfordebug     &                 kk, tau0(kk,j,i), vc_psi(kk,i), celf(kk), wt(kk)
                enddo
             enddo
             

@@ -234,6 +234,7 @@ c     ==== Loop over atoms ====
          ipt_f = int_mb(k_ipp + 1 + (ic-1)*2)
 c        ==== Loop over all quadrature points around the current atom ====
          do ipt = ipt_i, ipt_f
+            jpt = jpt + 1             ! Needed for wfat1.
             ipt0 = k_pt + 3*(ipt-1)
             v_c(1:3) = dbl_mb(ipt0 : ipt0+2)
             call geom_cent2cent(geom, icent, v_c, imf, v_m, t1)
@@ -260,13 +261,11 @@ c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
      &           ic, v_m, dcpl_mb(k_om), dbl_mb(k_vc)
             
             
-
             if (wfat1) then
 cfordebug               write(luout, '("wfat1: ", i8, 4es15.6)')
 cfordebug     &              jpt, dbl_mb(k_vc), dbl_mb(k_vc+1), dbl_mb(k_vc+2),
 cfordebug     &              dbl_mb(k_vc+3)
                
-               jpt = jpt + 1
                i_om1 = k_om1 + (jpt-1)*nsh*nqn*nch
                i_om2 = k_om2 + (jpt-1)*nsh*nqn*nch
 c              ==== Calculate the integrand of J^{(n,m)x_i}_{l,m'} ====
@@ -320,6 +319,13 @@ c           ==== Quadrature summation ====
      &                            dcpl_mb(k_ik2_0:k_ik2_0+nik2_0-1) *
      &                            wtcelf
             endif
+
+cfordebug            if (ga_nodeid() == 0)
+cfordebug     &           write(luout, '("@grid: ", i8, 2es20.10, '//
+cfordebug     &           '3es20.10)')
+cfordebug     &           jpt, dcpl_mb(k_om), dbl_mb(k_vc), celf,
+cfordebug     &           dbl_mb(k_wt+ipt-1)
+            
 
 c           ==== Print progress ====
             pr_count = pr_count + 1

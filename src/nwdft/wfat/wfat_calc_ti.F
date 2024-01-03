@@ -132,6 +132,8 @@ cfordebug               call wfat_calc_o(0, 0, -0.917956d0, 1.0d0, ooo_)
      &              i, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
             enddo
          enddo
+      else
+         uffc = .false.
       endif
 
       

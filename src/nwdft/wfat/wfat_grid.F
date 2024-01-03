@@ -936,9 +936,10 @@ c=================================================
       double precision gwt(nptp)
 
       character*16 tag
+      logical t1
       integer k, i, ic, j, l_pt, k_pt, l_wt, k_wt, i_pt1, i_pt2
       integer max_npt, nptc
-      double precision atp(3), zc
+      double precision atp(3), zc, v_c(3)
 
 
       call wfat_get_gridmaxpt(gq, max_npt)
@@ -966,7 +967,8 @@ c        dbl_mb(k_wt) = The grid weights centered around the center ic.
      &           'subroutine.', 99, UERR)
             i_pt1 = k_pt + (j-1)*3
             i_pt2 = i_pt1 + 2
-            gpt(:,k) = dbl_mb(i_pt1:i_pt2)
+            v_c = dbl_mb(i_pt1:i_pt2)
+            call geom_cent2cent(geom, ic, v_c, 0, gpt(:,k), t1)
             gwt(k) = dbl_mb(k_wt+j-1)
          enddo
       enddo
