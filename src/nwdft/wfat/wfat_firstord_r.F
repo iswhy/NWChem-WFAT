@@ -292,11 +292,11 @@ c     ==== The final value of R_\nu^{(1)}(eta) ====
      &     (dbl_mb(k_a:k_a+pmax-1) - dbl_mb(k_b:k_b+pmax-1))
 
 
-      write(luout, '("R1 coefficients in wfat_r1")')
-      do j = 1, pmax
-         write(luout, '(i3, 3es15.6)') j, cr1(j),
-     &        dbl_mb(k_a+j-1), dbl_mb(k_b+j-1)
-      enddo
+cfordebug      write(luout, '("R1 coefficients in wfat_r1")')
+cfordebug      do j = 1, pmax
+cfordebug         write(luout, '(i3, 3es15.6)') j, cr1(j),
+cfordebug     &        dbl_mb(k_a+j-1), dbl_mb(k_b+j-1)
+cfordebug      enddo
 
       
 c     z**(b/2) * exp(-z/2) *

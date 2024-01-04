@@ -53,13 +53,14 @@ c=======================================================
       logical gap, uffc
       integer l_sg, l_fc, l_rt, l_icp, l_ipp, l_pt, l_wt, l_vc, l_cl
       integer l_ma, l_tu0, l_tu1, l_acg, l_acj, l_ack, l_dum, l_sc, l_sx
-      integer l_pbd, l_sj, l_sk, l_on
+      integer l_pbd, l_sj, l_sk, l_on, l_si, l_pos
       integer k_sg, k_fc, k_rt, k_icp, k_ipp, k_pt, k_wt, k_vc, k_cl
       integer k_ma, k_tu0, k_tu1, k_acg, k_acj, k_ack, k_dum, k_sc, k_sx
-      integer k_pbd, k_sj, k_sk, k_on
+      integer k_pbd, k_sj, k_sk, k_on, k_si, k_pos
       integer natom, n_sg, nfc, nrt, n_pt, n_wt, n_acg, n_acj, n_ack
-      integer n_dum, nsc, nsx, npbd, n_sj, n_sk, n_on
-      integer ndid, nbt, ngm, natp, nptp, i, iqn, i_on, ig, ib
+      integer n_dum, nsc, nsx, npbd, n_sj, n_sk, n_on, nch1
+      integer ndid, nbt, ngm, natp, nptp, i, k, iqn, i_on, ig, ib, i_tu0
+      integer i_vc, i_acj
       double precision bt_start, bt_last, dbt, dbtr, gm_start, gm_last
       double precision dgm, dgmr, dthr, bt, gm, rate
       double precision deg2rad
@@ -93,16 +94,25 @@ c     ==== Calculate and gather grid points ====
       call wfat_collect_mfgrid(geom, gq, natp, nptp, int_mb(k_icp),
      &     int_mb(k_ipp), dbl_mb(k_pt), dbl_mb(k_wt))
 
+c     ==== Construct new spinid and chpos that can ====
+c     ====  take care of wfat1 when it is .true.   ====
+      nch1 = 0
+      if (wfat1) nch1 = 3 * nch
+      if (.not. MA_alloc_get(MT_INT, nch+nch1, 'spinid1', l_si, k_si))
+     &     call errquit('WFAT: spinid1 allocation failed', 59, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, 3*(nch+nch1), 'chpos1',
+     &     l_pos, k_pos))
+     &     call errquit('WFAT: chpos1 allocation failed', 59, MA_ERR)
+      call wfat_get_wfat1_sppos(wfat1, nch, spinid, chpos, int_mb(k_si),
+     &     dbl_mb(k_pos))
+
 c     ==== Calculate and gather V_c|psi> at all grid points ====
-      if (.not. MA_alloc_get(MT_DBL, nptp*nch, 'vc_psi', l_vc, k_vc))
+      if (.not. MA_alloc_get(MT_DBL, nptp*(nch+nch1), 'vc_psi',
+     &     l_vc, k_vc))
      &     call errquit('WFAT: vc_psi allocation failed', 81, MA_ERR)
-      call wfat_collect_vcpsi(geom, bas, nb, ns, nch, nptp, vch,
-     &     spinid, chpos, dbl_mb(k_pt), rdm, zi, smh,
+      call wfat_collect_vcpsi(geom, bas, nb, ns, nch+nch1, nptp, vch,
+     &     int_mb(k_si), dbl_mb(k_pos), dbl_mb(k_pt), rdm, zi, smh,
      &     ismask_e, ergmask, amsk, bmsk, dbl_mb(k_vc))
-c      if (wfat1) then
-c     &     call wfat_collect_vcpsi(geom, bas, nb, ns, nch, nptp, vch1,
-c     &     spinid, chpos, dbl_mb(k_pt), rdm, zi, smh,
-c     &     ismask_e, ergmask, amsk, bmsk, dbl_mb(k_cvc))
 
 c     ==== Calculate and gather the cell ====
 c     ====  function at all grid points  ====
@@ -124,11 +134,11 @@ c     ==== Allocate tau and as. coeff. at all grid points ====
       if (.not. MA_alloc_get(MT_DCPL, nptp*nqn*nch, 'tau0',
      &     l_tu0, k_tu0))
      &     call errquit('WFAT: tau0 allocation failed', 81, MA_ERR)
-c      if (wfat1) then
-c         if (.not. MA_alloc_get(MT_DCPL, nptp*nqn*nch, 'tau1',
-c     &        l_tu1, k_tu1))
-c     &        call errquit('WFAT: tau1 allocation failed', 81, MA_ERR)
-c      endif
+      if (wfat1) then
+         if (.not. MA_alloc_get(MT_DCPL, nptp*nqn*nch, 'tau1',
+     &        l_tu1, k_tu1))
+     &        call errquit('WFAT: tau1 allocation failed', 81, MA_ERR)
+      endif
       call wfat_prep_acoef(natom, nqn, nch, wfat1, n_acg, l_acg,
      &     k_acg, n_acj, l_acj, k_acj, n_ack, l_ack, k_ack, n_dum,
      &     l_dum, k_dum)
@@ -167,8 +177,8 @@ c     ==== Initializing the printings ====
       if (ndid == 0 .and. pr_srfc) then
          call wfat_initprint_structuref(nch, orbid0, spinid, nqn, nid,
      &        mid)
-c         if (wfat1) call wfat_initprint_srfc1(nch, orbid0, spinid, nqn,
-c     &        nid, mid)
+         if (wfat1) call wfat_initprint_srfc1(nch, orbid0, spinid, nqn,
+     &        nid, mid)
       endif
       if (ndid == 0 .and. pr_rate)
      &     call wfat_initprint_rate(nch, orbid0, spinid, nqn, nid, mid)
@@ -195,38 +205,43 @@ c           ==== Calculate tau ====
                call wfat_collect_tau0(geom, nch, nqn, chpos, erg, nid, 
      &              mid, bt, gm, nptp, zi, dbl_mb(k_pt), dcpl_mb(k_tu0))
                if (wfat1) then
-c                  call wfat_collect_tau1()
+                  call wfat_collect_tau1(geom, nch, nqn, chmmt, chpos, 
+     &                 erg, nid, mid, bt, gm, nptp, zi, dbl_mb(k_pt),
+     &                 dcpl_mb(k_tu1))
                endif            
                                              
 c              ==== Calculate the structure factors ====
+               call wfat_calc_acf_nopw(bt, gm, nch, nqn, natp, nptp, 
+     &              natom, int_mb(k_icp), int_mb(k_ipp), dbl_mb(k_vc), 
+     &              dcpl_mb(k_tu0), dbl_mb(k_cl), dbl_mb(k_wt), 
+     &              ismask, dbl_mb(k_ma), dcpl_mb(k_acg))               
                if (wfat1) then
-c                  call wfat_calc_acf_nopw(bt, gm, nch, nqn, natp, nptp, 
-c     &                 natom, int_mb(k_icp), int_mb(k_ipp), 
-c     &                 dbl_mb(k_vc), dcpl_mb(k_tu0), dbl_mb(k_cl), 
-c     &                 dbl_mb(k_wt), ismask, dbl_mb(k_ma),
-c     &                 dcpl_mb(k_acg))
-c                  call wfat_calc_acf_nopw(bt, gm, nch, nqn, natp, nptp, 
-c     &                 natom, int_mb(k_icp), int_mb(k_ipp), 
-c     &                 dbl_mb(k_cvc), dcpl_mb(k_tu0), dbl_mb(k_cl), 
-c     &                 dbl_mb(k_wt), ismask, dbl_mb(k_ma),
-c     &                 dcpl_mb(k_acj))
-c                  call wfat_calc_acf_nopw(bt, gm, nch, nqn, natp, nptp, 
-c     &                 natom, int_mb(k_icp), int_mb(k_ipp), 
-c     &                 dbl_mb(k_vc), dcpl_mb(k_tu1), dbl_mb(k_cl), 
-c     &                 dbl_mb(k_wt), ismask, dbl_mb(k_ma),
-c     &                 dcpl_mb(k_ack))
-c                  call wfat_get_srfc1(bt, gm, nat, nch, nqn, 0, mid, 
-c     &                 erg, chmmt, dcpl_mb(k_acg), dcpl_mb(k_acj),
-c     &                 dcpl_mb(k_ack), dcpl_mb(k_dum), nsub, maxn, dgs, 
-c     &                 ndgs, dthr, dps, pbs, .true., dbl_mb(k_sc),
-c     &                 dcpl_mb(k_sx), dbl_mb(k_pbd), dcpl_mb(k_sg),
-c     &                 dcpl_mb(k_sj), dcpl_mb(k_sk))
-               else
+                  do i = 1, nch
+                     i_tu0 = k_tu0 + nptp*nqn*(i-1)
+                     do k = 1, 3
+                        i_vc = (k_vc+nptp*nch) + nptp*3*(i-1) +
+     &                         nptp*(k-1)
+                        i_acj = k_acj + natom*nqn*3*(i-1) +
+     &                          natom*nqn*(k-1)
+                        call wfat_calc_acf_nopw(bt, gm, 1, nqn, natp,
+     &                       nptp, natom, int_mb(k_icp), int_mb(k_ipp), 
+     &                       dbl_mb(i_vc), dcpl_mb(i_tu0), 
+     &                       dbl_mb(k_cl), dbl_mb(k_wt), ismask, 
+     &                       dbl_mb(k_ma), dcpl_mb(i_acj))
+                     enddo
+                  enddo
                   call wfat_calc_acf_nopw(bt, gm, nch, nqn, natp, nptp, 
      &                 natom, int_mb(k_icp), int_mb(k_ipp), 
-     &                 dbl_mb(k_vc), dcpl_mb(k_tu0), dbl_mb(k_cl), 
+     &                 dbl_mb(k_vc), dcpl_mb(k_tu1), dbl_mb(k_cl), 
      &                 dbl_mb(k_wt), ismask, dbl_mb(k_ma),
-     &                 dcpl_mb(k_acg))
+     &                 dcpl_mb(k_ack))
+                  call wfat_get_srfc1(bt, gm, natom, nch, nqn, 0, mid, 
+     &                 erg, chmmt, dcpl_mb(k_acg), dcpl_mb(k_acj),
+     &                 dcpl_mb(k_ack), dcpl_mb(k_dum), nsub, maxn, dgs, 
+     &                 ndgs, dthr, dps, pbs, .true., dbl_mb(k_sc),
+     &                 dcpl_mb(k_sx), dbl_mb(k_pbd), dcpl_mb(k_sg),
+     &                 dcpl_mb(k_sj), dcpl_mb(k_sk))
+               else
                   call wfat_get_srfc0(geom, bt, gm, nch, erg, nqn, mid,
      &                 0, chmmt, dcpl_mb(k_acg), .true., dcpl_mb(k_sg))
                endif
@@ -235,19 +250,19 @@ c              ==== Print structure factor ====
                if (ndid == 0 .and. pr_srfc) then
                   call wfat_print_structuref(natom, bt, gm, nch, nqn,
      &                 dcpl_mb(k_sg), gap)
-c                  if (wfat1) call wfat_print_srfc1(natom, bt, gm, nch, 
-c     &                 nqn, dcpl_mb(k_sj), dcpl_mb(k_sk), gap)
+                  if (wfat1) call wfat_print_srfc1(natom, bt, gm, nch, 
+     &                 nqn, dcpl_mb(k_sj), dcpl_mb(k_sk), gap)
                endif
             endif
 
             if (pr_rate) then
 c              ==== Calculate ionization rate ====
                if (wfat1) then
-c                  call wfat_calc_wfat1_rate(bt, gm, natom, nqn, nch, nid,
-c     &                 mid, fieldm, erg, zi, dcpl_mb(k_sg),
-c     &                 dcpl_mb(k_sj), dcpl_mb(k_sk), dbl_mb(k_on), 
-c     &                 chmmt, dbl_mb(k_pbd), uffc, 
-c     &                 dbl_mb(k_fc), dbl_mb(k_rt), rate)
+                  call wfat_calc_wfat1_rate(bt, gm, natom, nqn, nch, 
+     &                 nid, mid, fieldm, erg, zi, dcpl_mb(k_sg), 
+     &                 dcpl_mb(k_sj), dcpl_mb(k_sk), dbl_mb(k_on), 
+     &                 chmmt, dbl_mb(k_pbd), uffc, dbl_mb(k_fc),
+     &                 dbl_mb(k_rt), rate)
                else
                   call wfat_calc_rate(natom, fieldm, nch, erg, nqn, nid,
      &                 mid, zi, dcpl_mb(k_sg), uffc, dbl_mb(k_fc),
@@ -267,7 +282,7 @@ c              ==== Print ionization rate ====
 c     ==== Terminating printings ====      
       if (ndid==0 .and. pr_srfc) then
          call wfat_endprint_structuref()
-c         if (wfat1) call wfat_endprint_srfc1()
+         if (wfat1) call wfat_endprint_srfc1()
       endif
       if (ndid==0 .and. pr_rate) call wfat_endprint_rate()
 
@@ -289,6 +304,10 @@ c     ==== Deallocations ====
          if (.not. MA_free_heap(l_tu1))
      &        call errquit('WFAT: tau1 deallocation failed', 3, MA_ERR)
       endif
+      if (.not. MA_free_heap(l_si))
+     &     call errquit('WFAT: spinid1 deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_pos))
+     &     call errquit('WFAT: chpos1 deallocation failed', 61, MA_ERR)
 
       call ga_sync()
       
@@ -336,7 +355,7 @@ c        the wfat_assign_acf_nopw_p subroutine below does not modify every
 c        element of acf (it only modifies elements that correspond to the centers
 c        of the current process). This means that the elements that are not
 c        modified will have their whatever initial values at the input of this
-c        subroutine.
+c        subroutine, which is undesireable.
 
       nac = natom * nqn * nch
       if (.not. ga_create(mt_dcpl, nac, 1, 'acf', 0, 0, g_ac))
@@ -359,7 +378,7 @@ c     ====          in the array that holds all atoms            ====
      &     dcpl_mb(k_acp), acf)    ! 2)
 c     2) At this point, acf contains the current process' contribution to the
 c        asymptotic coefficients. It will be added with the contributions of
-c        all the other processes below.
+c        all the other processes below in the call to ga_acc.
 
 c     ==== Accumulate the asymptotic coefficients across all processes ====
       call ga_sync()

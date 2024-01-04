@@ -1,7 +1,10 @@
 c=======================================================
-c=======================================================      
+c=======================================================
       subroutine wfat_celf_1pt(geom, ia1, d1, msm, celf)
-
+c     DESCRIPTION:
+c     This subroutine evaluates the function w_A defined in eq. (23) in
+c     Ref. [1].
+      
       implicit none
 #include "errquit.fh"
 #include "geom.fh"
@@ -37,9 +40,13 @@ c        ==== function at the current grid point ====
          tot_parf = tot_parf + tt
       enddo
 
-      celf = parf / tot_parf
+      celf = parf / tot_parf       ! Evaluates eq. (23) of Ref. [1].
 
       end
+      
+c  References :
+c    [1] "Quadrature schemes for integrals of density functional theory",
+c        Mol. Phys., 78 (4) 1993.
 c=======================================================
       
 

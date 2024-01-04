@@ -320,11 +320,11 @@ c           ==== Quadrature summation ====
      &                            wtcelf
             endif
 
-cfordebug            if (ga_nodeid() == 0)
+cfordebug            if (ga_nodeid() >= 0)
 cfordebug     &           write(luout, '("@grid: ", i8, 2es20.10, '//
-cfordebug     &           '3es20.10)')
+cfordebug     &           '3es20.10, i5)')
 cfordebug     &           jpt, dcpl_mb(k_om), dbl_mb(k_vc), celf,
-cfordebug     &           dbl_mb(k_wt+ipt-1)
+cfordebug     &           dbl_mb(k_wt+ipt-1), celm
             
 
 c           ==== Print progress ====

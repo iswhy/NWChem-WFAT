@@ -333,7 +333,7 @@ c=================================================
 #include "mafdecls.fh"
       integer nat
       integer nqn
-      integer nch
+      integer nch                   ! [input]. The number of ionized channels. It cannot be extended to include their 1st order corrections.
       logical wfat1
       integer n_acg, l_acg, k_acg
       integer n_acj, l_acj, k_acj
@@ -347,7 +347,7 @@ c=================================================
       if (.not. MA_alloc_get(MT_DCPL, n_acg, 'acg', l_acg, k_acg))
      &     call errquit('WFAT: acg allocation failed', 81, MA_ERR)
       if (wfat1) then
-         n_acj = nat * nqn * nch
+         n_acj = nat * nqn * 3 * nch
          if (.not. MA_alloc_get(MT_DCPL, n_acj, 'acj', l_acj, k_acj))
      &        call errquit('WFAT: acj allocation failed', 81, MA_ERR)
          n_ack = nat * nqn * nch

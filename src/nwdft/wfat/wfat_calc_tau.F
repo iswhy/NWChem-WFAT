@@ -252,8 +252,8 @@ c        == phi_\nu^{(0)} and phi_\nu^{(1)} ==
       beta0 = zq - kappa*(n + (abs(m)+1)/2.0d0)
       tau1 = -2*kappa**(beta0/kappa-1) * tau1
 
-      write(luout, '(" sum Phi1 = ", f10.4, 4es20.10)')
-     &     bt, sumphi1, sumr1, sum(tau1)
+cfordebug      write(luout, '(" sum Phi1 = ", f10.4, 4es20.10)')
+cfordebug     &     bt, sumphi1, sumr1, sum(tau1)
       
 c     ==== Deallocations ====
       if (.not. MA_free_heap(l_es))
@@ -433,8 +433,8 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_collect_tau1(geom, nch, nqn, erg, chpos, nid, mid,
-     &     bt, gm, natp, nptp, centid, ptlim, gq, zi, chmmt, tau1)
+      subroutine wfat_collect_tau1(geom, nch, nqn, chmmt, chpos, erg,
+     &     nid, mid, bt, gm, nptp, zi, v_m, tau1)
 
       implicit none
 #include "stdio.fh"      
@@ -443,26 +443,26 @@ c=======================================================
       integer geom
       integer nch
       integer nqn
-      double precision erg(nch)     ! [input],
+      double precision chmmt(3,nch) ! [input],
       double precision chpos(3,nch)
+      double precision erg(nch)     ! [input],
       integer nid(nqn)              ! [input], 
       integer mid(nqn)              ! [input], 
       double precision bt           ! [input], beta orientation angle in degrees.
       double precision gm           ! [input], gamma orientation angle in degrees.
-      integer natp                  ! [input], the number of atoms for the current process.
       integer nptp                  ! [input], the number of quadrature points for the current process.
-      integer centid(natp)          ! [input],
-      integer ptlim(2,natp)         ! [input],
-      integer gq                    ! [input],
       double precision zi           ! [input],
-      double precision chmmt(3)     ! [input],
-      double complex tau1(nqn, nch, nptp)
+      double precision v_m(3,nptp)  ! in molecular frame.
+      double complex tau1(nptp, nqn, nch)
 
+      logical t1
       integer l_r, l_t, l_p
       integer k_r, k_t, k_p
-      integer i, j, n, m
+      integer i, j, k, n, m
+      double precision r, t, p, v_f(3), v_r(3), protmat(3,3)
 
-      call errquit('this subroutine is unfinished', 99, UERR)
+
+      call wfat_passrot(bt, gm, protmat)
 
 c     ==== Coordinates in molecular frame ====
       if (.not. MA_alloc_get(MT_DBL, nptp, 'r', l_r, k_r))
@@ -474,16 +474,24 @@ c     ==== Coordinates in molecular frame ====
 
       
       do i = 1, nch
-c        ==== Get the grid points with the current channel center ====
-         call wfat_get_gridpt_rot(geom, natp, centid, ptlim, chpos(:,i),
-     &        gq, bt, gm, dbl_mb(k_r), dbl_mb(k_t), dbl_mb(k_p))
-
+         do k = 1, nptp
+c           v_m = grid point in molecular frame
+c           v_f = grid point in unrotated channel-center frame (the axes of the
+c                 unrotated frame are parallel to those of the molecular frame)
+c           v_r = grid point in rotated channel-center frame
+            call geom_cent2arb(geom, 0, v_m(:,k), chpos(:,i), v_f, t1)
+            v_r = matmul(transpose(protmat), v_f)
+            dbl_mb(k_r+k-1) = sqrt(sum(v_r*v_r))
+            dbl_mb(k_t+k-1) = acos(v_r(3)/r)
+            dbl_mb(k_p+k-1) = atan(v_r(2), v_r(1))
+         enddo
+         
          do j = 1, nqn
             n = nid(j)
             m = mid(j)
             call wfat_calc_tau1(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
-     &           dbl_mb(k_p), erg(i), zi, bt, gm, chmmt,
-     &           tau1(j,i,:))
+     &           dbl_mb(k_p), erg(i), zi, bt, gm, chmmt(:,i),
+     &           tau1(:,j,i))
          enddo
       enddo
       
@@ -649,7 +657,7 @@ c=======================================================
       integer ptlim(2,natp)         ! [input],
       integer gq                    ! [input],
       double precision zi           ! [input],
-      double precision chmmt(3)     ! [input],
+      double precision chmmt(3,nch) ! [input],
       double complex tau1(nqn, nch, nptp)
 
       integer l_r, l_t, l_p
@@ -678,7 +686,7 @@ c            call wfat_calc_tau0(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
 c     &           dbl_mb(k_p), erg(i), zi, tau0(j,i,:))
 
             call wfat_calc_tau1(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
-     &           dbl_mb(k_p), erg(i), zi, bt, gm, chmmt,
+     &           dbl_mb(k_p), erg(i), zi, bt, gm, chmmt(:,i),
      &           tau1(j,i,:))
          enddo
       enddo
