@@ -212,12 +212,13 @@ c     &     dbl_mb(k_r1))
          j = int_mb(k_id+i-1)
          dbl_mb(k_r1+j-1) = dbl_mb(k_es+i-1)
       enddo
-c      write(luout, '("sort3")') 
+cfordebug      write(luout, '("node, sum r1: ", i3, es20.10)')
+cfordebug     &     ga_nodeid(), sum(dbl_mb(k_r1:k_r1+npt-1))
 
 
 c     ==== Calculate tau_\nu^{(1)} ====
-      sumr1 = 0.0d0
-      sumphi1 = 0.0d0
+cfordebug      sumr1 = 0.0d0
+cfordebug      sumphi1 = 0.0d0
       do i = 1, npt
 c        == R_\nu^{(0)} / \sqrt(\eta) ==
          eta = dbl_mb(k_et+i-1)
@@ -230,20 +231,28 @@ c        == R_\nu^{(0)} / \sqrt(\eta) ==
          else
             r0 = d * kappa**(b/2) * exp(-z/2) * real(chgm_)
          endif
+         if (isnan(r0) .or. abs(r0) > 1.0d20) r0 = 0.0d0
 
 c        == R_\nu^{(1)} / \sqrt(\eta) ==
          if (eta > 1.0d-12) then
             r1 = dbl_mb(k_r1+i-1) / sqrt(eta)
          else
-            r1 = 0.0d0
+            r1 = 0.0d0         ! 2)
          endif
-         if (.not. isnan(r1)) sumr1 = sumr1 + r1
+         if (isnan(r1) .or. abs(r1) > 1.0d20) r1 = 0.0d0
+c        2) r1 is R^{(1)}/\sqrt{\eta} where R^{(1)} is defined in eq. (A1a) of Ref. [1], 
+c        and satisfies the asymptotic property of eq. (A2a). Thus, when \eta approaches
+c        0, the division by \sqrt{\eta} would still make r1 approaches 0.
+         
+cfordebug         if (.not. isnan(r1)) sumr1 = sumr1 + r1
 
+         
 c        == phi_\nu^{(0)} and phi_\nu^{(1)} ==
          xi = r(i) * (1 + cos(th(i)))
          call wfat_calc_phi0xi(xi, n, m, erg, phi0)
          call wfat_calc_phi1xi(xi, n, m, erg, bt, gm, chmmt, phi1)
-         sumphi1 = sumphi1 + phi1
+         
+cfordebug         sumphi1 = sumphi1 + phi1
 
          tau1(i) = (r0 * phi1 + r1 * phi0) * exp(imnum*m*ph(i)) /
      &             sqrt(2*pi_const)
@@ -252,8 +261,8 @@ c        == phi_\nu^{(0)} and phi_\nu^{(1)} ==
       beta0 = zq - kappa*(n + (abs(m)+1)/2.0d0)
       tau1 = -2*kappa**(beta0/kappa-1) * tau1
 
-cfordebug      write(luout, '(" sum Phi1 = ", f10.4, 4es20.10)')
-cfordebug     &     bt, sumphi1, sumr1, sum(tau1)
+cfordebug      write(luout, '(" sum Phi1 = ", i3, f10.4, 4es20.10)')
+cfordebug     &     ga_nodeid(), bt, sumphi1, sumr1, sum(tau1)
       
 c     ==== Deallocations ====
       if (.not. MA_free_heap(l_es))
@@ -267,6 +276,8 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: eta deallocation failed', 46, MA_ERR)
 
       end
+c     References:
+c     [1] PHYSICAL REVIEW A 93, 033412 (2016).
 c=======================================================
 
 
@@ -459,7 +470,7 @@ c=======================================================
       integer l_r, l_t, l_p
       integer k_r, k_t, k_p
       integer i, j, k, n, m
-      double precision r, t, p, v_f(3), v_r(3), protmat(3,3)
+      double precision v_f(3), v_r(3), protmat(3,3)
 
 
       call wfat_passrot(bt, gm, protmat)
@@ -482,7 +493,7 @@ c           v_r = grid point in rotated channel-center frame
             call geom_cent2arb(geom, 0, v_m(:,k), chpos(:,i), v_f, t1)
             v_r = matmul(transpose(protmat), v_f)
             dbl_mb(k_r+k-1) = sqrt(sum(v_r*v_r))
-            dbl_mb(k_t+k-1) = acos(v_r(3)/r)
+            dbl_mb(k_t+k-1) = acos(v_r(3)/dbl_mb(k_r+k-1))
             dbl_mb(k_p+k-1) = atan(v_r(2), v_r(1))
          enddo
          

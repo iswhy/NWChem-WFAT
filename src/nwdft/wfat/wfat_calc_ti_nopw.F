@@ -208,7 +208,14 @@ c           ==== Calculate tau ====
                   call wfat_collect_tau1(geom, nch, nqn, chmmt, chpos, 
      &                 erg, nid, mid, bt, gm, nptp, zi, dbl_mb(k_pt),
      &                 dcpl_mb(k_tu1))
-               endif            
+               endif
+               if (ndid == 0) then
+c                  write(luout, '("sum tu1: ", 2es20.10)')
+c     &                 sum(dcpl_mb(k_tu1:k_tu1+nptp*nqn*nch-1))
+c                  write(luout, '("sum tu1: ", 2es20.10)')
+c     &                 dcpl_mb(k_tu1)
+               endif
+               
                                              
 c              ==== Calculate the structure factors ====
                call wfat_calc_acf_nopw(bt, gm, nch, nqn, natp, nptp, 
@@ -288,6 +295,8 @@ c     ==== Terminating printings ====
 
 
 c     ==== Deallocations ====
+      call wfat_erase_rate(l_sg, l_fc, l_rt)
+      call wfat_dealloc_gridrange(l_icp, l_ipp)
       call wfat_erase_allgrid(l_pt, l_wt)
       call wfat_erase_acoef(wfat1, l_acg, l_acj, l_ack, l_dum)
       if (.not. MA_free_heap(l_vc))
@@ -303,6 +312,7 @@ c     ==== Deallocations ====
       if (wfat1) then
          if (.not. MA_free_heap(l_tu1))
      &        call errquit('WFAT: tau1 deallocation failed', 3, MA_ERR)
+         call wfat_erase_an(l_sc, l_sx, l_pbd, l_sj, l_sk, l_on)
       endif
       if (.not. MA_free_heap(l_si))
      &     call errquit('WFAT: spinid1 deallocation failed', 61, MA_ERR)
@@ -542,8 +552,8 @@ c=======================================================
       integer i
       double complex maskf_
 
-      maskf_ = cmplx(1.0d0, 0.0d0, kind=kind(1.0d0))
       do i = 1, nptp
+         maskf_ = cmplx(1.0d0, 0.0d0, kind=kind(1.0d0))
          call wfat_mask_intd(geom, natom, 1, 1, 1, v_m(:,i), 
      &        mask_param, maskf_)
          maskf(i) = real(maskf_)

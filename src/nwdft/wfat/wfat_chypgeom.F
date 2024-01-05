@@ -52,8 +52,8 @@ cc      endif
       
 c     ==== Scan for too big values ====
       do l = lmin_, lmax_
-c         if (chgm(l) > 1.0d+20 .or. isnan(chgm(l)) ) then
-         if (isnan(chgm(l)) ) then        
+c         if (abs(chgm(l)) > 1.0d+20 .or. isnan(chgm(l)) ) then
+         if ( isnan(chgm(l)) ) then        
 c              print *, "rmax = ", r0, l, chgm(l)
             chgm(l) = 0.0d0
          endif

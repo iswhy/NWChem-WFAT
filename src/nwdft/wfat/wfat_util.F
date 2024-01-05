@@ -1335,8 +1335,8 @@ c
  210       continue
       endif
 
-      write(luout, '("max, min id ins = ", 2i7)')
-     &     maxval(indx(1:n)), minval(indx(1:n))
+cc      write(luout, '("max, min id ins = ", 2i7)')
+cc     &     maxval(indx(1:n)), minval(indx(1:n))
       
       return
       end
