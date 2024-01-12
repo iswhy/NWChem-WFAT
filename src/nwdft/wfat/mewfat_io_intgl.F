@@ -9,6 +9,8 @@ c=================================================
 #include "mafdecls.fh"
 #include "rtdb.fh"
 #include "errquit.fh"
+#include "wfat.fh"
+#include "mewfat_qm_param.fh"
       integer rtdb                ! [input],
       integer nsh                 ! [input],
       integer ncent               ! [input],
@@ -26,20 +28,45 @@ c=================================================
       integer g_il                ! [output],
 
       logical int_nosave
-      integer ndid
-      integer l_eg0, l_eg1, l_ed0, l_ed1
-      integer k_eg0, k_eg1, k_ed0, k_ed1
+      integer ndid, cx, cy, nocmo0, nocmo1, npcf, nrcf, nqcf, nscf
+      integer l_mo0, l_mo1, l_pcf, l_rcf, l_qcf, l_scf, l_eg0, l_eg1
+      integer l_ed0, l_ed1
+      integer k_mo0, k_mo1, k_pcf, k_rcf, k_qcf, k_scf, k_eg0, k_eg1
+      integer k_ed0, k_ed1
+      double precision gserg0, gserg1, edipm0(3), edipm1(3)
 
 
       ndid = ga_nodeid()
       call mewfat_alloc_gsedip(1, l_eg0, k_eg0, l_eg1, k_eg1,
      &     l_ed0, k_ed0, l_ed1, k_ed1)
 
+c     ==== Get channel properties ====
+      call mewfat_channel_property(rtdb, geom_hd, bas_hd, nbas, gqual,
+     &     wf_msm, nel0, nel1, g_mov0, g_mov1, charge0, charge1, 
+     &     multip0, multip1, gserg0, gserg1, ionerg, edipm0, edipm1, 
+     &     chpos, chmmt, dipm1)
+
+c     ==== Calculate determinant coefficients and get MO's ====
+      call mewfat_alloc_ocmo(nbas, nel0, nel1, nocmo0, nocmo1,
+     &     l_mo0, k_mo0, l_mo1, k_mo1)
+      call mewfat_alloc_detcoef(spinx, spiny, nel0, cx, cy, npcf, nrcf, 
+     &     nqcf, nscf, l_pcf, k_pcf, l_rcf, k_rcf, l_qcf, k_qcf, l_scf,
+     &     k_scf)
+      call mewfat_calc_detcoef(geom_hd, bas_hd, nbas, spinx, spiny,
+     &     nel0, nel1, cx, cy, g_mov0, g_mov1, oskel, dbl_mb(k_mo0),
+     &     dbl_mb(k_mo1), dbl_mb(k_pcf), dbl_mb(k_rcf), dbl_mb(k_qcf),
+     &     dbl_mb(k_scf))
+      if (ndid == 0)
+     &     call mewfat_print_detcoef(spinx, nel0, cx, cy, dbl_mb(k_pcf),
+     &     dbl_mb(k_rcf), dbl_mb(k_qcf), dbl_mb(k_scf))
+      
       
 c     ==== Calculate WFAT integrals ====
-      call mewfat_calc_intgl(rtdb, nqn, nid, mid, lmax_, gqual, 
-     &     smh, rmode, dbl_mb(k_eg0), dbl_mb(k_eg1), ionerg, 
-     &     dbl_mb(k_ed0), dbl_mb(k_ed1), chpos, chmmt, dipm1, g_il)
+      call mewfat_calc_intgl(rtdb, geom_hd, bas_hd, nbas, gqual, spinx, 
+     &     spiny, nel0, nel1, dbl_mb(k_mo0), dbl_mb(k_mo1), 
+     &     dbl_mb(k_pcf), dbl_mb(k_rcf), dbl_mb(k_qcf), dbl_mb(k_scf),
+     &     zion, chpos, ionerg, wf_msm, nqn, nid, mid, lmax_, smh,
+     &     rmode, g_il)
 
       
 c     ==== Binary-print the integrals freshly calculated ====
@@ -56,7 +83,10 @@ c     ==== Binary-print the integrals freshly calculated ====
      &        'saved.")')
       endif
 
-
+      
+c     ==== Deallocations ====
+      call mewfat_dealloc_ocmo(l_mo0, l_mo1)
+      call mewfat_dealloc_detcoef(l_pcf, l_rcf, l_qcf, l_scf)
       call mewfat_dealloc_gsedip(l_eg0, l_eg1, l_ed0, l_ed1)
       
       end

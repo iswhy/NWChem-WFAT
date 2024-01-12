@@ -1,89 +1,75 @@
 c=================================================
 c=================================================
-      subroutine mewfat_calc_intgl(rtdb, nqn, nid, mid, lmax_, gqual,
-     &     smh, rmode, gserg0, gserg1, ionerg, edipm0, edipm1,
-     &     chpos, chmmt, dipm1, g_il)
+      subroutine mewfat_calc_intgl(rtdb, geom, bas, nb, gq, sx, sy, n0, 
+     &     n1, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, chpos, ionerg, 
+     &     mcel, nqn, nid, mid, lmax_, smh, rmode, g_il)
 
       implicit none
 #include "stdio.fh"
-#include "wfat.fh"
-#include "mewfat_qm_param.fh"      
+#include "errquit.fh"
+#include "geom.fh"
 #include "global.fh"
 #include "mafdecls.fh"
-      integer rtdb                ! [input],
-      integer nqn                 ! [input],
+      integer rtdb              ! [input],
+      integer geom
+      integer bas
+      integer nb
+      integer gq               ! [input],
+      integer sx                                      ! [input], sx=1 or 2. The ionized spin channel.
+      integer sy                                      ! [input], if sx=1 then sy=2 and vice versa. The complementary channel.
+      integer n0(2)                                   ! [input], no. of electrons in neutral.
+      integer n1(2)             ! [input], no. of electrons in cation.
+      double precision ocmo0(nb, n0(1)+n0(2))         ! [input], occupied neutral MO coeffs. The first n0(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision ocmo1(nb, n1(1)+n1(2))         ! [input], occupied cation MO coeffs. The first n1(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision pcf(n0(sx))                    ! [input], P det. coefficients returned by mewfat_calc_detcoef. Its elements index neutral MO's.
+      double precision rcf                            ! [input], R det. coefficient returned by mewfat_calc_detcoef.
+      double precision qcf(n0(sx), n0(sx), n0(sx)-1)  ! [input], Q det. coefficient returned by mewfat_calc_detcoef. The 1st and 2nd dimension index neutral MO's, while the 3rd index cation MO's.
+      double precision scf(n0(sy), n0(sy))            ! [input], S det. coefficients returned by mewfat_calc_detcoef. Its rows index neutral MO's while its columns index cation MO's.
+      double precision zi                             ! [input], charge of the parent ion.
+      double precision chpos(3) ! [input],
+      double precision ionerg   ! [input],
+      integer mcel                                    ! [input], the m parameter related to the cell function. Usually taken as wf_msm from wfat.fh.
+      integer nqn               ! [input],
       integer nid(nqn)            ! [input],
       integer mid(nqn)            ! [input],
       integer lmax_               ! [input],
-      integer gqual               ! [input],
       double precision smh        ! [input],
       logical rmode               ! [input],
-      double precision gserg0     ! [output], neutral GS energy
-      double precision gserg1     ! [output], cation GS energy
-      double precision ionerg     ! [output],
-      double precision edipm0(3)  ! [output], unshifted neutral e. dipole moment
-      double precision edipm1(3)  ! [output], unshifted cation e. dipole moment
-      double precision chpos(3)   ! [output],
-      double precision chmmt(3)   ! [output],
-      double precision dipm1(3)   ! [output],
       integer g_il                ! [output],
 
-      integer ndid
-      integer nocmo0, nocmo1, npcf, nrcf, nqcf, nscf, natomp, nptp
-      integer cx, cy, max_npt, nsh, nom, ni0, ni_, nil
-      integer l_mo0, l_mo1, l_pcf, l_rcf, l_qcf, l_scf, l_icp, l_ipp
-      integer l_pt, l_wt, l_om, l_i0, l_i_, l_il
-      integer k_mo0, k_mo1, k_pcf, k_rcf, k_qcf, k_scf, k_icp, k_ipp
-      integer k_pt, k_wt, k_om, k_i0, k_i_, k_il
+      integer nat, ndid, natp, nptp, max_npt, nsh, nom, ni0, ni_, nil
+      integer l_icp, l_ipp, l_pt, l_wt, l_om, l_i0, l_i_, l_il
+      integer k_icp, k_ipp, k_pt, k_wt, k_om, k_i0, k_i_, k_il
       double precision normch
 
 
       call ga_sync()
       ndid = ga_nodeid()
       
-
-c     ==== Get channel properties ====
-      call mewfat_channel_property(rtdb, geom_hd, bas_hd, nbas, gqual,
-     &     wf_msm, nel0, nel1, g_mov0, g_mov1, charge0, charge1, 
-     &     multip0, multip1, gserg0, gserg1, ionerg, edipm0, edipm1, 
-     &     chpos, chmmt, dipm1)
-
-
-c     ==== Calculate determinant coefficients and get MO's ====
-      call mewfat_alloc_ocmo(nbas, nel0, nel1, nocmo0, nocmo1,
-     &     l_mo0, k_mo0, l_mo1, k_mo1)
-      call mewfat_alloc_detcoef(spinx, spiny, nel0, cx, cy, npcf, nrcf, 
-     &     nqcf, nscf, l_pcf, k_pcf, l_rcf, k_rcf, l_qcf, k_qcf, 
-     &     l_scf, k_scf)
-      call mewfat_calc_detcoef(geom_hd, bas_hd, nbas, spinx, spiny,
-     &     nel0, nel1, cx, cy, g_mov0, g_mov1, oskel, dbl_mb(k_mo0),
-     &     dbl_mb(k_mo1), dbl_mb(k_pcf), dbl_mb(k_rcf), dbl_mb(k_qcf),
-     &     dbl_mb(k_scf))
-      if (ndid == 0)
-     &     call mewfat_print_detcoef(spinx, nel0, cx, cy, dbl_mb(k_pcf),
-     &     dbl_mb(k_rcf), dbl_mb(k_qcf), dbl_mb(k_scf))
-
+c     ==== Get number of atoms ====
+      if (.not. geom_ncent(geom, nat))
+     &     call errquit('WFAT: Getting natom failed', 51, GEOM_ERR)
+      
 
 c     ==== Obtaining grid ranges for the current process ====
-      call wfat_alloc_gridrange(natm, l_icp, k_icp, l_ipp, k_ipp)
-      call wfat_get_gridrange(geom_hd, ndid, gqual, int_mb(k_icp),
-     &     int_mb(k_ipp), natomp, nptp)
+      call wfat_alloc_gridrange(nat, l_icp, k_icp, l_ipp, k_ipp)
+      call wfat_get_gridrange(geom, ndid, gq, int_mb(k_icp),
+     &     int_mb(k_ipp), natp, nptp)
 
 
 c     ==== Allocate grid-related arrays ====
-      call wfat_alloc_quadgrid(gqual, max_npt, l_pt, k_pt, l_wt, k_wt)
+      call wfat_alloc_quadgrid(gq, max_npt, l_pt, k_pt, l_wt, k_wt)
       
       
 c     ==== Perform quadrature summation ====
-      call wfat_alloc_intgl(lmax_, nqn, 1, natm, nsh, nom, ni0, ni_,
+      call wfat_alloc_intgl(lmax_, nqn, 1, nat, nsh, nom, ni0, ni_,
      &     nil, l_om, k_om, l_i0, k_i0, l_i_, k_i_, l_il, k_il)
-      call mewfat_calc_intgl_qsum(rtdb, geom_hd, bas_hd, nbas, natomp, 
-     &     int_mb(k_icp), int_mb(k_ipp), gqual, spinx, spiny, 
-     &     nel0, nel1, dbl_mb(k_mo0), dbl_mb(k_mo1), 
-     &     dbl_mb(k_pcf), dbl_mb(k_rcf), dbl_mb(k_qcf), dbl_mb(k_scf), 
-     &     zion, chpos, ionerg, max_npt, dbl_mb(k_pt), dbl_mb(k_wt), 
-     &     wf_msm, nsh, nqn, nid, mid, lmax_, natm, smh,
-     &     dcpl_mb(k_om), dcpl_mb(k_i_), dcpl_mb(k_i0), dcpl_mb(k_il))
+      call mewfat_calc_intgl_qsum(rtdb, geom, bas, nb, natp, 
+     &     int_mb(k_icp), int_mb(k_ipp), gq, sx, sy, n0, n1, ocmo0,
+     &     ocmo1, pcf, rcf, qcf, scf, zi, chpos, ionerg, max_npt, 
+     &     dbl_mb(k_pt), dbl_mb(k_wt), mcel, nsh, nqn, nid, mid, 
+     &     lmax_, nat, smh, dcpl_mb(k_om), dcpl_mb(k_i_), dcpl_mb(k_i0),
+     &     dcpl_mb(k_il))
 
 
 c     ==== Accumulate to global intgl (g_il) ====
@@ -95,8 +81,6 @@ cfordebug      if (ndid==0) write(luout, '("intgl norm = ", es14.6)') normch
 
 
 c     ==== Deallocations ====
-      call mewfat_dealloc_ocmo(l_mo0, l_mo1)
-      call mewfat_dealloc_detcoef(l_pcf, l_rcf, l_qcf, l_scf)
       call wfat_dealloc_gridrange(l_icp, l_ipp)
       call wfat_dealloc_quadgrid(l_pt, l_wt)
       call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il)
