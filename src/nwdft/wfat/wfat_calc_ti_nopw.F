@@ -89,8 +89,7 @@ c     ==== Calculate and gather grid points ====
       call wfat_alloc_gridrange(natom, l_icp, k_icp, l_ipp, k_ipp)
       call wfat_get_gridrange(geom, ndid, gq, int_mb(k_icp),
      &     int_mb(k_ipp), natp, nptp)
-      call wfat_prep_allgrid(nptp, n_pt, l_pt, k_pt, n_wt, l_wt,
-     &     k_wt)
+      call wfat_prep_allgrid(nptp, n_pt, l_pt, k_pt, n_wt, l_wt, k_wt)
       call wfat_collect_mfgrid(geom, gq, natp, nptp, int_mb(k_icp),
      &     int_mb(k_ipp), dbl_mb(k_pt), dbl_mb(k_wt))
 
@@ -143,6 +142,11 @@ c     ==== Allocate tau and as. coeff. at all grid points ====
      &     k_acg, n_acj, l_acj, k_acj, n_ack, l_ack, k_ack, n_dum,
      &     l_dum, k_dum)
       
+c     ==== What to do with the field factor ====
+      if (.not. rtdb_get(rtdb, 'wfat:unit_ffc', mt_log, 1, uffc))
+     &     uffc = .false.
+      if (uffc) write(luout, '("Ionization rate will not include '//
+     &     'the field factor")')
 
 c     ==== When WFAT1 is active ====
       if (wfat1) then
@@ -152,10 +156,6 @@ c     ==== When WFAT1 is active ====
          if (.not. rtdb_get(rtdb, 'wfat:dthr', mt_dbl, 1, dthr))
      &        call errquit('WFAT: Failed reading dthr from rtdb',
      &        1, RTDB_ERR)
-         if (.not. rtdb_get(rtdb, 'wfat:unit_ffc', mt_log, 1, uffc))
-     &        uffc = .false.
-         if (uffc) write(luout, '("Ionization rate will not include '//
-     &        'the field factor")')
          do i = 1, nch
             do iqn = 1, nqn
                i_on = k_on + 2*nqn*(i-1) + 2*(iqn-1)
@@ -165,8 +165,6 @@ c     ==== When WFAT1 is active ====
      &              i, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
             enddo
          enddo
-      else
-         uffc = .false.
       endif
 
       
@@ -220,8 +218,8 @@ c     &                 dcpl_mb(k_tu1)
 c              ==== Calculate the structure factors ====
                call wfat_calc_acf_nopw(bt, gm, nch, nqn, natp, nptp, 
      &              natom, int_mb(k_icp), int_mb(k_ipp), dbl_mb(k_vc), 
-     &              dcpl_mb(k_tu0), dbl_mb(k_cl), dbl_mb(k_wt), 
-     &              ismask, dbl_mb(k_ma), dcpl_mb(k_acg))               
+     &              dcpl_mb(k_tu0), dbl_mb(k_cl), dbl_mb(k_wt), ismask,
+     &              dbl_mb(k_ma), dcpl_mb(k_acg))               
                if (wfat1) then
                   do i = 1, nch
                      i_tu0 = k_tu0 + nptp*nqn*(i-1)
@@ -286,7 +284,7 @@ c              ==== Print ionization rate ====
       enddo
 
 
-c     ==== Terminating printings ====      
+c     ==== Terminating printings ====
       if (ndid==0 .and. pr_srfc) then
          call wfat_endprint_structuref()
          if (wfat1) call wfat_endprint_srfc1()

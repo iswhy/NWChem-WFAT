@@ -134,6 +134,7 @@
 	mewfat_potential.o \
 	mewfat_potential_calc.o \
 	mewfat_dyson_print.o \
+	mewfat_calc_ti_nopw.o \
 	imam_test.o
 
      LIBRARY = libnwdft.a

@@ -226,3 +226,147 @@ c     ==== Calculate vc_psi ====
       
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine mewfat_collect_vcpsi(geom, bas, nb, sx, sy, n0, n1,
+     &     nch, nptp, vpt, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, ccent,
+     &     smh, vc_psi)
+      
+      implicit none
+#include "stdio.fh"
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer geom                                    ! [input], geometry handle.
+      integer bas                                     ! [input], basis handle.
+      integer nb                                      ! [input], no. of bases in bas.
+      integer sx                                      ! [input], sx=1 or 2. The ionized spin channel.
+      integer sy                                      ! [input], if sx=1 then sy=2 and vice versa. The complementary channel.
+      integer n0(2)                                   ! [input], no. of electrons in neutral.
+      integer n1(2)                                   ! [input], no. of electrons in cation.
+      integer nch
+      integer nptp
+      double precision vpt(3,nptp)                    ! [input], evaluation point.
+      double precision ocmo0(nb, n0(1)+n0(2))         ! [input], occupied neutral MO coeffs. The first n0(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision ocmo1(nb, n1(1)+n1(2))         ! [input], occupied cation MO coeffs. The first n1(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision pcf(n0(sx))                    ! [input], P det. coefficients. Its elements index neutral MO's.
+      double precision rcf                            ! [input], R det. coefficient.
+      double precision qcf(n0(sx), n0(sx), n0(sx)-1)  ! [input], Q det. coefficient. 1st and 2nd dimension index neutral MO's, while the 3rd index cation MO's.
+      double precision scf(n0(sy), n0(sy))            ! [input], S det. coefficients. Its rows index neutral MO's while its columns index cation MO's.
+      double precision zi                             ! [input],
+      double precision ccent(3,nch)                   ! [input],
+      double precision smh                            ! [input],
+      double precision vc_psi(nptp,nch)               ! [output],
+
+      integer nscr, i
+      integer l_sc, k_sc, l_vc, k_vc
+
+      
+      if (nch /= 1) call errquit('MEWFAT: At the moment, the argument'//
+     &     ' nch of mewfat_collect_vcpsi can only be equal to 1.',
+     &     32, UERR)
+      
+c     ==== Prepare scratch ====
+      nscr = 21*nb + n0(sx) + nb**2 + nb*max(maxval(n0),maxval(n1)) +
+     &      sum(n1*n0)
+      if (.not. MA_alloc_get(MT_DBL, nscr, 'scratch', l_sc, k_sc))
+     &     call errquit('WFAT: scratch allocation failed', 59, MA_ERR)
+      
+      if (.not. MA_alloc_get(MT_DBL, nch, 'vc_psi', l_vc, k_vc))
+     &     call errquit('WFAT: vc_psi allocation failed', 25, MA_ERR)
+      do i = 1, nptp
+         call mewfat_hf_vcpsi_1pt(geom, bas, nb, sx, sy, n0, n1,
+     &        vpt(:,i), ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, ccent, 
+     &        smh, dbl_mb(k_sc), dbl_mb(k_vc))
+         vc_psi(i,:) = dbl_mb(k_vc:k_vc+nch-1)
+      enddo
+
+c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_sc))
+     &     call errquit('WFAT: scratch deallocation failed', 49, MA_ERR)
+      if (.not. MA_free_heap(l_vc))
+     &     call errquit('WFAT: vc_psi deallocation failed', 49, MA_ERR)
+
+      end
+c=======================================================
+      
+
+c=======================================================
+c=======================================================
+      subroutine mewfat_collect_dft_vcpsi(geom, bas, nb, sx, sy, n0, n1,
+     &     nch, nptp, vpt, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, ccent,
+     &     smh, rs, si_type, vc_psi)
+
+      implicit none
+#include "stdio.fh"
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer geom                                    ! [input], geometry handle.
+      integer bas                                     ! [input], basis handle.
+      integer nb                                      ! [input], no. of bases in bas.
+      integer sx                                      ! [input], sx=1 or 2. The ionized spin channel.
+      integer sy                                      ! [input], if sx=1 then sy=2 and vice versa. The complementary channel.
+      integer n0(2)                                   ! [input], no. of electrons in neutral.
+      integer n1(2)                                   ! [input], no. of electrons in cation.
+      integer nch
+      integer nptp
+      double precision vpt(3,nptp)                    ! [input], evaluation point.
+      double precision ocmo0(nb, n0(1)+n0(2))         ! [input], occupied neutral MO coeffs. The first n0(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision ocmo1(nb, n1(1)+n1(2))         ! [input], occupied cation MO coeffs. The first n1(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision pcf(n0(sx))                    ! [input], P det. coefficients. Its elements index neutral MO's.
+      double precision rcf                            ! [input], R det. coefficient.
+      double precision qcf(n0(sx), n0(sx), n0(sx)-1)  ! [input], Q det. coefficient. 1st and 2nd dimension index neutral MO's, while the 3rd index cation MO's.
+      double precision scf(n0(sy), n0(sy))            ! [input], S det. coefficients. Its rows index neutral MO's while its columns index cation MO's.
+      double precision zi                             ! [input],
+      double precision ccent(3,nch)                   ! [input],
+      double precision smh                            ! [input],
+      logical rs                                      ! [input],
+      character*5 si_type                             ! [input], self-interaction type.
+      double precision vc_psi(nptp,nch)               ! [output],
+
+      integer nsc_rs, nscr, i
+      integer l_sc, k_sc, l_rd0, k_rd0, l_vc, k_vc
+
+      
+      if (nch /= 1) call errquit('MEWFAT: At the moment, the argument'//
+     &     ' nch of mewfat_collect_dft_vcpsi can only be equal to 1.',
+     &     32, UERR)
+      
+c     ==== Prepare scratch ====
+      if (rs) then
+         nsc_rs = nb**2 + nb*max(maxval(n0),maxval(n1)) + sum(n1*n0)
+      else
+         nsc_rs = 0
+      endif
+      nscr = 21*nb + n0(sx) + nb**2 + nb*max(maxval(n0),maxval(n1)) +
+     &       sum(n1*n0) + nsc_rs
+      if (.not. MA_alloc_get(MT_DBL, nscr, 'scratch', l_sc, k_sc))
+     &     call errquit('WFAT: scratch allocation failed', 59, MA_ERR)
+
+c     ==== Obtain RDM of the neutral ====
+      if (.not. ma_alloc_get(mt_dbl, nb*nb*2, 'rdm0', l_rd0, k_rd0))
+     &     call errquit('MEWFAT: Cannot allocate rdm0', 61, MA_ERR)
+      call mewfat_calc_rdm0(nb, n0, ocmo0, dbl_mb(k_rd0))
+      
+      if (.not. MA_alloc_get(MT_DBL, nch, 'vc_psi', l_vc, k_vc))
+     &     call errquit('WFAT: vc_psi allocation failed', 25, MA_ERR)
+      do i = 1, nptp
+         call mewfat_dft_vcpsi_1pt(geom, bas, nb, sx, sy, n0, n1,
+     &        vpt(:,i), ocmo0, ocmo1, dbl_mb(k_rd0), pcf, rcf, qcf,
+     &        scf, zi, ccent, smh, rs, si_type, dbl_mb(k_sc),
+     &        dbl_mb(k_vc))
+         vc_psi(i,:) = dbl_mb(k_vc:k_vc+nch-1)
+      enddo
+
+c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_sc))
+     &     call errquit('WFAT: scratch deallocation failed', 49, MA_ERR)
+      if (.not. MA_free_heap(l_vc))
+     &     call errquit('WFAT: vc_psi deallocation failed', 49, MA_ERR)
+      if (.not. MA_free_heap(l_rd0))
+     &     call errquit('WFAT: rdm0 deallocation failed', 49, MA_ERR)
+
+      end
+c=======================================================
+      

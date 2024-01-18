@@ -9,6 +9,7 @@ c=================================================
 #include "global.fh"
 #include "msgids.fh"
 #include "mafdecls.fh"
+#include "wfat.fh"
 #include "mewfat_qm_param.fh"
 #include "wfat_field_param.fh"
       integer rtdb
@@ -19,16 +20,20 @@ c=================================================
       character*7 jobtype
       logical res_mode, rtdb_stat, os, oc, or, extf, isthere, wfat1
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
-      logical pr_tmd, pr_tmd_atom
+      logical pr_tmd, pr_tmd_atom, ismask_i, ismask_e, int_nosave
       integer gqual, lmax
       integer ndid, nqn, nlas, ntime, nsh, nintg
-      integer nerg, ncpos, ncmm, niond
+      integer nerg, ncpos, ncmm, niond, cx, cy, nocmo0, nocmo1, npcf
+      integer nrcf, nqcf, nscf
       integer l_npa, l_mpa, l_al, l_ftl, l_wl, l_pl, l_tl, l_dl
-      integer l_eg, l_ps, l_cmm, l_idp, l_in
-      integer g_il
+      integer l_ieg, l_ps, l_cmm, l_idp, l_in, l_mo0, l_mo1, l_pcf
+      integer l_rcf, l_qcf, l_scf, l_eg0, l_eg1, l_ed0, l_ed1
       integer k_npa, k_mpa, k_al, k_ftl, k_wl, k_pl, k_tl, k_dl
-      integer k_eg, k_ps, k_cmm, k_idp, k_in
-      double precision tmax, fieldmag, smh
+      integer k_ieg, k_ps, k_cmm, k_idp, k_in, k_mo0, k_mo1, k_pcf
+      integer k_rcf, k_qcf, k_scf, k_eg0, k_eg1, k_ed0, k_ed1
+      integer g_il
+      double precision tmax, fieldmag, smh, mask_param(2), ergmask
+      double precision amsk, bmsk
 
       double complex czero
       parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
@@ -94,9 +99,17 @@ c     ==== When TD field is true ====
       endif
 
 
-c     ==== Allocate channel properties ====
+c     ==== Get channel properties ====
       call wfat_prep_channelprop(1, nerg, ncpos, ncmm, niond,
-     &     l_eg, k_eg, l_ps, k_ps, l_cmm, k_cmm, l_idp, k_idp)
+     &     l_ieg, k_ieg, l_ps, k_ps, l_cmm, k_cmm, l_idp, k_idp)
+      call mewfat_prep_channelprop(1, l_eg0, k_eg0, l_eg1, k_eg1,
+     &     l_ed0, k_ed0, l_ed1, k_ed1)
+      call mewfat_channel_property(rtdb, geom_hd, bas_hd, nbas, gqual,
+     &     wf_msm, nel0, nel1, g_mov0, g_mov1, charge0, charge1, 
+     &     multip0, multip1, dbl_mb(k_eg0), dbl_mb(k_eg1), 
+     &     dbl_mb(k_ieg), dbl_mb(k_ed0), dbl_mb(k_ed1), dbl_mb(k_ps), 
+     &     dbl_mb(k_cmm), dbl_mb(k_idp))
+      
       
 
 c      call wfat_test_dtrm(rtdb, geom_hd, bas_hd, nbas0, nspin0, nel, 
@@ -109,6 +122,21 @@ c     ==== Print Dyson orbital ====
      &     g_mov0, g_mov1, oskel)
       
 
+c     ==== Calculate determinant coefficients and get MO's ====
+      call mewfat_alloc_ocmo(nbas, nel0, nel1, nocmo0, nocmo1,
+     &     l_mo0, k_mo0, l_mo1, k_mo1)
+      call mewfat_alloc_detcoef(spinx, spiny, nel0, cx, cy, npcf, nrcf, 
+     &     nqcf, nscf, l_pcf, k_pcf, l_rcf, k_rcf, l_qcf, k_qcf, l_scf,
+     &     k_scf)
+      call mewfat_calc_detcoef(geom_hd, bas_hd, nbas, spinx, spiny,
+     &     nel0, nel1, cx, cy, g_mov0, g_mov1, oskel, dbl_mb(k_mo0),
+     &     dbl_mb(k_mo1), dbl_mb(k_pcf), dbl_mb(k_rcf), dbl_mb(k_qcf),
+     &     dbl_mb(k_scf))
+      if (ndid == 0)
+     &     call mewfat_print_detcoef(spinx, nel0, cx, cy, dbl_mb(k_pcf),
+     &     dbl_mb(k_rcf), dbl_mb(k_qcf), dbl_mb(k_scf))
+
+      
 c     ==== Calculate (or load) WFAT integrals ====
       nsh = (1 + lmax)**2
       nintg = nsh * natm * nqn
@@ -117,43 +145,76 @@ c     ==== Calculate (or load) WFAT integrals ====
      &     1, GA_ERR)
       call ga_zero(g_il)
 
-      smh = 0.0d0
-      call util_get_rtdb_state(rtdb, os, oc, or)
+      
+c     ==== Get mask parameters ====
+      call wfat_get_masks(rtdb, dbl_mb(k_ieg), ismask_i, mask_param, 
+     &     ismask_e, ergmask, amsk, bmsk)
+
 
       if (.not. rtdb_cget(rtdb, 'wfat:intgl_name', 1, fname))
      &     call errquit('MEWFAT: Cannot read wfat:intgl_name from '//
      &     'RTDB.', 1, RTDB_ERR)
-      inquire(file=fname, exist=isthere)      
-      if (os .and. .not. or) then
+      inquire(file=fname, exist=isthere)
+      
+
+c     ==== Calculate or store MEWFAT integrals ====
+      smh = 0.0d0
+      call util_get_rtdb_state(rtdb, os, oc, or)
+      if (lmax >= 0) then
+         if (os .and. .not. or) then
 cNEWRESTART      if (.not. isthere .or. os) then
-c        ==== Calculate and store WFAT integrals on 'start' startup mode ====
-         call mewfat_store_intgl(rtdb, nsh, natm, nqn, int_mb(k_npa), 
-     &        int_mb(k_mpa), lmax, gqual, smh, res_mode, dbl_mb(k_eg), 
-     &        dbl_mb(k_ps), dbl_mb(k_cmm), dbl_mb(k_idp), g_il)
-         call ga_sync()
-      else if (.not. os .and. or) then
-cNEWRESTART      else
-c        ==== Binary-load MEWFAT integrals on 'restart' startup mode ====
-         if (ndid == 0) then
-            call mewfat_load_intgl(rtdb, nsh, natm, nqn, 1,
-     &           spinx, dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
-     &           dbl_mb(k_idp), g_il)
-         endif
-         call ga_sync()
+c           ==== Calculate ME-WFAT integrals on 'start' startup mode ====
+            call mewfat_calc_intgl(rtdb, geom_hd, bas_hd, nbas, gqual, 
+     &           spinx, spiny, nel0, nel1, dbl_mb(k_mo0), dbl_mb(k_mo1),
+     &           dbl_mb(k_pcf), dbl_mb(k_rcf), dbl_mb(k_qcf), 
+     &           dbl_mb(k_scf), zion, dbl_mb(k_ps), dbl_mb(k_ieg), 
+     &           wf_msm, nqn, int_mb(k_npa), int_mb(k_mpa), lmax, smh, 
+     &           ismask_i, mask_param, res_mode, g_il)
          
-         call ga_brdcst(msg_wfat_eg, dbl_mb(k_eg),
-     &                  ma_sizeof(MT_DBL, 1, MT_BYTE), 0)
-         call ga_brdcst(msg_wfat_cmm, dbl_mb(k_cmm),
-     &                  ma_sizeof(MT_DBL, 3*1, MT_BYTE), 0)
+c           ==== Store ME-WFAT integrals freshly calculated ====
+            if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,
+     &           int_nosave)) call errquit('MEWFAT: Cannot read '//
+     &           'intgl_nosave from RTDB', 1, RTDB_ERR)
+            if (ndid == 0 .and. .not. int_nosave) then
+               call mewfat_store_intgl(rtdb, nsh, natm, nqn, 1, 
+     &              dbl_mb(k_eg0), dbl_mb(k_eg1), dbl_mb(k_ieg),
+     &              dbl_mb(k_ed0), dbl_mb(k_ed1), dbl_mb(k_ps),
+     &              dbl_mb(k_cmm), dbl_mb(k_idp), g_il)
+            else if (ndid == 0 .and. int_nosave) then
+               write(luout, '("ATTENTION: MEWFAT integrals are not '//
+     &              'saved.")')
+            endif
+            call ga_sync()
+            
+         else if (.not. os .and. or) then
+cNEWRESTART      else
+c           ==== Binary-load MEWFAT integrals on 'restart' startup mode ====
+            if (ndid == 0) then
+               call mewfat_load_intgl(rtdb, nsh, natm, nqn, 1,
+     &              spinx, dbl_mb(k_ieg), dbl_mb(k_ps), dbl_mb(k_cmm),
+     &              dbl_mb(k_idp), g_il)
+            endif
+            call ga_sync()
+            
+            call ga_brdcst(msg_wfat_eg, dbl_mb(k_ieg),
+     &                     ma_sizeof(MT_DBL, 1, MT_BYTE), 0)
+            call ga_brdcst(msg_wfat_cmm, dbl_mb(k_cmm),
+     &                     ma_sizeof(MT_DBL, 3*1, MT_BYTE), 0)
+         else
+            call errquit('MEWFAT: MEWFAT module requires the startup '//
+     &           'directive to be either ''start'' or ''restart''.',
+     &           1, UERR)
+         endif
       else
-         call errquit('MEWFAT: MEWFAT module requires the startup '//
-     &        'directive to be either ''start'' or ''restart''.',
-     &        1, UERR)
-      endif
+         if (.not. os .and. or) 
+     &        call errquit('MEWFAT: When performing WFAT calculation '//
+     &        'without partial wave expansion, the job must be a '//
+     &        'start type. Restart is not allowed', 38, UERR)
+      endif      
 
 
 c     ==== Printings ====
-      if (ndid == 0) then
+      if (lmax >= 0 .and. ndid == 0) then
          rtdb_stat = rtdb_parallel(.false.)
          if (.not. MA_alloc_get(MT_DCPL, nintg, 'intgl', l_in, k_in))
      &        call errquit('WFAT: Cannot allocate intgl.', 2, MA_ERR)
@@ -176,13 +237,13 @@ c        ============================================
      &           pr_yild, pr_avbeta, pr_avgamma, nlas, las_env, 
      &           dbl_mb(k_al), dbl_mb(k_wl), dbl_mb(k_pl), dbl_mb(k_tl),
      &           dbl_mb(k_dl), ntime, tmax, extf, 1,
-     &           spinx, dbl_mb(k_eg), dbl_mb(k_cmm), nqn,
+     &           spinx, dbl_mb(k_ieg), dbl_mb(k_cmm), nqn,
      &           int_mb(k_npa), int_mb(k_mpa), lmax, zion,
      &           dcpl_mb(k_in))
          else
             if (pr_srfc .or. pr_rate)
      &           call mewfat_calc_ti(rtdb, geom_hd, nel0, natm, pr_srfc,
-     &           pr_rate, fieldmag, 1, spinx, dbl_mb(k_eg), 
+     &           pr_rate, fieldmag, 1, spinx, dbl_mb(k_ieg), 
      &           dbl_mb(k_cmm), nqn, int_mb(k_npa), int_mb(k_mpa),
      &           lmax, zion, dcpl_mb(k_in))
          endif
@@ -191,14 +252,25 @@ c        ============================================
          if (.not. MA_free_heap(l_in))
      &        call errquit('WFAT: intgl deallocation failed', 3, MA_ERR)
          rtdb_stat = rtdb_parallel(.true.)
+      else if (lmax < 0) then
+         call mewfat_calc_ti_nopw(rtdb, geom_hd, bas_hd, pr_srfc, 
+     &        pr_rate, fieldmag, nbas, spinx, spiny, nel0, nel1, 
+     &        dbl_mb(k_mo0), dbl_mb(k_mo1), dbl_mb(k_pcf), 
+     &        dbl_mb(k_rcf), dbl_mb(k_qcf), dbl_mb(k_scf), 1, 0, 
+     &        dbl_mb(k_ieg), dbl_mb(k_cmm), dbl_mb(k_ps), nqn, 
+     &        int_mb(k_npa), int_mb(k_mpa), zion, gqual, wf_msm, smh, 
+     &        ismask_e, ergmask, amsk, bmsk, ismask_i, mask_param)
       endif
       
 
 c     ==== Deallocations ====
       call wfat_erase_paraqn(l_npa, l_mpa)
+      call mewfat_erase_channelprop(l_eg0, l_eg1, l_ed0, l_ed1)
+      call mewfat_dealloc_ocmo(l_mo0, l_mo1)
+      call mewfat_dealloc_detcoef(l_pcf, l_rcf, l_qcf, l_scf)
       if (td=='td')
      &     call wfat_erase_tdfield(l_al, l_wl, l_pl, l_tl, l_dl)
-      call wfat_erase_channelprop(l_eg, l_ps, l_cmm, l_idp)
+      call wfat_erase_channelprop(l_ieg, l_ps, l_cmm, l_idp)
       if (.not. ga_destroy(g_il))
      &     call errquit('WFAT: Cannot destroy intgl.', 1, GA_ERR)
 
@@ -369,7 +441,6 @@ c     DESCRIPTION:
       
 
       dummy_int = 0
-c     WARNING!!!! : The argument list of wfat_calc_ti needs to be updated.
 cOLD      call wfat_calc_ti(rtdb, geom, pr_srfc, pr_rate, fieldm, 
 cOLD     &     1, dummy_int, spinid, erg, chmmt, nqn, nid, mid, lmax,
 cOLD     &     zi, dcpl_mb(k_in))

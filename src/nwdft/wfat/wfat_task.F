@@ -175,7 +175,7 @@ c     ==== Get the reduced density matrix ====
       nrd = nbas0 * nbas0 * nspin0
       if (.not. MA_alloc_get(MT_DBL, nrd, 'rdm', l_rd, k_rd))
      &     call errquit('WFAT: rdm allocation failed', 81, MA_ERR)
-      call wfat_get_rdm(dbl_mb(k_rd))
+      call wfat_get_rdm(dbl_mb(k_rd))   ! Consider creating a more generic RDM calculator.
 
 
 c     ==== Get mask parameters ====
@@ -183,11 +183,12 @@ c     ==== Get mask parameters ====
      &     ismask_e, ergmask, amsk, bmsk)
 
       
+c     ==== Calculate or store OEWFAT integrals ====
       smh = 0.0d0
       call util_get_rtdb_state(rtdb, os, oc, or)
       if (lmax >= 0) then
          if (os .and. .not. or) then
-c           ==== Calculate WFAT integrals on 'start' startup mode ====
+c           ==== Calculate OE-WFAT integrals on 'start' startup mode ====
             call wfat_calc_intgl(rtdb, geom_hd, bas_hd, nch, 
      &           int_mb(k_sp), nqn, int_mb(k_npa), int_mb(k_mpa), lmax, 
      &           gqual, zion, wf_msm, smh, res_mode, wfat1, nlgl, nbas0,
@@ -195,7 +196,7 @@ c           ==== Calculate WFAT integrals on 'start' startup mode ====
      &           dbl_mb(k_ps), dbl_mb(k_cmm), dbl_mb(k_idp), g_il, g_j,
      &           g_k)
             
-c           ==== Binary-print the integrals freshly calculated ====
+c           ==== Store the OE-WFAT integrals freshly calculated ====
             if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,
      &           int_nosave)) call errquit('WFAT: Cannot read '//
      &           'intgl_nosave from RTDB', 1, RTDB_ERR)
@@ -208,6 +209,7 @@ c           ==== Binary-print the integrals freshly calculated ====
      &              'saved.")')
             endif
             call ga_sync()
+            
          else if (.not. os .and. or) then
 c           ==== Binary-load WFAT integrals on 'restart' startup mode ====
             if (ndid == 0) then

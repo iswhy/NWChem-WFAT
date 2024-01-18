@@ -2,7 +2,8 @@ c=================================================
 c=================================================
       subroutine mewfat_calc_intgl(rtdb, geom, bas, nb, gq, sx, sy, n0, 
      &     n1, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, chpos, ionerg, 
-     &     mcel, nqn, nid, mid, lmax_, smh, rmode, g_il)
+     &     mcel, nqn, nid, mid, lmax_, smh, ismask, mask_param, rmode,
+     &     g_il)
 
       implicit none
 #include "stdio.fh"
@@ -33,7 +34,9 @@ c=================================================
       integer nid(nqn)            ! [input],
       integer mid(nqn)            ! [input],
       integer lmax_               ! [input],
-      double precision smh        ! [input],
+      double precision smh      ! [input],
+      logical ismask                                  ! [input], 
+      double precision mask_param(2)                  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
       logical rmode               ! [input],
       integer g_il                ! [output],
 
@@ -68,8 +71,8 @@ c     ==== Perform quadrature summation ====
      &     int_mb(k_icp), int_mb(k_ipp), gq, sx, sy, n0, n1, ocmo0,
      &     ocmo1, pcf, rcf, qcf, scf, zi, chpos, ionerg, max_npt, 
      &     dbl_mb(k_pt), dbl_mb(k_wt), mcel, nsh, nqn, nid, mid, 
-     &     lmax_, nat, smh, dcpl_mb(k_om), dcpl_mb(k_i_), dcpl_mb(k_i0),
-     &     dcpl_mb(k_il))
+     &     lmax_, nat, smh, ismask, mask_param, dcpl_mb(k_om), 
+     &     dcpl_mb(k_i_), dcpl_mb(k_i0), dcpl_mb(k_il))
 
 
 c     ==== Accumulate to global intgl (g_il) ====
@@ -94,7 +97,8 @@ c=================================================
       subroutine mewfat_calc_intgl_qsum(rtdb, geom, bas, nb, natp, icp,
      &     ipp, gq, sx, sy, n0, n1, ocmo0, ocmo1, pcf, rcf, qcf, scf, 
      &     zi, chpos, ionerg, max_npt, qpt, qwt, mcel, nsh, nqn, nid,
-     &     mid, lmax_, nat, smh, omega, intg_, intg0, intg)
+     &     mid, lmax_, nat, smh, ismask, mask_param, omega, intg_,
+     &     intg0, intg)
 
       implicit none
 #include "util.fh"
@@ -136,6 +140,8 @@ c=================================================
       integer lmax_                                   ! [input], max. angular momentum quantum number.
       integer nat                                     ! [input], no. of atoms in the molecule.
       double precision smh                            ! [input], smoothing parameter.
+      logical ismask                                  ! [input], 
+      double precision mask_param(2)                  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
       double complex omega(nsh, nqn)                  ! [output/scratch],
       double complex intg_(nsh, nqn, nat)             ! [output/scratch],
       double complex intg0(nsh, nqn)                  ! [output/scratch],
@@ -250,7 +256,11 @@ c           ==== Calculate Omega^(n,m)_(l,m') functions ====
      &           nid, mid, lmax_, int(zi), omega)      ! omega(nsh,nqn)   nch=1
             
 c           ==== Calculate the integrand of I^(n,m)_(l,m') ====
-            intg0 = conjg(omega) * vcpsi         ! intg0(nsh,nqn)   nch=1
+            intg0 = conjg(omega) * vcpsi ! intg0(nsh,nqn)   nch=1
+
+            if (ismask) call wfat_mask_intd(geom, nat, 1,
+     &           nqn, nsh, v_m, mask_param, intg0)
+            
 cfordebug            if (ndid==0) then
 cfordebug               write(luout, '("s1", i3, i8, 2es14.5, es14.5, es14.5)')
 cfordebug     &              ic, i, sum(omega), vcpsi, vcpsi/rcf

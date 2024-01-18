@@ -1,101 +1,51 @@
-c=================================================
-c=================================================
-      subroutine mewfat_store_intgl(rtdb, nsh, ncent, nqn, nid, mid, 
-     &     lmax_, gqual, smh, rmode, ionerg, chpos, chmmt, dipm1, g_il)
-
-      implicit none
-#include "stdio.fh"
-#include "global.fh"
-#include "mafdecls.fh"
-#include "rtdb.fh"
-#include "errquit.fh"
-#include "wfat.fh"
-#include "mewfat_qm_param.fh"
-      integer rtdb                ! [input],
-      integer nsh                 ! [input],
-      integer ncent               ! [input],
-      integer nqn                 ! [input],
-      integer nid(nqn)            ! [input],
-      integer mid(nqn)            ! [input],
-      integer lmax_               ! [input],
-      integer gqual               ! [input],
-      double precision smh        ! [input],
-      logical rmode               ! [input],
-      double precision ionerg     ! [output],
-      double precision chpos(3)   ! [output],
-      double precision chmmt(3)   ! [output],
-      double precision dipm1(3)   ! [output],
-      integer g_il                ! [output],
-
-      logical int_nosave
-      integer ndid, cx, cy, nocmo0, nocmo1, npcf, nrcf, nqcf, nscf
-      integer l_mo0, l_mo1, l_pcf, l_rcf, l_qcf, l_scf, l_eg0, l_eg1
-      integer l_ed0, l_ed1
-      integer k_mo0, k_mo1, k_pcf, k_rcf, k_qcf, k_scf, k_eg0, k_eg1
-      integer k_ed0, k_ed1
-      double precision gserg0, gserg1, edipm0(3), edipm1(3)
-
-
-      ndid = ga_nodeid()
-      call mewfat_alloc_gsedip(1, l_eg0, k_eg0, l_eg1, k_eg1,
-     &     l_ed0, k_ed0, l_ed1, k_ed1)
-
-c     ==== Get channel properties ====
-      call mewfat_channel_property(rtdb, geom_hd, bas_hd, nbas, gqual,
-     &     wf_msm, nel0, nel1, g_mov0, g_mov1, charge0, charge1, 
-     &     multip0, multip1, gserg0, gserg1, ionerg, edipm0, edipm1, 
-     &     chpos, chmmt, dipm1)
-
-c     ==== Calculate determinant coefficients and get MO's ====
-      call mewfat_alloc_ocmo(nbas, nel0, nel1, nocmo0, nocmo1,
-     &     l_mo0, k_mo0, l_mo1, k_mo1)
-      call mewfat_alloc_detcoef(spinx, spiny, nel0, cx, cy, npcf, nrcf, 
-     &     nqcf, nscf, l_pcf, k_pcf, l_rcf, k_rcf, l_qcf, k_qcf, l_scf,
-     &     k_scf)
-      call mewfat_calc_detcoef(geom_hd, bas_hd, nbas, spinx, spiny,
-     &     nel0, nel1, cx, cy, g_mov0, g_mov1, oskel, dbl_mb(k_mo0),
-     &     dbl_mb(k_mo1), dbl_mb(k_pcf), dbl_mb(k_rcf), dbl_mb(k_qcf),
-     &     dbl_mb(k_scf))
-      if (ndid == 0)
-     &     call mewfat_print_detcoef(spinx, nel0, cx, cy, dbl_mb(k_pcf),
-     &     dbl_mb(k_rcf), dbl_mb(k_qcf), dbl_mb(k_scf))
-      
-      
-c     ==== Calculate WFAT integrals ====
-      call mewfat_calc_intgl(rtdb, geom_hd, bas_hd, nbas, gqual, spinx, 
-     &     spiny, nel0, nel1, dbl_mb(k_mo0), dbl_mb(k_mo1), 
-     &     dbl_mb(k_pcf), dbl_mb(k_rcf), dbl_mb(k_qcf), dbl_mb(k_scf),
-     &     zion, chpos, ionerg, wf_msm, nqn, nid, mid, lmax_, smh,
-     &     rmode, g_il)
-
-      
-c     ==== Binary-print the integrals freshly calculated ====
-      if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,
-     &     int_nosave))
-     &     call errquit('MEWFAT: Cannot read intgl_nosave from RTDB',
-     &     1, RTDB_ERR)
-      if (ndid == 0 .and. .not. int_nosave) then
-         call mewfat_store_intgl0(rtdb, nsh, ncent, nqn, 1,
-     &        dbl_mb(k_eg0), dbl_mb(k_eg1), ionerg, dbl_mb(k_ed0),
-     &        dbl_mb(k_ed1), chpos, chmmt, dipm1, g_il)
-      else if (ndid == 0 .and. int_nosave) then
-         write(luout, '("ATTENTION: MEWFAT integrals are not '//
-     &        'saved.")')
-      endif
-
-      
-c     ==== Deallocations ====
-      call mewfat_dealloc_ocmo(l_mo0, l_mo1)
-      call mewfat_dealloc_detcoef(l_pcf, l_rcf, l_qcf, l_scf)
-      call mewfat_dealloc_gsedip(l_eg0, l_eg1, l_ed0, l_ed1)
-      
-      end
-c=================================================
+cOLDc=================================================
+cOLDc=================================================
+cOLD      subroutine mewfat_store_intgl_OLD(rtdb, nsh, ncent, nqn, nid, mid,
+cOLD     &     lmax_, gqual, smh, rmode, ismask, mask_param, ionerg, chpos,
+cOLD     &     chmmt, dipm1, g_il)
+cOLD
+cOLD      implicit none
+cOLD#include "stdio.fh"
+cOLD#include "global.fh"
+cOLD#include "mafdecls.fh"
+cOLD#include "rtdb.fh"
+cOLD#include "errquit.fh"
+cOLD#include "wfat.fh"
+cOLD#include "mewfat_qm_param.fh"
+cOLD      integer rtdb                ! [input],
+cOLD      integer nsh                 ! [input],
+cOLD      integer ncent               ! [input],
+cOLD      integer nqn                 ! [input],
+cOLD      integer nid(nqn)            ! [input],
+cOLD      integer mid(nqn)            ! [input],
+cOLD      integer lmax_               ! [input],
+cOLD      integer gqual               ! [input],
+cOLD      double precision smh        ! [input],
+cOLD      logical rmode               ! [input],
+cOLD      logical ismask                  ! [input], 
+cOLD      double precision mask_param(2)  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
+cOLD      double precision ionerg     ! [output],
+cOLD      double precision chpos(3)   ! [output],
+cOLD      double precision chmmt(3)   ! [output],
+cOLD      double precision dipm1(3)   ! [output],
+cOLD      integer g_il                ! [output],
+cOLD
+cOLD      logical int_nosave
+cOLD      integer ndid, cx, cy, nocmo0, nocmo1, npcf, nrcf, nqcf, nscf
+cOLD      integer l_mo0, l_mo1, l_pcf, l_rcf, l_qcf, l_scf, l_eg0, l_eg1
+cOLD      integer l_ed0, l_ed1
+cOLD      integer k_mo0, k_mo1, k_pcf, k_rcf, k_qcf, k_scf, k_eg0, k_eg1
+cOLD      integer k_ed0, k_ed1
+cOLDcOLD      double precision gserg0, gserg1, edipm0(3), edipm1(3)
+cOLD
+cOLD      
+cOLD      end
+cOLDc=================================================
 
       
 c=================================================
 c=================================================
-      subroutine mewfat_store_intgl0(rtdb, nsh, ncent, nqn, nch,
+      subroutine mewfat_store_intgl(rtdb, nsh, ncent, nqn, nch,
      &     gserg0, gserg1, ionerg, edipm0, edipm1, chcent, chmmt,
      &     iondip, g_il)
 
@@ -256,7 +206,7 @@ c=================================================
       rtdb_stat = rtdb_parallel(.false.)
       
 
-      call mewfat_alloc_gsedip(nch, l_eg0, k_eg0, l_eg1, k_eg1,
+      call mewfat_prep_channelprop(nch, l_eg0, k_eg0, l_eg1, k_eg1,
      &     l_ed0, k_ed0, l_ed1, k_ed1)
 
       
@@ -271,7 +221,7 @@ c=================================================
      &     dbl_mb(k_ed1), chcent, chmmt, iondip)
 
 
-      call mewfat_dealloc_gsedip(l_eg0, l_eg1, l_ed0, l_ed1)
+      call mewfat_erase_channelprop(l_eg0, l_eg1, l_ed0, l_ed1)
 
       rtdb_stat = rtdb_parallel(.true.)
       
@@ -416,8 +366,8 @@ c=================================================
 
 c=================================================
 c=================================================
-      subroutine mewfat_alloc_gsedip(nch, l_eg0, k_eg0, l_eg1, k_eg1,
-     &     l_ed0, k_ed0, l_ed1, k_ed1)
+      subroutine mewfat_prep_channelprop(nch, l_eg0, k_eg0, l_eg1, 
+     &     k_eg1, l_ed0, k_ed0, l_ed1, k_ed1)
 
       implicit none
 #include "mafdecls.fh"
@@ -443,7 +393,7 @@ c=================================================
 
 c=================================================
 c=================================================
-      subroutine mewfat_dealloc_gsedip(l_eg0, l_eg1, l_ed0, l_ed1)
+      subroutine mewfat_erase_channelprop(l_eg0, l_eg1, l_ed0, l_ed1)
 
       implicit none
 #include "mafdecls.fh"
