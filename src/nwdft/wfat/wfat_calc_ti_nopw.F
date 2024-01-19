@@ -359,7 +359,7 @@ c=======================================================
       call ga_sync()
       acf = czero               ! 1)
 c     1) It is necessary to populate acf with zeros in the beginning because
-c        the wfat_assign_acf_nopw_p subroutine below does not modify every
+c        the subroutine wfat_assign_acf_nopw_p below does not modify every
 c        element of acf (it only modifies elements that correspond to the centers
 c        of the current process). This means that the elements that are not
 c        modified will have their whatever initial values at the input of this

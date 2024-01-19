@@ -257,20 +257,19 @@ c           ==== Calculate Omega^(n,m)_(l,m') functions ====
             
 c           ==== Calculate the integrand of I^(n,m)_(l,m') ====
             intg0 = conjg(omega) * vcpsi ! intg0(nsh,nqn)   nch=1
-
             if (ismask) call wfat_mask_intd(geom, nat, 1,
      &           nqn, nsh, v_m, mask_param, intg0)
-            
-cfordebug            if (ndid==0) then
-cfordebug               write(luout, '("s1", i3, i8, 2es14.5, es14.5, es14.5)')
-cfordebug     &              ic, i, sum(omega), vcpsi, vcpsi/rcf
-cfordebug               write(luout, '(" ")')
-cfordebug            endif
 
             
 c           ==== Quadrature summation ====
             call wfat_celf_1pt(geom, icent, qpt(:,i), mcel, celf)
             intg_(:,:,icent) = intg_(:,:,icent) + intg0 * celf * qwt(i)
+
+
+cfordebug            if (ndid==0) then
+cfordebug               write(luout, '("s1", i3, i8, 2es20.10, 3es20.10)')
+cfordebug     &              ic, i, omega(1,1), vcpsi, celf, qwt(i)
+cfordebug            endif
 
             
 c           ==== Print progress ====

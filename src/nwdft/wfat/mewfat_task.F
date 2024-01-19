@@ -345,10 +345,17 @@ c     DESCRIPTION:
       if (.not. MA_alloc_get(MT_DCPL, nintg, 'intgl', l_in, k_in))
      &     call errquit('MEWFAT: Cannot allocate intgl.', 2, MA_ERR)
       nall = dble(sum(n0))
-      dcpl_mb(k_in : k_in+nintg-1) = sqrt(nall) * intgl(1:nintg)
+      dcpl_mb(k_in : k_in+nintg-1) = sqrt(nall) * intgl(1:nintg)     ! 1)
+c     1) The prefactor \sqrt{N} actually appears in the expression for ionization
+c     rates, not in the asymptotic coefficients or structure factors. However,
+c     this line will include this prefactor in the calculated values of asymptotic
+c     coefficients and structure factors. This is done because the same subroutine to
+c     calculate ionization rates, structure factors, and asymptotic coefficients
+c     are also used in the OE-WFAT codes, in other words, for facilitating code
+c     reusability.
 
 
-      dummy_int = 0
+      dummy_int = 0    ! Channel ID.
 c     WARNING!!!!: Update the arguments of wfat_calc_td below!!!
 cOLD      call wfat_calc_td(rtdb, geom, pr_srfc, pr_yild, 
 cOLD     &     pr_avbeta, pr_avgamma, nlas, ftlas, alas, wlas, 
@@ -437,10 +444,16 @@ c     DESCRIPTION:
       if (.not. MA_alloc_get(MT_DCPL, nintg, 'intgl', l_in, k_in))
      &     call errquit('MEWFAT: Cannot allocate intgl.', 2, MA_ERR)
       nall = dble(sum(n0))
-      dcpl_mb(k_in : k_in+nintg-1) = sqrt(nall) * intgl(1:nintg)
-      
+      dcpl_mb(k_in : k_in+nintg-1) = sqrt(nall) * intgl(1:nintg)     ! 1)
+c     1) The prefactor \sqrt{N} actually appears in the expression for ionization
+c     rates, not in the asymptotic coefficients or structure factors. However,
+c     this line will include this prefactor in the calculated values of asymptotic
+c     coefficients and structure factors. This is done because the same subroutine to
+c     calculate ionization rates, structure factors, and asymptotic coefficients
+c     are also used in the OE-WFAT codes, in other words, for facilitating code
+c     reusability.
 
-      dummy_int = 0
+      dummy_int = 0         ! Channel ID.
 cOLD      call wfat_calc_ti(rtdb, geom, pr_srfc, pr_rate, fieldm, 
 cOLD     &     1, dummy_int, spinid, erg, chmmt, nqn, nid, mid, lmax,
 cOLD     &     zi, dcpl_mb(k_in))

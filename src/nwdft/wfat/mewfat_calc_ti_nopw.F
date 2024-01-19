@@ -57,7 +57,7 @@ c========================================================
       integer natom, n_sg, nfc, nrt, n_pt, n_wt
       integer ndid, nbt, ngm, natp, nptp, i, k, iqn, ig, ib
       double precision bt_start, bt_last, dbt, dbtr, gm_start, gm_last
-      double precision dgm, dgmr, dthr, bt, gm, rate
+      double precision nall, dgm, dgmr, dthr, bt, gm, rate
       double precision deg2rad
       parameter(deg2rad=0.01745329251994d0)
 
@@ -72,6 +72,7 @@ c========================================================
       
       call ga_sync()
       ndid = ga_nodeid()
+      nall = dble(sum(n0))
 
       
 c     ==== Allocation of structure factors and ion yields ====
@@ -180,6 +181,8 @@ c              ==== Calculate the structure factors ====
      &              natom, int_mb(k_icp), int_mb(k_ipp), dbl_mb(k_vc), 
      &              dcpl_mb(k_tu0), dbl_mb(k_cl), dbl_mb(k_wt), ismask,
      &              dbl_mb(k_ma), dcpl_mb(k_acg))
+               dcpl_mb(k_acg:k_acg+natom*nqn*nch-1) =
+     &              sqrt(nall) * dcpl_mb(k_acg:k_acg+natom*nqn*nch-1)
                call wfat_get_srfc0(geom, bt, gm, nch, ionerg, nqn, mid, 
      &              0, chmmt, dcpl_mb(k_acg), .true., dcpl_mb(k_sg))
                
