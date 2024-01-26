@@ -81,10 +81,6 @@ c           maxn*maxn*6*nsub.
       if (ndid /= 0) return
 
 
-      write(luout, '("pbs = ", 6es15.6)') pbs(1:6)
-
-      
-
 c     ==== Obtaining info on beta ====
       call wfat_get_beta(rtdb, bt_start, bt_last, nbt, dbt)
       dbtr = dbt * deg2rad
@@ -101,29 +97,28 @@ c     ==== Allocation of structure factors and ion yields ====
       call wfat_prep_rate(nat, nqn, nch, n_gn, l_gn, k_gn, nfc,
      &     l_fc, k_fc, nrt, l_rt, k_rt)
 
+      
+c     ==== What to do with the field factor ====
+      if (.not. rtdb_get(rtdb, 'wfat:unit_ffc', mt_log, 1, uffc))
+     &     uffc = .false.
+      if (uffc) write(luout, '("Ionization rate will not include '//
+     &     'the field factor")')
+      
 
 c     ==== When WFAT1 is active ====
       if (wfat1) then
          call wfat_prepare_an(maxn, nat, nch, nqn, nsc, l_sc, k_sc, 
      &        nsx, l_sx, k_sx, npbd, l_pbd, k_pbd, n_jn, l_jn, k_jn,
      &        n_kn, l_kn, k_kn, n_on, l_on, k_on)
-cOLD         call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
-cOLD     &        int_mb(k_dgn))
          if (.not. rtdb_get(rtdb, 'wfat:dthr', mt_dbl, 1, dthr))
      &        call errquit('WFAT: Failed reading dthr from rtdb',
      &        1, RTDB_ERR)
-         if (.not. rtdb_get(rtdb, 'wfat:unit_ffc', mt_log, 1, uffc))
-     &        uffc = .false.
-         if (uffc) write(luout, '("Ionization rate will not include '//
-     &        'the field factor")')
          do i = 1, nch
             do iqn = 1, nqn
                call wfat_calc_o(0, 0, -0.917956d0, 1.0d0, ooo)
 cfordebug               call wfat_calc_o(0, 0, -0.917956d0, 1.0d0, ooo_)
                write(luout, '("He o_nu : ", 2i4, 4es21.12)')
      &              i, iqn, ooo(1), ooo(2), ooo_(1), ooo_(2)
-
-               
                i_on = k_on + 2*nqn*(i-1) + 2*(iqn-1)
                write(luout, '("zi = ", es14.5)') zi
                call wfat_calc_o(nid(iqn), mid(iqn), erg(i), zi,
@@ -132,8 +127,6 @@ cfordebug               call wfat_calc_o(0, 0, -0.917956d0, 1.0d0, ooo_)
      &              i, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
             enddo
          enddo
-      else
-         uffc = .false.
       endif
 
       
