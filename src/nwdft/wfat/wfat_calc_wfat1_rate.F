@@ -1,7 +1,9 @@
 c============================================================
 c============================================================
+cOLD      subroutine wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
+cOLD     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, uffc, ffc, p_rt, rt)
       subroutine wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
-     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, uffc, ffc, p_rt, rt)
+     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, p_rt, rt)
 
       implicit none
 #include "stdio.fh"
@@ -21,8 +23,7 @@ c============================================================
       double precision on(2, nqn, nch)       ! [input],
       double precision chmmt(3,nch)          ! [input],
       double precision pb(3,3,nch)           ! [input],
-      logical uffc                          ! [input],
-      double precision ffc(nqn, nch)         ! [output],
+      double precision ffc(nqn, nch)         ! [input],
       double precision p_rt(nqn,nch)         ! [output],
       double precision rt                    ! [output],
       
@@ -60,16 +61,8 @@ c     ==== Get the passive rotation matrix ===
      &            (9-6*gmm)*bt0/4/kp**4 - (49+2*gmm)*bt0**2/8/kp**5 +
      &            3*bt0**3/2/kp**6 - bt0**4/8/kp**7
 
-            
 cfordebug            write(luout, '("B_nu = ", f15.7)') bb_
-
             on_ = on(1,iqn,i) + mu(3)*on(2,iqn,i)
-            if (uffc) then
-               ffc(iqn,i) = 1.0d0
-            else
-               call wfat_field_factor(ef, erg(i), zi, n, m, ffc(iqn, i))
-            endif
-
             gn_ = sum(gn(:,iqn,i))
             an_ = sum(jn(:,iqn,i)) + sum(kn(:,iqn,i))
             p_rt(iqn,i) = ffc(iqn,i) *
@@ -78,18 +71,14 @@ cfordebug            write(luout, '("B_nu = ", f15.7)') bb_
      &           2*ef*real(conjg(gn_)*an_))
 
 
-
 c           ==== for debug ====
             an2 = on_ + an_/gn_
             bb2 = bb_ + 2 * real(an2)
-
-
 c            write(luout, '("A_nu = ", 6f15.7)')
 c     &           bt, gm, aa, lpbz, pb(3,3,1), mu(3)
 c            write(luout, '("   an = ", 2f15.7)') an2
          enddo
       enddo
-
       
       rt = sum(p_rt)
 
@@ -105,8 +94,8 @@ c=======================================================
 c=======================================================
       subroutine wfat_calc_wfat1_yield(bt, gm, zi, nlas, ftlas, alas, 
      &                 wlas, plas, tlas, dlas, nt, tmax, extf, nch, erg,
-     &                 nqn, nid, mid, nat, gn, jn, kn, gnn, jnn, knn,
-     &                 on, chmmt, pb, yield)
+     &                 ergf, nqn, nid, mid, nat, gn, jn, kn, gnn, jnn, 
+     &                 knn, on, chmmt, pb, yield)
 
       implicit none
 #include "errquit.fh"
@@ -128,6 +117,7 @@ c=======================================================
       logical extf
       integer nch
       double precision erg(nch)
+      double precision ergf(nch)
       integer nqn
       integer nid(nqn)
       integer mid(nqn)
@@ -143,7 +133,7 @@ c=======================================================
       double precision pb(3,3,nch)           ! [input],
       double precision yield
       
-      integer i, j, k, npi, l_pi, k_pi, nfc, l_fc, k_fc
+      integer i, j, k, npi, l_pi, k_pi, nfc, l_fc, k_fc, i_fc, ich, iqn
       double precision t0, dt, t, las, rate
       parameter (t0=0.0d0)
 
@@ -161,30 +151,47 @@ c=======================================================
       yield = 0.0d0
       do i = 1, nt
          t = t0 + (i-1)*dt
+         
+c        ==== Evaluate laser field ====
          if (extf) then
             call wfat_eval_extlaser(i, las)
-cdebug            las = 0.5d0 * las
-cdebug            write(luout, '("laser: ", i5, es14.6)') i, las
          else
             call wfat_eval_laser(nlas, ftlas, alas, wlas, plas, tlas, 
      &           dlas, t, las)
          endif
          
+c        ==== Calculate field factors ====
+         do ich = 1, nch
+            do iqn = 1, nqn
+               i_fc = k_fc + (ich-1)*nqn + (iqn-1)
+               if (las >= 1.0d-13) then
+                  call wfat_field_factor(las, ergf(ich), zi, nid(iqn),
+     &                 mid(iqn), dbl_mb(i_fc))
+               else if (las <= -1.0d-13) then
+                  call wfat_field_factor(abs(las), ergf(ich), zi, 
+     &                 nid(iqn), mid(iqn), dbl_mb(i_fc))
+               else
+                  dbl_mb(i_fc) = 0.0d0
+               endif
+            enddo
+         enddo
+         
+c        ==== Calculate rates ====
          dbl_mb(k_pi:k_pi+npi-1) = 0.0d0
          if (las >= 1.0d-13) then
             call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid,
-     &           mid, las, erg, zi, gn, jn, kn, on, chmmt, pb, .false.,
+     &           mid, las, erg, zi, gn, jn, kn, on, chmmt, pb,
      &           dbl_mb(k_fc), dbl_mb(k_pi), rate)
          else if (las <= -1.0d-13) then
             call wfat_calc_wfat1_rate(180.0d0-bt, 180.0d0+gm, nat, nqn,
      &           nch, nid, mid, abs(las), erg, zi, gnn, jnn, knn, on, 
-     &           chmmt, pb, .false., dbl_mb(k_fc), dbl_mb(k_pi), rate)
+     &           chmmt, pb, dbl_mb(k_fc), dbl_mb(k_pi), rate)
          else
-            dbl_mb(k_fc : k_fc+nfc-1) = 0.0d0
             dbl_mb(k_pi : k_pi+npi-1) = 0.0d0
             rate = 0.0d0
          endif
-
+         
+c        ==== Calculate yield ====
          yield = yield + rate * dt
       enddo
 

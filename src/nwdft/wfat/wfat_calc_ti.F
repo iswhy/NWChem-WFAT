@@ -61,7 +61,7 @@ c           maxn*maxn*6*nsub.
       double complex intgl_k1(1:*)    ! [input]. Only used when wfat1=.true..
       double complex intgl_k2(1:*)    ! [input]. Only used when wfat1=.true..
       
-      logical gap, uffc
+      logical gap
       integer n_gn, nfc, nrt, nbt, ngm, nat, nsc, nsx
       integer npbd, n_jn, n_kn, n_on, ib, ig, ndid, i, iqn, i_on
       integer l_gn, l_fc, l_rt, l_sc, l_sx, l_pbd
@@ -98,12 +98,10 @@ c     ==== Allocation of structure factors and ion yields ====
      &     l_fc, k_fc, nrt, l_rt, k_rt)
 
       
-c     ==== What to do with the field factor ====
-      if (.not. rtdb_get(rtdb, 'wfat:unit_ffc', mt_log, 1, uffc))
-     &     uffc = .false.
-      if (uffc) write(luout, '("Ionization rate will not include '//
-     &     'the field factor")')
-      
+c     ==== Obtain field factor ====
+      call wfat_get_field_factor(rtdb, nch, nqn, nid, mid, zi, fieldm,
+     &     erg, dbl_mb(k_fc))
+                  
 
 c     ==== When WFAT1 is active ====
       if (wfat1) then
@@ -178,7 +176,6 @@ c              ==== Print structure factor ====
                   if (wfat1) call wfat_print_srfc1(nat, bt, gm, nch, 
      &                 nqn, dcpl_mb(k_jn), dcpl_mb(k_kn), gap)
                endif
-                  
             endif
 
             if (pr_rate) then
@@ -187,12 +184,11 @@ c              ==== Calculate ionization rate ====
                   call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid,
      &                 mid, fieldm, erg, zi, dcpl_mb(k_gn),
      &                 dcpl_mb(k_jn), dcpl_mb(k_kn), dbl_mb(k_on), 
-     &                 chmmt, dbl_mb(k_pbd), uffc, 
-     &                 dbl_mb(k_fc), dbl_mb(k_rt), rate)
+     &                 chmmt, dbl_mb(k_pbd), dbl_mb(k_fc), dbl_mb(k_rt),
+     &                 rate)
                else
-                  call wfat_calc_rate(nat, fieldm, nch, erg, nqn, nid,
-     &                 mid, zi, dcpl_mb(k_gn), uffc, dbl_mb(k_fc),
-     &                 dbl_mb(k_rt), rate)
+                  call wfat_calc_rate(nat, nch, nqn, dcpl_mb(k_gn), 
+     &                 dbl_mb(k_fc), dbl_mb(k_rt), rate)
                endif
                
 c              ==== Print ionization rate ====

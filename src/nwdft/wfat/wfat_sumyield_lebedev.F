@@ -1,7 +1,7 @@
 c===============================================================
 c===============================================================
-      subroutine wfat_sumyield_lebedev(geom, nlas, ftlas, alas, wlas, 
-     &           plas, tlas, dlas, nt, tmax, extf, nch, 
+      subroutine wfat_sumyield_lebedev(rtdb, geom, nlas, ftlas, alas, 
+     &           wlas, plas, tlas, dlas, nt, tmax, extf, nch, 
      &           erg, chmmt, nqn, nid, mid, lmax, zi, intgl)
 
       implicit none
@@ -10,6 +10,7 @@ c===============================================================
 #include "mafdecls.fh"
 #include "geom.fh"
 #include "wfat_field_param.fh"
+      integer rtdb
       integer geom
       integer nlas
       character(len=FLD_TP_LEN) ftlas(nlas)
@@ -32,8 +33,8 @@ c===============================================================
       double complex intgl(1:*)       ! [input]
       
       integer NTRIAL, nmax, nsf, nat, i, j
-      integer l_xx, l_yy, l_zz, l_w, l_sf, l_sfn
-      integer k_xx, k_yy, k_zz, k_w, k_sf, k_sfn
+      integer l_xx, l_yy, l_zz, l_w, l_sf, l_sfn, l_egf
+      integer k_xx, k_yy, k_zz, k_w, k_sf, k_sfn, k_egf
       parameter (NTRIAL = 10)
       integer nang(NTRIAL)
       double precision bt, gm, deg2rad, pi_const, yield, sumbtgm(NTRIAL)
@@ -64,6 +65,12 @@ c     ==== Allocation of structure factors ====
      &     call errquit('WFAT: srfc allocation failed', 22, MA_ERR)
       if (.not. MA_alloc_get(MT_DCPL, nsf, 'srfcn', l_sfn, k_sfn))
      &     call errquit('WFAT: srfc allocation failed', 23, MA_ERR)
+
+      
+c     ==== Modified energy for field factors ====
+      if (.not. MA_alloc_get(MT_DBL, nch, 'ergf', l_egf, k_egf))
+     &     call errquit('WFAT: ergf allocation failed', 22, MA_ERR)
+      call wfat_get_ergffc(rtdb, nch, erg, dbl_mb(k_egf))
       
 
 c     ==== Loop over the sample sets of Lebedev grids ====
@@ -103,6 +110,8 @@ c           ==== Integrate using the quadrature formula ====
 
 
 c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_egf))
+     &     call errquit('WFAT: ergf deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_xx))
      &     call errquit('WFAT: angx deallocation failed', 5, MA_ERR)
       if (.not. MA_free_heap(l_yy))

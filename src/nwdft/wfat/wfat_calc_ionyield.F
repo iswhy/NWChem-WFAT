@@ -1,32 +1,25 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_calc_rate(nat, ef, nch, erg, nqn, nid, mid,
-     &                          zi, srfc, uffc, ffc, p_ionyd, ionyd)
+cOLD      subroutine wfat_calc_rate(nat, ef, nch, erg, nqn, nid, mid,
+cOLD     &     zi, srfc, uffc, ffc, p_ionyd, ionyd)
+      subroutine wfat_calc_rate(nat, nch, nqn, srfc, ffc, p_ionyd, 
+     &     ionyd)
 
       implicit none
-#include "errquit.fh"
-#include "geom.fh"
-      integer nat
-      integer nch, nqn, nid(nqn), mid(nqn)
-      double precision ef, erg(nch), zi
-      double complex srfc(1:*)
-      logical uffc
-      double precision ffc(nqn, nch), p_ionyd(nqn, nch), ionyd
+      integer nat                          ! [input]
+      integer nch                          ! [input]
+      integer nqn                          ! [input]
+      double complex srfc(1:*)             ! [input]
+      double precision ffc(nqn, nch)       ! [input]
+      double precision p_ionyd(nqn, nch)   ! [output]
+      double precision ionyd               ! [output]
       
       integer ich, iqn, i
-      double complex srfc_tot
-      
+      double complex srfc_tot      
 
       i = 1
       do ich = 1, nch
          do iqn = 1, nqn
-
-            if (uffc) then
-               ffc(iqn, ich) = 1.0d0
-            else
-               call wfat_field_factor(ef, erg(ich), zi, nid(iqn),
-     &              mid(iqn), ffc(iqn, ich))
-            endif
             srfc_tot = sum(srfc(i : i+nat-1))
             p_ionyd(iqn, ich) = ffc(iqn, ich) * abs(srfc_tot)**2
 
@@ -42,7 +35,7 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_calc_yield(nat, zi, nlas, ftlas, alas, wlas, 
-     &                 plas, tlas, dlas, nt, tmax, extf, nch, erg, nqn,
+     &                 plas, tlas, dlas, nt, tmax, extf, nch, ergf, nqn,
      &                 nid, mid, srfc, srfcn, yield)
 
       implicit none
@@ -63,7 +56,7 @@ c=======================================================
       double precision tmax         ! Time window width, a.u. of time
       logical extf
       integer nch
-      double precision erg(nch)
+      double precision ergf(nch)
       integer nqn
       integer nid(nqn)
       integer mid(nqn)
@@ -71,7 +64,7 @@ c=======================================================
       double complex srfcn(1:*)
       double precision yield
 
-      integer i, j, k, npi, l_pi, k_pi, nfc, l_fc, k_fc
+      integer i, j, k, npi, l_pi, k_pi, nfc, l_fc, k_fc, i_fc, ich, iqn
       double precision t0, dt, t, las, rate
       parameter (t0=0.0d0)
 
@@ -89,28 +82,45 @@ c=======================================================
       yield = 0.0d0
       do i = 1, nt
          t = t0 + (i-1)*dt
+
+c        ==== Evaluate laser field ====
          if (extf) then
             call wfat_eval_extlaser(i, las)
-cdebug            las = 0.5d0 * las
-cdebug            write(luout, '("laser: ", i5, es14.6)') i, las
          else
             call wfat_eval_laser(nlas, ftlas, alas, wlas, plas, tlas, 
      &           dlas, t, las)
          endif
-         
+
+c        ==== Calculate field factors ====
+         do ich = 1, nch
+            do iqn = 1, nqn
+               i_fc = k_fc + (ich-1)*nqn + (iqn-1)
+               if (las >= 1.0d-13) then
+                  call wfat_field_factor(las, ergf(ich), zi, nid(iqn),
+     &                 mid(iqn), dbl_mb(i_fc))
+               else if (las <= -1.0d-13) then
+                  call wfat_field_factor(abs(las), ergf(ich), zi, 
+     &                 nid(iqn), mid(iqn), dbl_mb(i_fc))
+               else
+                  dbl_mb(i_fc) = 0.0d0
+               endif
+            enddo
+         enddo
+
+c        ==== Calculate rates ====
          dbl_mb(k_pi:k_pi+npi-1) = 0.0d0
          if (las >= 1.0d-13) then
-            call wfat_calc_rate(nat, las, nch, erg, nqn, nid, mid,
-     &           zi, srfc, .false., dbl_mb(k_fc), dbl_mb(k_pi), rate)
+            call wfat_calc_rate(nat, nch, nqn, srfc, dbl_mb(k_fc),
+     &           dbl_mb(k_pi), rate)
          else if (las <= -1.0d-13) then
-            call wfat_calc_rate(nat, abs(las), nch, erg, nqn, nid, mid,
-     &           zi, srfcn, .false., dbl_mb(k_fc), dbl_mb(k_pi), rate)
+            call wfat_calc_rate(nat, nch, nqn, srfcn, dbl_mb(k_fc),
+     &           dbl_mb(k_pi), rate)
          else
-            dbl_mb(k_fc : k_fc+nfc-1) = 0.0d0
             dbl_mb(k_pi : k_pi+npi-1) = 0.0d0
             rate = 0.0d0
          endif
 
+c        ==== Calculate yield ====
          yield = yield + rate * dt
       enddo
 

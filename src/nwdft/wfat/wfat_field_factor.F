@@ -26,6 +26,109 @@ c=======================================================
 
 c=======================================================
 c=======================================================
+      subroutine wfat_get_field_factor(rtdb, nch, nqn, nid, mid, zi, ef,
+     &     erg, fifc)
+
+      implicit none
+#include "rtdb.fh"
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer rtdb
+      integer nch
+      integer nqn
+      integer nid(nqn)
+      integer mid(nqn)
+      double precision zi
+      double precision ef
+      double precision erg(nch)
+      double precision fifc(nqn,nch)
+
+      integer ich, iqn, ffc_type(nch)
+      double precision ergf3(nch)
+
+      if (.not. rtdb_get(rtdb, 'wfat:ffc_type', mt_int, 1, ffc_type))
+     &     call errquit('WFAT: Cannot read ffc_type from RTDB.')
+      
+      do ich = 1, nch
+         if (ffc_type(ich) == 3) then
+            if (rtdb_get(rtdb, 'wfat:erg_ffc', mt_dbl, nch, ergf3))
+     &           call errquit('WFAT: Cannot read erg_ffc from RTDB.')
+            exit
+         endif
+      enddo
+         
+      do ich = 1, nch
+         do iqn = 1, nqn
+            if (ffc_type(ich) == 1) then
+               fifc(iqn, ich) = 1.0d0
+            else if (ffc_type(ich) == 2) then
+               call wfat_field_factor(ef, erg(ich), zi, nid(iqn),
+     &              mid(iqn), fifc(iqn,ich))
+            else if (ffc_type(ich) == 3) then
+               call wfat_field_factor(ef, ergf3(ich), zi, nid(iqn), 
+     &              mid(iqn), fifc(iqn,ich))
+            else
+               call errquit('WFAT: The input ffc_type of '//
+     &              'wfat_get_field_factor corresponds to a '//
+     &              'nonexisting option.', 33, UERR)
+            endif
+         enddo
+      enddo
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_get_ergffc(rtdb, nch, erg, ergf)
+
+      implicit none
+#include "rtdb.fh"
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer rtdb
+      integer nch
+      double precision erg(nch)
+      double precision ergf(nch)
+
+      integer ich, iqn, ffc_type(nch)
+      double precision ergf3(nch)
+      
+      
+      if (.not. rtdb_get(rtdb, 'wfat:ffc_type', mt_int, 1, ffc_type))
+     &     call errquit('WFAT: Cannot read ffc_type from RTDB.')
+
+      do ich = 1, nch
+         if (ffc_type(ich) == 3) then
+            if (rtdb_get(rtdb, 'wfat:erg_ffc', mt_dbl, nch, ergf3))
+     &           call errquit('WFAT: Cannot read erg_ffc from RTDB.')
+            exit
+         endif
+      enddo
+
+      do ich = 1, nch
+         if (ffc_type(ich) == 1) then
+            call errquit('WFAT: None of the elements of ffc_type '//
+     &           'in wfat_get_ergffc can be equal to 1 if this '//
+     &           'subroutine is to be called.', 60, UERR)
+         else if (ffc_type(ich) == 2) then
+            ergf(ich) = erg(ich)
+         else if (ffc_type(ich) == 3) then
+            ergf(ich) = ergf3(ich)
+         else
+            call errquit('WFAT: The input ffc_type of '//
+     &           'wfat_get_ergffc corresponds to a nonexisting '//
+     &           'option.', 35, UERR)
+         endif
+      enddo
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
       subroutine wfat_print_field_factor(ef, nch, nqn, erg, nid, mid,
      &     zi)
 

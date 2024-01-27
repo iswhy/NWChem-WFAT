@@ -50,7 +50,7 @@ c=======================================================
       double precision dps(1:*)       ! [input]. Only used when wfat1=.true..
       double precision pbs(1:*)       ! [input]. Only used when wfat1=.true..
 
-      logical gap, uffc
+      logical gap
       integer l_sg, l_fc, l_rt, l_icp, l_ipp, l_pt, l_wt, l_vc, l_cl
       integer l_ma, l_tu0, l_tu1, l_acg, l_acj, l_ack, l_dum, l_sc, l_sx
       integer l_pbd, l_sj, l_sk, l_on, l_si, l_pos
@@ -141,12 +141,12 @@ c     ==== Allocate tau and as. coeff. at all grid points ====
       call wfat_prep_acoef(natom, nqn, nch, wfat1, n_acg, l_acg,
      &     k_acg, n_acj, l_acj, k_acj, n_ack, l_ack, k_ack, n_dum,
      &     l_dum, k_dum)
+
       
-c     ==== What to do with the field factor ====
-      if (.not. rtdb_get(rtdb, 'wfat:unit_ffc', mt_log, 1, uffc))
-     &     uffc = .false.
-      if (uffc) write(luout, '("Ionization rate will not include '//
-     &     'the field factor")')
+c     ==== Obtain field factor ====
+      call wfat_get_field_factor(rtdb, nch, nqn, nid, mid, zi, fieldm,
+     &     erg, dbl_mb(k_fc))
+      
 
 c     ==== When WFAT1 is active ====
       if (wfat1) then
@@ -266,12 +266,11 @@ c              ==== Calculate ionization rate ====
                   call wfat_calc_wfat1_rate(bt, gm, natom, nqn, nch, 
      &                 nid, mid, fieldm, erg, zi, dcpl_mb(k_sg), 
      &                 dcpl_mb(k_sj), dcpl_mb(k_sk), dbl_mb(k_on), 
-     &                 chmmt, dbl_mb(k_pbd), uffc, dbl_mb(k_fc),
-     &                 dbl_mb(k_rt), rate)
+     &                 chmmt, dbl_mb(k_pbd), dbl_mb(k_fc), dbl_mb(k_rt),
+     &                 rate)
                else
-                  call wfat_calc_rate(natom, fieldm, nch, erg, nqn, nid,
-     &                 mid, zi, dcpl_mb(k_sg), uffc, dbl_mb(k_fc),
-     &                 dbl_mb(k_rt), rate)
+                  call wfat_calc_rate(natom, nch, nqn, dcpl_mb(k_sg), 
+     &                 dbl_mb(k_fc), dbl_mb(k_rt), rate)
                endif
                
 c              ==== Print ionization rate ====

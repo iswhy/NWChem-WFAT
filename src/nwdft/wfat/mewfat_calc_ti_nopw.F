@@ -49,7 +49,7 @@ c========================================================
       double precision mask_param(2)  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
 
       character*5 si_type
-      logical gap, uffc, isdft, rs
+      logical gap, isdft, rs
       integer l_sg, l_fc, l_rt, l_icp, l_ipp, l_pt, l_wt, l_vc, l_cl
       integer l_ma, l_tu0, l_acg
       integer k_sg, k_fc, k_rt, k_icp, k_ipp, k_pt, k_wt, k_vc, k_cl
@@ -136,11 +136,9 @@ c     ==== Allocate tau and as. coeff. at all grid points ====
      &     l_tu0, k_tu0))
      &     call errquit('WFAT: tau0 allocation failed', 81, MA_ERR)
 
-c     ==== Choose the type of field factors ====
-      if (.not. rtdb_get(rtdb, 'wfat:unit_ffc', mt_log, 1, uffc))
-     &     uffc = .false.
-      if (uffc) write(luout, '("Ionization rate will not include '//
-     &     'the field factor")')
+c     ==== Obtain field factor ====
+      call wfat_get_field_factor(rtdb, nch, nqn, nid, mid, zi, fieldm,
+     &     ionerg, dbl_mb(k_fc))
       
 c     ==== Initializing the printings ====
       if (ndid == 0)
@@ -195,9 +193,8 @@ c              ==== Print structure factor ====
 
             if (pr_rate) then
 c              ==== Calculate ionization rate ====
-               call wfat_calc_rate(natom, fieldm, nch, ionerg, nqn, nid,
-     &              mid, zi, dcpl_mb(k_sg), uffc, dbl_mb(k_fc),
-     &              dbl_mb(k_rt), rate)
+               call wfat_calc_rate(natom, nch, nqn, dcpl_mb(k_sg), 
+     &              dbl_mb(k_fc), dbl_mb(k_rt), rate)
 
 c              ==== Print ionization rate ====
                if (ndid == 0 .and. pr_rate)

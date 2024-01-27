@@ -76,9 +76,9 @@ cOLD      character*5 ftlas(nlas)       ! Function type of envelope, 'gauss' or 
       integer nsf, nbt, ngm, nat, ndid, nsc, nsx, npbd
       integer n_jn, n_kn, n_on
       integer ib, ig, i, iqn, i_on
-      integer l_gn, l_gnn, l_sc, l_sx, l_pbd, l_jn
+      integer l_egf, l_gn, l_gnn, l_sc, l_sx, l_pbd, l_jn
       integer l_kn, l_on, l_jnn, l_knn
-      integer k_gn, k_gnn, k_sc, k_sx, k_pbd, k_jn
+      integer k_egf, k_gn, k_gnn, k_sc, k_sx, k_pbd, k_jn
       integer k_kn, k_on, k_jnn, k_knn
       double precision bt_start, bt_last, dbt, dbtr, bt
       double precision gm_start, gm_last, dgm, dgmr, gm
@@ -139,6 +139,10 @@ cOLD     &        int_mb(k_dgn))
          enddo
       endif
 
+c     ==== Modified energy for field factors ====
+      if (.not. MA_alloc_get(MT_DBL, nch, 'ergf', l_egf, k_egf))
+     &     call errquit('WFAT: ergf allocation failed', 22, MA_ERR)
+      call wfat_get_ergffc(rtdb, nch, erg, dbl_mb(k_egf))
       
 c     ==== Initializing the printings ====
       if (ndid == 0 .and. pr_srfc) then
@@ -219,15 +223,16 @@ c              ==== Calculate ion yield ====
                if (wfat1) then
                   call wfat_calc_wfat1_yield(bt, gm, zi, nlas, ftlas, 
      &                 alas, wlas, plas, tlas, dlas, nt, tmax, extf, 
-     &                 nch, erg, nqn, nid, mid, nat, dcpl_mb(k_gn), 
-     &                 dcpl_mb(k_jn), dcpl_mb(k_kn), dcpl_mb(k_gnn),
-     &                 dcpl_mb(k_jnn), dcpl_mb(k_knn), dbl_mb(k_on),
-     &                 chmmt, dbl_mb(k_pbd), yield)
+     &                 nch, erg, dbl_mb(k_egf), nqn, nid, mid, nat, 
+     &                 dcpl_mb(k_gn), dcpl_mb(k_jn), dcpl_mb(k_kn), 
+     &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn), 
+     &                 dbl_mb(k_on), chmmt, dbl_mb(k_pbd), yield)
                   
                else
                   call wfat_calc_yield(nat, zi, nlas, ftlas, alas, wlas,
-     &                 plas, tlas, dlas, nt, tmax, extf, nch, erg, nqn,
-     &                 nid, mid, dcpl_mb(k_gn), dcpl_mb(k_gnn), yield)
+     &                 plas, tlas, dlas, nt, tmax, extf, nch, 
+     &                 dbl_mb(k_egf), nqn, nid, mid, dcpl_mb(k_gn),
+     &                 dcpl_mb(k_gnn), yield)
                endif
                
 c              ==== Print ion yield ====
@@ -272,7 +277,7 @@ c     ====   solid angle using Lebedev quadrature    ====
          write(luout, '("INFO : gamma interval  ", 2f11.4, i5)')
      &        gm_start, gm_last, ngm
 
-         call wfat_sumyield_lebedev(geom, nlas, ftlas, alas, wlas, 
+         call wfat_sumyield_lebedev(rtdb, geom, nlas, ftlas, alas, wlas,
      &        plas, tlas, dlas, nt, tmax, extf, nch,
      &        erg, chmmt, nqn, nid, mid, lmax, zi, intgl)
       endif
@@ -318,15 +323,15 @@ c              ==== Calculate ion yield ====
                if (wfat1) then
                   call wfat_calc_wfat1_yield(bt, gm, zi, nlas, ftlas, 
      &                 alas, wlas, plas, tlas, dlas, nt, tmax, extf, 
-     &                 nch, erg, nqn, nid, mid, nat, dcpl_mb(k_gn), 
-     &                 dcpl_mb(k_jn), dcpl_mb(k_kn), dcpl_mb(k_gnn),
-     &                 dcpl_mb(k_jnn), dcpl_mb(k_knn), dbl_mb(k_on),
-     &                 chmmt, dbl_mb(k_pbd), yield)
+     &                 nch, erg, dbl_mb(k_egf), nqn, nid, mid, nat, 
+     &                 dcpl_mb(k_gn), dcpl_mb(k_jn), dcpl_mb(k_kn), 
+     &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn), 
+     &                 dbl_mb(k_on), chmmt, dbl_mb(k_pbd), yield)
                else
-                  call wfat_calc_yield(nat, zi, nlas, ftlas, alas, 
-     &                 wlas, plas, tlas, dlas, nt, tmax, extf, nch, erg,
-     &                 nqn, nid, mid, dcpl_mb(k_gn), dcpl_mb(k_gnn),
-     &                 yield)
+                  call wfat_calc_yield(nat, zi, nlas, ftlas, alas, wlas,
+     &                 plas, tlas, dlas, nt, tmax, extf, nch, 
+     &                 dbl_mb(k_egf), nqn, nid, mid, dcpl_mb(k_gn), 
+     &                 dcpl_mb(k_gnn), yield)
                endif
 
                a_yield = a_yield + yield * dgmr / 2.0d0 / pi_const
@@ -348,6 +353,8 @@ c     ==== Terminating printings ====
 
       
 c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_egf))
+     &     call errquit('WFAT: ergf deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_gn))
      &     call errquit('WFAT: srfc deallocation failed', 3, MA_ERR)
       if (.not. MA_free_heap(l_gnn))
