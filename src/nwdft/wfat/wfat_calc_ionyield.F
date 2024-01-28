@@ -1,7 +1,5 @@
 c=======================================================
 c=======================================================
-cOLD      subroutine wfat_calc_rate(nat, ef, nch, erg, nqn, nid, mid,
-cOLD     &     zi, srfc, uffc, ffc, p_ionyd, ionyd)
       subroutine wfat_calc_rate(nat, nch, nqn, srfc, ffc, p_ionyd, 
      &     ionyd)
 

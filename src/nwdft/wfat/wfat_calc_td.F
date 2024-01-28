@@ -278,8 +278,8 @@ c     ====   solid angle using Lebedev quadrature    ====
      &        gm_start, gm_last, ngm
 
          call wfat_sumyield_lebedev(rtdb, geom, nlas, ftlas, alas, wlas,
-     &        plas, tlas, dlas, nt, tmax, extf, nch,
-     &        erg, chmmt, nqn, nid, mid, lmax, zi, intgl)
+     &        plas, tlas, dlas, nt, tmax, extf, nch, erg, chmmt, nqn,
+     &        nid, mid, lmax, zi, intgl)
       endif
       
 

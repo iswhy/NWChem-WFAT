@@ -185,9 +185,13 @@ c     == nktmd ==
       
 c     ==== Checking existence of OPTIONAL INPUTS ====
       if (.not. orbid_exist) then
-         n_orbid = 2
-         wfat_spinid(1:n_orbid) = (/ 1,  1 /)
-         wfat_orbid0(1:n_orbid) = (/ 0, -1 /)
+         if (wfat_level == 'oe') then
+            n_orbid = 2
+            wfat_spinid(1:n_orbid) = (/ 1,  1 /)
+            wfat_orbid0(1:n_orbid) = (/ 0, -1 /)
+         else if (wfat_level == 'me') then
+            n_orbid = 1
+         endif
          orbid_stat = .true.
       else if (orbid_exist .and. or) then
          write(luout, 202) 'movec_id', 'movec_id'
@@ -254,11 +258,12 @@ c     ==== Checking existence of OPTIONAL INPUTS ====
       else if (wfat_mask_exist .and. or) then
          write(luout, 202) 'tailmask', 'tailmask'
       endif
-      if (.not. unit_ffc_exist) then
-         unit_ffc = DEF_UNIT_FFC
-         unit_ffc_stat = .true.
-      else if (unit_ffc_exist .and. .not. print_rate) then
-         write(luout, 201) 'unit_ffactor',
+      if (.not. ffc_exist) then
+         ffc_type0(1:n_orbid) = DEF_FFC_TYPE
+         ergffc(1:n_orbid) = DEF_ERG_FFC
+         ffc_stat = .true.
+      else if (ffc_exist .and. .not. print_rate) then
+         write(luout, 201) 'field_factor',
      &        '* print_rate      ',
      &        ' ', ' ', ' ', ' ', ' ', ' '
       endif
@@ -524,10 +529,14 @@ c     ==== Checking format of OPTIONAL INPUTS ====
      &        '<float value>''.',
      &        0, INPUT_ERR)
       endif
-      if (.not. unit_ffc_stat) then
+      if (.not. ffc_stat) then
          call errquit('WFAT: Error reading optional input parameter '//
-     &        '''unit_ffactor''. Please check if it is specified '//
-     &        'following the format ''unit_ffactor''.',
+     &        '''field_factor''. Please check if it is specified '//
+     &        'following the format ''field_factor <value> '//
+     &        '<value> ... <value>'' where ''value'' is either a '//
+     &        'floating point number, a string ''orb'', or a string '//
+     &        '''unit''. There must be as many <value> fields as '//
+     &        'there are the total number of ionized channels.',
      &        0, INPUT_ERR)
       endif
       if (.not. prtb_type_stat) then
@@ -743,7 +752,7 @@ c=======================================================
       wfat1_need = .false.          ! needed when OE or ME
       nlgl_need = .false.           ! needed when oe or me
       dthr_need = .false.           ! needed when oe or me
-      unit_ffc_need = .false.       ! needed when oe or me
+      ffc_need = .false.       ! needed when oe or me
       wfat_mask_need = .false.      ! needed when oe or me
       prtb_type_need = .false.      ! needed when OE
       prtb_ord_need = .false.       ! needed when OE
@@ -809,7 +818,7 @@ c TMD notyet     &     .false., .false., nktmd_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     dthr_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
-     &     unit_ffc_need)
+     &     ffc_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     wfat_mask_need)
 
@@ -846,7 +855,7 @@ c=======================================================
       wfat1_need = .false.          ! needed when oe or me
       nlgl_need = .false.           ! needed when oe or me
       dthr_need = .false.           ! needed when oe or me
-      unit_ffc_need = .false.       ! needed when oe or me
+      ffc_need = .false.       ! needed when oe or me
       wfat_mask_need = .false.      ! needed when oe or me
       prtb_type_need = .false.      ! needed when oe
       prtb_ord_need = .false.       ! needed when oe
@@ -909,7 +918,7 @@ c=======================================================
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     dthr_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
-     &     unit_ffc_need)
+     &     ffc_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     wfat_mask_need)
 
@@ -1050,7 +1059,7 @@ c=======================================================
       double precision dt_00, tmax_00
       
       character*1 w
-      logical r
+      logical r, unit_ffc
       parameter ( w='i' )
       integer k
       
@@ -1205,6 +1214,15 @@ cOLD      endif
      &        '''gridqual''', w, r)
       endif
 
+      do i = 1, n_orbid
+         unit_ffc = (ffc_type0(i) == 1)
+         if (unit_ffc) exit
+      enddo
+      if (ffc_need .and. unit_ffc .and. print_rate .and. n_orbid > 1)
+     &     then
+         write(luout, 500)
+      endif
+      
       if (dgnthr_need) then
          call wfat_dval_atleast(dgnthr, 0.0d0, 'g', 'WFAT', 
      &        '''degenthr''', 'e', w, r)
@@ -1292,7 +1310,22 @@ cOLD      endif
      &        '''perturb:maxord''', w, r)
       endif
       
-
+ 500  format(/,
+     &     3x, '*** ATTENTION ***', /,
+     &     3x, 'NWChem detected that the following situations ',
+     &     'are true:', /,
+     &     3x, '  * ionization rate is requested, ', /,
+     &     3x, '  * there are more than one channels, and ', /,
+     &     3x, '  * unit field factor is chosen.', /,
+     &     3x, 'While the above situations do not lead to ',
+     &     'a runtime error, the calculated total ionization ', /,
+     &     3x, 'rate is erroneous. This is because the rate of ',
+     &     'several channels are added together to compute total ', /,
+     &     3x, 'rate. And each of these rates has a specific ',
+     &     'field factor that depends on their orbital energies. ', /,
+     &     3x, 'Summing these rates while some or all of them have ',
+     &     'their corresponding field factor artificially set to ', /,
+     &     3x, 'unity produces an unphysical situation.')
       end
 c=======================================================
 
@@ -1756,9 +1789,14 @@ cOLD      if (prtb_ord_need .and. os) then
      &        RTDB_ERR)
       endif
 
-      if (unit_ffc_need) then
-         if (.not. rtdb_put(rtdb, 'wfat:unit_ffc', mt_log, 1, unit_ffc))
-     &        call errquit('WFAT: Failed writing unit_ffc to RTDB', 1,
+      if (ffc_need) then
+         if (.not. rtdb_put(rtdb, 'wfat:ffc_type', mt_int, n_orbid,
+     &        ffc_type0))
+     &        call errquit('WFAT: Failed writing ffc_type to RTDB', 1,
+     &        RTDB_ERR)
+         if (.not. rtdb_put(rtdb, 'wfat:erg_ffc', mt_dbl, n_orbid,
+     &        ergffc))
+     &        call errquit('WFAT: Failed writing erg_ffc to RTDB', 1,
      &        RTDB_ERR)
       endif
          

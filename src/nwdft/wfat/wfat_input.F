@@ -37,10 +37,10 @@ c=======================================================
 
       logical wfat_inp_paraqn, wfat_inp_movec, wfat_inp_omgpos
       logical wfat_inp_field, wfat_inp_perturb, wfat_inp_dt
-      logical wfat_inp_tmax
+      logical wfat_inp_tmax, wfat_inp_ffc
       external wfat_inp_paraqn, wfat_inp_movec, wfat_inp_omgpos
       external wfat_inp_field, wfat_inp_perturb, wfat_inp_dt
-      external wfat_inp_tmax
+      external wfat_inp_tmax, wfat_inp_ffc
 
       
       WFAT_PRINT_OPTIONS = (/ 'srfc', 'rate', 'yield', 'avbeta', 
@@ -109,15 +109,14 @@ c     ==== Initial status of WFAT inputs ====
       wfat1_exist = .false.
       wfat1_stat = .false.
 
-c     nlgl, dhtr, unit_ffc, tailmask
       nlgl_exist = .false.
       nlgl_stat = .false.
 
       dthr_exist = .false.
       dthr_stat = .false.
 
-      unit_ffc_exist = .false.
-      unit_ffc_stat = .false.
+      ffc_exist = .false.
+      ffc_stat = .false.
 
       wfat_mask_exist = .false.
       wfat_mask_stat = .false.
@@ -329,10 +328,9 @@ c           ==== OPTIONAL INPUTS ====
                ll2 = inp_f(wfat_mask_param(2))
                wfat_mask_stat = (ll1 .and. ll2)
                if (wfat_mask_stat) wfat_mask = .true.
-            else if (inp_compare(.false., 'unit_ffactor', field)) then
-               unit_ffc_exist = .true.
-               unit_ffc_stat = .true.
-               unit_ffc = .true.
+            else if (inp_compare(.false., 'field_factor', field)) then
+               ffc_exist = .true.
+               ffc_stat = wfat_inp_ffc(ffc_type0, ergffc)
             else if (inp_compare(.false., 'perturb', field)) then
                perturb_exist = .true.
                perturb_stat = wfat_inp_perturb(
@@ -882,7 +880,7 @@ c     ==== Loop for reading spins ====
          endif
          
          io = 0
-c        ==== Loop for reading m quantum numbers ====
+c        ==== Loop for reading orbitals ====
          do j = 1, MAX_MOVEC_FIELDS
             if (inp_i(ifield)) then
                io = io + 1
@@ -903,7 +901,7 @@ c     ==== Check duplicate in the spins ====
          if (is > 1) then
             if (wfat_check_invec(spinid0_(is), is-1, 
      &           spinid0_(1:is-1))) 
-     &           call errquit('WFAT: Both of the specified spin '//            
+     &           call errquit('WFAT: Both of the specified spin '//
      &           'channels cannot be identical.', 1, INPUT_ERR)
          endif
          spinid0(ior1:ior2) = spinid0_(is)
@@ -933,8 +931,6 @@ c        ==== Check duplicate in orbital ====
       enddo
 
       wfat_inp_movec = .true.
-
-
 
       end
 c=======================================================
@@ -1055,6 +1051,51 @@ c     ==== Check duplicate in m ====
       enddo
 
       wfat_inp_paraqn = .true.
+      
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      logical function wfat_inp_ffc(ftp, ergf)
+
+      implicit none
+#include "wfat_input.fh"
+#include "inp.fh"
+#include "errquit.fh"
+#include "stdio.fh"
+      integer ftp(MAX_N_ORBID)
+      double precision ergf(MAX_N_ORBID)
+
+      character*255 field_a
+      integer i
+      double precision field_d
+
+      wfat_inp_ffc = .false.
+      
+      ergf = 0.0d0
+      do i = 1, MAX_N_ORBID
+         if (inp_f(field_d)) then
+            ergf(i) = field_d
+            ftp(i) = 3
+         else if (inp_a(field_a)) then
+            ergf(i) = 0.0d0
+            if (trim(adjustl(field_a)) == 'orb') then
+               ftp(i) = 2
+            else if (trim(adjustl(field_a)) == 'unit') then
+               ftp(i) = 1
+            else
+               call errquit('WFAT: When a string is supplied for the '//
+     &              'keyword ''field_factor'', the available options '//
+     &              'are ''orb'' or ''unit''.', 82, UERR)
+            endif
+         else
+            exit
+         endif
+      enddo
+
+      wfat_inp_ffc = .true.
       
       end
 c=======================================================

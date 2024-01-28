@@ -142,8 +142,8 @@ c     ==== Obtain field factor ====
       
 c     ==== Initializing the printings ====
       if (ndid == 0)
-     &     call wfat_print_field_factor(fieldm, nch, nqn, ionerg, nid, 
-     &     mid, zi)
+     &     call wfat_print_field_factor(rtdb, fieldm, nch, nqn, ionerg, 
+     &     nid, mid, zi, dbl_mb(k_fc))
       if (ndid == 0 .and. pr_srfc) then
          call wfat_initprint_structuref(nch, chnid0, sx, nqn, nid,
      &        mid)

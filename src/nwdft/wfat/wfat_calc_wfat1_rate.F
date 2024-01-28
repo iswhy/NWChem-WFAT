@@ -1,7 +1,5 @@
 c============================================================
 c============================================================
-cOLD      subroutine wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
-cOLD     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, uffc, ffc, p_rt, rt)
       subroutine wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
      &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, p_rt, rt)
 

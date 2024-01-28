@@ -11,12 +11,12 @@ c     ==== Input-related variables ====
      &     def_si_type
 
       logical
-     &     DEF_WFAT1, DEF_WFAT_MASK, DEF_UNIT_FFC
+     &     DEF_WFAT1, DEF_WFAT_MASK
 
       integer
      &     MAX_N_ORBID, MAX_MOVEC_FIELDS, MAX_N_NPARA,
      &     MAX_PARAQN_NFIELDS, MAX_PARAQN_MFIELDS,
-     &     NMAX_NFIELD, 
+     &     NMAX_NFIELD, DEF_FFC_TYPE,
      &     def_nktmd, def_wfat_lmax, def_gqual,
      &     WFAT_NPRINT
 
@@ -29,7 +29,7 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     NMAX_NFIELD=4, NFIELD_FORM='(i3)',
      &     def_nktmd=150, def_wfat_lmax=8, def_gqual=2,
      &     WFAT_NPRINT=7, def_si_type='none', DEF_WFAT1=.false.,
-     &     DEF_WFAT_MASK=.false., DEF_UNIT_FFC=.false.)
+     &     DEF_WFAT_MASK=.false., DEF_FFC_TYPE=2)
 
       character*10
      &     WFAT_PRINT_OPTIONS(WFAT_NPRINT)
@@ -47,7 +47,7 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     si_type
 
       logical
-     &     wfat1, s2a1e, wfat_mask, unit_ffc
+     &     wfat1, s2a1e, wfat_mask
 
       logical
      &     print_exist, print_stat, 
@@ -74,7 +74,7 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     wfat1_exist, wfat1_stat,
      &     nlgl_exist, nlgl_stat,
      &     dthr_exist, dthr_stat,
-     &     unit_ffc_exist, unit_ffc_stat,
+     &     ffc_exist, ffc_stat,
      &     wfat_mask_exist, wfat_mask_stat,
      &     perturb_exist, perturb_stat,
      &     prtb_type_exist, prtb_type_stat,
@@ -97,11 +97,11 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     beta_tmd_need, gamma_tmd_need, nktmd_need, orbid_need, 
      &     paraqn_need, gqual_need, lmax_need, omgpos_need, dgnthr_need,
      &     intgl_need, movec_need, movec1_need, sitype_need, wfat1_need,
-     &     nlgl_need, dthr_need, unit_ffc_need, wfat_mask_need,
-     &     autopos, prtb_type_need, prtb_ord_need, prtb_bt_need, 
-     &     prtb_gm_need, prtb_dgnthr_need, prtb_offthr_need, 
-     &     prtb_e1thr_need, prtb_itrthr_need, prtb_maxitr_need, 
-     &     prtb_ordthr_need, prtb_maxord_need
+     &     nlgl_need, dthr_need, ffc_need, wfat_mask_need, autopos, 
+     &     prtb_type_need, prtb_ord_need, prtb_bt_need, prtb_gm_need, 
+     &     prtb_dgnthr_need, prtb_offthr_need, prtb_e1thr_need, 
+     &     prtb_itrthr_need, prtb_maxitr_need, prtb_ordthr_need, 
+     &     prtb_maxord_need
       
       integer
      &     wfat_nbeta, wfat_ngamma, g_wfat_bt, g_wfat_gm,
@@ -109,17 +109,18 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     wfat_spinid(MAX_N_ORBID), npara(MAX_N_NPARA), n_npara, 
      &     mpara(MAX_N_NPARA), nktmd, wfat_lmax, wfat_gqual, wfat_nlgl, 
      &     prtb_ord, prtb_maxitr, prtb_maxord, DEF_PRTB_ORD_BW, 
-     &     DEF_PRTB_ORD_RS, DEF_PRTB_MAXITR, DEF_PRTB_MAXORD, DEF_NLGL
+     &     DEF_PRTB_ORD_RS, DEF_PRTB_MAXITR, DEF_PRTB_MAXORD, DEF_NLGL,
+     &     ffc_type0(MAX_N_ORBID)
 
       double precision
      &     wfat_beta_start, wfat_beta_last, wfat_beta,
      &     wfat_gamma_start, wfat_gamma_last, wfat_gamma,
-     &     beta_tmd, gamma_tmd, omgpos(3), dgnthr, wfat_dthr, 
-     &     wfat_mask_param(2), prtb_bt, prtb_gm, prtb_dgnthr, 
+     &     beta_tmd, gamma_tmd, ergffc(MAX_N_ORBID), omgpos(3), dgnthr, 
+     &     wfat_dthr, wfat_mask_param(2), prtb_bt, prtb_gm, prtb_dgnthr,
      &     prtb_offthr, prtb_e1thr, prtb_itrthr, prtb_ordthr, 
      &     DEF_PRTB_BT, DEF_PRTB_GM, DEF_PRTB_DGNTHR, DEF_PRTB_OFFTHR, 
      &     DEF_PRTB_E1THR, DEF_PRTB_ITRTHR, DEF_PRTB_ORDTHR, DEF_DGNTHR,
-     &     DEF_WFAT_DTHR
+     &     DEF_WFAT_DTHR, DEF_ERG_FFC
 
       
       parameter
@@ -129,7 +130,7 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     DEF_PRTB_DGNTHR=1.0d-6, DEF_PRTB_OFFTHR=1.0d-10, 
      &     DEF_PRTB_E1THR=1.0d-4, DEF_PRTB_ITRTHR=1.0d-14,
      &     DEF_PRTB_ORDTHR=1.0d-10, DEF_DGNTHR=1.0d-6, DEF_NLGL=8,
-     &     DEF_WFAT_DTHR=1.0d-10)
+     &     DEF_WFAT_DTHR=1.0d-10, DEF_ERG_FFC=0.0d0)
       
       common /wfat_input_var/
 c     == Logicals ==
@@ -157,7 +158,7 @@ c     == Logicals ==
      &     wfat1_exist, wfat1_stat,
      &     nlgl_exist, nlgl_stat,
      &     dthr_exist, dthr_stat,
-     &     unit_ffc_exist, unit_ffc_stat,
+     &     ffc_exist, ffc_stat,
      &     wfat_mask_exist, wfat_mask_stat, 
      &     perturb_exist, perturb_stat,
      &     prtb_type_exist, prtb_type_stat,
@@ -179,21 +180,21 @@ c     == Logicals ==
      &     nktmd_need, orbid_need, paraqn_need, gqual_need, lmax_need, 
      &     omgpos_need, dgnthr_need, intgl_need, movec_need, 
      &     movec1_need, sitype_need, wfat1_need, 
-     &     nlgl_need, dthr_need, unit_ffc_need, wfat_mask_need, autopos,
+     &     nlgl_need, dthr_need, ffc_need, wfat_mask_need, autopos,
      &     prtb_type_need, prtb_ord_need, prtb_bt_need, prtb_gm_need, 
      &     prtb_dgnthr_need, prtb_offthr_need, prtb_e1thr_need, 
      &     prtb_itrthr_need, prtb_maxitr_need, prtb_ordthr_need,
      &     prtb_maxord_need,
-     &     wfat1, s2a1e, wfat_mask, unit_ffc,
+     &     wfat1, s2a1e, wfat_mask, 
 c     == Integers ==
      &     wfat_nbeta, wfat_ngamma, g_wfat_bt, g_wfat_gm, wfat_orbid0,
      &     wfat_orbid, n_orbid, wfat_spinid, npara, n_npara, mpara,
      &     nktmd, wfat_lmax, wfat_gqual, prtb_ord, prtb_maxitr,
-     &     prtb_maxord, wfat_nlgl,
+     &     prtb_maxord, wfat_nlgl, ffc_type0,
 c     == Doubles ==
      &     wfat_beta_start, wfat_beta_last, 
      &     wfat_gamma_start,  wfat_gamma_last, 
-     &     beta_tmd, gamma_tmd, omgpos, dgnthr,
+     &     beta_tmd, gamma_tmd, ergffc, omgpos, dgnthr,
      &     prtb_bt, prtb_gm, prtb_dgnthr, prtb_offthr, prtb_e1thr, 
      &     prtb_itrthr, prtb_ordthr, wfat_dthr, wfat_mask_param,
 c     == Characters ==

@@ -46,13 +46,16 @@ c=======================================================
       integer ich, iqn, ffc_type(nch)
       double precision ergf3(nch)
 
-      if (.not. rtdb_get(rtdb, 'wfat:ffc_type', mt_int, 1, ffc_type))
-     &     call errquit('WFAT: Cannot read ffc_type from RTDB.')
+      if (.not. rtdb_get(rtdb, 'wfat:ffc_type', mt_int, nch, ffc_type))
+     &     call errquit('WFAT: Cannot read ffc_type from RTDB.',
+     &     30, UERR)
       
       do ich = 1, nch
          if (ffc_type(ich) == 3) then
-            if (rtdb_get(rtdb, 'wfat:erg_ffc', mt_dbl, nch, ergf3))
-     &           call errquit('WFAT: Cannot read erg_ffc from RTDB.')
+            if (.not. rtdb_get(rtdb, 'wfat:erg_ffc', mt_dbl, nch,
+     &           ergf3))
+     &           call errquit('WFAT: Cannot read erg_ffc from RTDB.',
+     &           30, UERR)
             exit
          endif
       enddo
@@ -96,13 +99,16 @@ c=======================================================
       double precision ergf3(nch)
       
       
-      if (.not. rtdb_get(rtdb, 'wfat:ffc_type', mt_int, 1, ffc_type))
-     &     call errquit('WFAT: Cannot read ffc_type from RTDB.')
+      if (.not. rtdb_get(rtdb, 'wfat:ffc_type', mt_int, nch, ffc_type))
+     &     call errquit('WFAT: Cannot read ffc_type from RTDB.',
+     &     44, UERR)
 
       do ich = 1, nch
          if (ffc_type(ich) == 3) then
-            if (rtdb_get(rtdb, 'wfat:erg_ffc', mt_dbl, nch, ergf3))
-     &           call errquit('WFAT: Cannot read erg_ffc from RTDB.')
+            if (.not. rtdb_get(rtdb, 'wfat:erg_ffc', mt_dbl, nch,
+     &           ergf3))
+     &           call errquit('WFAT: Cannot read erg_ffc from RTDB.',
+     &           44, UERR)
             exit
          endif
       enddo
@@ -129,11 +135,15 @@ c=======================================================
       
 c=======================================================
 c=======================================================
-      subroutine wfat_print_field_factor(ef, nch, nqn, erg, nid, mid,
-     &     zi)
+      subroutine wfat_print_field_factor(rtdb, ef, nch, nqn, erg, nid, 
+     &     mid, zi, ff)
 
       implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+#include "rtdb.fh"
 #include "stdio.fh"
+      integer rtdb
       double precision ef
       integer nch
       integer nqn
@@ -141,11 +151,21 @@ c=======================================================
       integer nid(nqn)
       integer mid(nqn)
       double precision zi
+      double precision ff(nqn,nch)
 
       character*5 i_str
       character*15 e_str
-      integer i, j, n, m
-      double precision ff
+      character*23 ftps
+      integer i, j, n, m, ftp(nch)
+      double precision ergf(nch)
+
+
+      if (.not. rtdb_get(rtdb, 'wfat:ffc_type', mt_int, nch, ftp))
+     &     call errquit('WFAT: Cannot read ffc_type from RTDB.',
+     &     29, UERR)
+      if (.not. rtdb_get(rtdb, 'wfat:erg_ffc', mt_dbl, nch, ergf))
+     &     call errquit('WFAT: Cannot read erg_ffc from RTDB.',
+     &     29, UERR)
 
       write(luout, '(2/)')
       call util_print_centered(luout, 'Field factors', 20,
@@ -157,9 +177,21 @@ c=======================================================
       
       do i = 1, nch
          write(i_str, '(i5)') i
-         write(e_str, '(f15.6)') erg(i)
-         write(luout, '(3x, "Channel = ", a, ",", 2x, "energy = ", a)')
-     &        trim(adjustl(i_str)), trim(adjustl(e_str))
+         if (ftp(i) == 1) then
+            ftps = 'unit'
+            e_str = 'N/A'
+         else if (ftp(i) == 2) then
+            ftps = 'orbital energy'
+            write(e_str, '(f15.6)') erg(i)
+         else if (ftp(i) == 3) then
+            ftps = 'modified orbital energy'
+            write(e_str, '(f15.6)') ergf(i)
+         endif
+         
+         write(luout, '(3x, "Channel = ", a, ",", 2x, "energy = ", '//
+     &        'a, ",", 2x, "type = ", a)')
+     &        trim(adjustl(i_str)), trim(adjustl(e_str)),
+     &        trim(adjustl(ftps))
 
          write(luout, '(5x, 2a4, a21)') 'n', 'm', 'field factor'
          call wfat_print_repeat(luout, 29, 5, '-')
@@ -167,8 +199,7 @@ c=======================================================
          do j = 1, nqn
             n = nid(j)
             m = mid(j)
-            call wfat_field_factor(ef, erg(i), zi, n, m, ff)
-            write(luout, '(5x, 2i4, es21.12)') n, m, ff
+            write(luout, '(5x, 2i4, es21.12)') n, m, ff(j,i)
          enddo
          write(luout, '("")')
       enddo

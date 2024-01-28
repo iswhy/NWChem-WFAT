@@ -130,8 +130,8 @@ cfordebug               call wfat_calc_o(0, 0, -0.917956d0, 1.0d0, ooo_)
       
 c     ==== Initializing the printings ====
       if (ndid == 0)
-     &     call wfat_print_field_factor(fieldm, nch, nqn, erg, nid, mid,
-     &     zi)
+     &     call wfat_print_field_factor(rtdb, fieldm, nch, nqn, erg, 
+     &     nid, mid, zi, dbl_mb(k_fc))
       if (ndid == 0 .and. pr_srfc) then
          call wfat_initprint_structuref(nch, orbid0, spinid, nqn,
      &        nid, mid)
