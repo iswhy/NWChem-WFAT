@@ -22,9 +22,9 @@ c=======================================================
       external factorial
 
 
-      if (m < 0)
-     &     call errquit('WFAT: For the moment, the argument m of '//
-     &     'wfat_calc_d cannot be negative.', 51, UERR)
+cOLD      if (m < 0)
+cOLD     &     call errquit('WFAT: For the moment, the argument m of '//
+cOLD     &     'wfat_calc_d cannot be negative.', 51, UERR)
       if (l < abs(m))
      &     call errquit('WFAT: Argument l and m of wfat_calc_d '//
      &     'should be such that l >= |m|.', 84, UERR)
@@ -37,7 +37,7 @@ c=======================================================
       call wfat_gammaf(-n+zq/kappa, gnn)
       vv = (-1)**(l-abs(m)+m) * sqrt(2.0d0)*2**l * kappa *
      &     sqrt((2*l+1) * factorial(l+m) * factorial(l-m)) *
-     &     factorial(l) / factorial(2*l+1)
+     &     factorial(l) / factorial(2*l+1) * (-1)**( (abs(m)-m)/2 )
 
       cc = 0.0d0
       do i = -2, 1

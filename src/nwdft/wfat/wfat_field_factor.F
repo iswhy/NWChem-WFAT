@@ -156,10 +156,13 @@ c=======================================================
       character*5 i_str
       character*15 e_str
       character*23 ftps
+      logical rtdb_stat
       integer i, j, n, m, ftp(nch)
       double precision ergf(nch)
 
 
+      rtdb_stat = rtdb_parallel(.false.)
+      
       if (.not. rtdb_get(rtdb, 'wfat:ffc_type', mt_int, nch, ftp))
      &     call errquit('WFAT: Cannot read ffc_type from RTDB.',
      &     29, UERR)
@@ -204,6 +207,8 @@ c=======================================================
          write(luout, '("")')
       enddo
 
+
+      rtdb_stat = rtdb_parallel(.true.)
       end
 c=======================================================
       

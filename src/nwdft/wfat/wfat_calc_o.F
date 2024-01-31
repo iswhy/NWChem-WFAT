@@ -63,7 +63,7 @@ c=======================================================
 
       
       call wfat_calc_o_intl_part1(n, m, erg, zq, eb1, oi_p1)
-      write(luout, '("oi_p1 : ", 2es21.12)') oi_p1          ! For debugging
+c      write(luout, '("oi_p1 : ", 2es21.12)') oi_p1          ! For debugging
 
       
       if (.not. MA_alloc_get(MT_DBL, maxval(ngr), 'lgl_pt', l_pt, k_pt))
@@ -76,7 +76,7 @@ c=======================================================
          
          call wfat_calc_o_intl_part2(n, m, erg, zq, eb1, eb2, ngr(k),  
      &        dbl_mb(k_pt), dbl_mb(k_wt), oi0(:,k))
-         write(luout, '("oi_p2 : ", i3, 2es21.12)') k, oi0(:,k)          ! For debugging
+c         write(luout, '("oi_p2 : ", i3, 2es21.12)') k, oi0(:,k)          ! For debugging
          if (k > 1) then
             l1 = (abs(oi0(1,k) - oi0(1,k-1)) < THR)
             l2 = (abs(oi0(2,k) - oi0(2,k-1)) < THR)
@@ -94,7 +94,7 @@ c=======================================================
 
 c      write(luout, '("hered1")')
       call wfat_calc_o_intl_part3(n, m, erg, zq, eb2, oi_p3)
-      write(luout, '("oi_p3 : ", 2es21.12)') oi_p3          ! For debugging
+c      write(luout, '("oi_p3 : ", 2es21.12)') oi_p3          ! For debugging
 
       oi = oi_p1 + oi_p2 + oi_p3
 
@@ -155,7 +155,7 @@ c     ==== Do the power expansion part ====
      &                    (o0i(i,j) + log(zb)*o0il(i,j)) * zb**i
          enddo
       enddo
-      write(luout, '("part_pow = ", 2es18.8)') part_pow
+cdebug      write(luout, '("part_pow = ", 2es18.8)') part_pow
 
       
 c     ==== Do the direct integration part ====
@@ -163,7 +163,7 @@ c     ==== Do the direct integration part ====
      &              (bt1_1 + gmm/(2*kp**2) + (3*bt0**2)/(2*kp**4)) *
      &              log(eb+1) )
       part_dir(2) = 1/kp * ( eb/2 - (bt1_2 - bt0/kp**2) * log(eb+1) )
-      write(luout, '("part_dir = ", 2es18.8)') part_dir
+cdebug      write(luout, '("part_dir = ", 2es18.8)') part_dir
 
       
       oi_p1 = part_pow + part_dir
