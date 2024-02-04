@@ -733,7 +733,7 @@ c           ==== Determine the number of grid points in node id ====
             endif
 
             if (inode == id) then
-c              ==== Determine initial grid indices ====               
+c              ==== Determine initial grid indices ====
                if (ipt0 == 1 .or. ipt_proc == 1) then
                   ia_proc = ia_proc + 1
                   ic(ia_proc) = ic0
@@ -821,8 +821,6 @@ cfordebug            if (ga_nodeid()==0) write(luout, '("rrr: ", 2i8, 2es21.12)'
 cfordebug     &           ic, i, sqrt(sum(v_c*v_c)), r(j)
          enddo
       enddo
-
-      write(luout, '("nptp__ = ", i7)') j
 
       call wfat_dealloc_quadgrid(l_pt, l_wt)
 

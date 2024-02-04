@@ -499,3 +499,73 @@ c     ==== Auto/manual positioning of origin ====
       end
 c=======================================================
       
+
+c=======================================================
+c=======================================================
+      subroutine wfat_print_mask(l, r)
+
+      implicit none
+#include "stdio.fh"
+      double precision l    ! Smoothing length in bohr
+      double precision r    ! Radius in bohr
+
+      double precision ang2bohr
+      parameter (ang2bohr=1.8897261255d0)
+      
+      write(luout, '(2/)')
+      call util_print_centered(luout, 'Mask Information', 28, .true.)
+      write(luout, '(1x)')
+      write(luout, '(5x, "Masking is active. The integrand of the '//
+     &     'WFAT integrals will be masked with ", /, '//
+     &     '5x, "the following masking parameters:")')
+      write(luout, '(7x, "Smoothing length = ", f8.4, " bohr", '//
+     &   '" = ", f8.4, " angstrom")') l, l/ang2bohr
+      write(luout, '(7x, "Radius = ", f8.4, " bohr", " = ", '//
+     &   'f8.4, " angstrom")') r, r/ang2bohr
+      
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_print_polb_tensors(nch, pb)
+
+      implicit none
+#include "stdio.fh"
+      integer nch
+      double precision pb(3,3,nch)
+
+      character*1 c(3)
+      integer i, j, k
+      
+      c = (/ 'x', 'y', 'z'/)
+      
+      write(luout, '(2/)')
+      call util_print_centered(luout, 'Polarizability tensors', 27,
+     &     .true.)
+      write(luout, '("")')
+      do i = 1, nch
+         write(luout, '(5x, "Channel : ", i4)') i
+
+         write(luout, '(7x, 1x)', advance='no')
+         do k = 1, 3
+            write(luout, '(2x, a13)', advance='no') c(k)
+         enddo
+         write(luout, '("")')
+         
+         do j = 1, 3
+            write(luout, '(7x, a)', advance='no') c(j)
+            do k = 1, 3
+               write(luout, '(2x, es13.6)', advance='no')
+     &              pb(j,k,i)
+            enddo
+            write(luout, '("")')
+         enddo
+
+         write(luout, '("")')
+      enddo
+
+      end
+c=======================================================
+      

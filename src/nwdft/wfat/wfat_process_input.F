@@ -1050,12 +1050,13 @@ c=======================================================
 #include "mafdecls.fh"      
       integer rtdb
 
+      character*4 nch_s
       character*1 spin_str
       character*10 ss1, ss2
       character*3 n_npara_c, MAX_N_NPARA_c
       character*5 n_orbid_c, MAX_N_ORBID_c
 
-      integer nsp, numelc(2), i, is, nrr, ntt
+      integer nsp, numelc(2), i, is, nrr, ntt, ffcount
       double precision dt_00, tmax_00
       
       character*1 w
@@ -1205,19 +1206,24 @@ c     ==== Check parabolic quantum numbers ====
      &        'WFAT', '''gamma_tmd''', 'f', w, r)
       endif
 
-cOLD      if (lmax_need) then
-cOLD         call wfat_ival_atleast(wfat_lmax, 0, 'WFAT', '''lmax''', w, r)
-cOLD      endif
-
       if (gqual_need) then
          call wfat_ival_inrange(wfat_gqual, 1, 4, 'WFAT', 
      &        '''gridqual''', w, r)
       endif
 
+      unit_ffc = .false.
+      ffcount = 0
       do i = 1, n_orbid
-         unit_ffc = (ffc_type0(i) == 1)
-         if (unit_ffc) exit
+         if (.not. unit_ffc) unit_ffc = (ffc_type0(i) == 1)
+         if (ffc_type0(i)==1 .or. ffc_type0(i)==2 .or. ffc_type0(i)==3)
+     &        ffcount = ffcount + 1
       enddo
+      write(nch_s, '(i4)') n_orbid
+      if (ffcount /= n_orbid)
+     &     call errquit('WFAT: The number of entries given for the '//
+     &     'input keyword ''field_factor'' must be the same as the '//
+     &     'number of ionized channels, which is '//nch_s//'.',
+     &     36, INPUT_ERR)
       if (ffc_need .and. unit_ffc .and. print_rate .and. n_orbid > 1)
      &     then
          write(luout, 500)

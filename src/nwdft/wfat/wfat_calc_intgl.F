@@ -4,8 +4,8 @@ c==== Imam ====
       subroutine wfat_calc_intgl(rtdb, geom, bas, nch, spinid, nqn, nid,
      &                           mid, lmax_, gqual, zi, celm, smh, 
      &                           res_mode, wfat1, nlgl, nb, ns, rdm, 
-     &                           vch, erg, chpos, chmmt, iondip, g_il, 
-     &                           g_j, g_k)
+     &                           vch, erg, chpos, chmmt, iondip, ismask,
+     &                           mask_param, g_il, g_j, g_k)
       
       implicit none
 #include "util.fh"
@@ -40,13 +40,15 @@ c==== Imam ====
       double precision chpos(3, nch)  ! [input]
       double precision chmmt(3, nch)  ! [input]
       double precision iondip(3, nch) ! [input]
+      logical ismask                  ! [input]
+      double precision mask_param(2)  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
       integer g_il                    ! [output], global array handle for intgl. For structure factors.
       integer g_j                     ! [output], only calculated when wfat1=.true.
       integer g_k(2)                  ! [output], only calculated when wfat1=.true.
 
       character*12 dt_str
       character*16 tag
-      logical t1, ismask_gjk, ismask_g, ismask_j, ismask_k
+      logical t1
       integer natom, nrd, max_npt, nvc, nsh, nom, ni0, ni_
       integer nch1, npt, natomp, nptp, ncpos, nscr, nil, nmo
       integer nij0, nij_, nij
@@ -64,15 +66,13 @@ c==== Imam ====
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
       integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch), pr_count
       integer pr_chk(10), kk, g_nptx, g_npt_tot
-      double precision atp(3), znuc, v_c(3), v_m(3), mask_gjk(2) 
-      double precision mask_g(2), mask_j(2), mask_k(2), normch, celf
+      double precision atp(3), znuc, v_c(3), v_m(3), normch, celf
       double precision wtcelf, numnel, t_now, t_last, t_start, dt_all
-      double precision dt_prog, nptx, npt_tot, kp
+      double precision dt_prog, nptx, npt_tot, kp, dum1, dum2, dum3
       double complex czero
       
       parameter (imf = 0)
       parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
-
 
 
       call ga_sync()
@@ -82,27 +82,6 @@ c==== Imam ====
 c     ==== Get number of atoms ====
       if (.not. geom_ncent(geom, natom))
      &     call errquit('WFAT: Getting natom failed', 51, GEOM_ERR)
-
-
-      ismask_gjk = .false.
-      if (rtdb_get(rtdb, 'wfat:mask_gjk', mt_dbl, 2, mask_gjk))
-     &     ismask_gjk = .true.
-      
-      ismask_g = .false.
-      if (rtdb_get(rtdb, 'wfat:mask_g', mt_dbl, 2, mask_g))
-     &     ismask_g = .true.
-      ismask_j = .false.
-      if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_j', mt_dbl, 2, mask_j))
-     &     ismask_j = .true.
-      ismask_k = .false.
-      if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_k', mt_dbl, 2, mask_k))
-     &     ismask_k = .true.
-
-      if (ismask_gjk) write(luout, '("Masking gjk")')
-      if (ismask_g) write(luout, '("Masking g")')
-      if (ismask_j) write(luout, '("Masking j")')
-      if (ismask_k) write(luout, '("Masking k")')
-
       
       
 c     ==== Obtain properties of each channel ====
@@ -116,13 +95,9 @@ c            associated to the three cartesian components of the dipole operator
          nch1 = 0
       endif
 
-      if (wfat1 .and. ndid == 0) then
+      if (res_mode .and. wfat1 .and. ndid == 0) then
          call wfat_check_wfat1ovl(nch, vch(:,1:nch), 
      &        vch(:,nch+1:4*nch))
-      endif
-      if (ga_nodeid() == 0) then
-         write(luout, '("GTO coefficients:")')
-         call wfat_dprintmat(nb, nch+nch1, 'f', vch)
       endif
       call ga_sync()
       if (.not. MA_alloc_get(MT_INT, nch+nch1, 'spinid1', l_si, k_si))
@@ -238,20 +213,16 @@ c        ==== Loop over all quadrature points around the current atom ====
             ipt0 = k_pt + 3*(ipt-1)
             v_c(1:3) = dbl_mb(ipt0 : ipt0+2)
             call geom_cent2cent(geom, icent, v_c, imf, v_m, t1)
-cc            write(luout, '("        v_m = ", 3e14.5)') v_m
-
             
 c           ==== Calculate vc|psi> ====
             call wfat_dft_vcpsi_1pt(geom, bas, nb, ns, nch+nch1, vch, 
      &           int_mb(k_si), dbl_mb(k_pos), v_m, rdm, zi, smh,
-     &           dbl_mb(k_sc:k_sc+nscr-1), ismask_gjk, erg(1), 
-     &           mask_gjk(1), mask_gjk(2), dbl_mb(k_vc:k_vc+nvc-1))
-
+     &           dbl_mb(k_sc:k_sc+nscr-1), .false., dum1, dum2, dum3, 
+     &           dbl_mb(k_vc:k_vc+nvc-1))
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
-            call wfat_omega_1pt(geom, v_m, nch, erg,
-     &           chpos, nqn, nid, mid, lmax_, int(zi),
-     &           dcpl_mb(k_om:k_om+nom-1))
+            call wfat_omega_1pt(geom, v_m, nch, erg, chpos, nqn, nid, 
+     &           mid, lmax_, int(zi), dcpl_mb(k_om:k_om+nom-1))
             
 c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
             call wfat_integrand(nch, nqn, nsh, dcpl_mb(k_om),
@@ -260,36 +231,31 @@ c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
      &           write(luout, '("isnan", i8, 3es14.6, 6x, 3es21.12E3)')
      &           ic, v_m, dcpl_mb(k_om), dbl_mb(k_vc)
             
-            
+c           ==== Calculate the integrand of J^{(n,m)x_i}_{l,m'} ====
+c           =====           and K^{(n,m)}_{l,m'}                ====
             if (wfat1) then
-cfordebug               write(luout, '("wfat1: ", i8, 4es15.6)')
-cfordebug     &              jpt, dbl_mb(k_vc), dbl_mb(k_vc+1), dbl_mb(k_vc+2),
-cfordebug     &              dbl_mb(k_vc+3)
-               
                i_om1 = k_om1 + (jpt-1)*nsh*nqn*nch
                i_om2 = k_om2 + (jpt-1)*nsh*nqn*nch
-c              ==== Calculate the integrand of J^{(n,m)x_i}_{l,m'} ====
-c              =====           and K^{(n,m)}_{l,m'}                ====
+
                call wfat_integrand_wfat1(nch, nqn, nsh, dcpl_mb(k_om),
      &              dcpl_mb(i_om1), dcpl_mb(i_om2), dbl_mb(k_vc+nch),
      &              dbl_mb(k_vc), dcpl_mb(k_ij0), dcpl_mb(k_ik1_0),
      &              dcpl_mb(k_ik2_0))
             endif
 
-            
-            if (ismask_g) call wfat_mask_intd(geom, natom, nch,
-     &           nqn, nsh, v_m, mask_g, dcpl_mb(k_i0))
-            if (ismask_j .and. wfat1) call wfat_mask_intd(geom, 
-     &           natom, 3*nch, nqn, nsh, v_m, mask_j,
+c           ==== Masking of integrands ====#
+            if (ismask) call wfat_mask_intd(geom, natom, nch,
+     &           nqn, nsh, v_m, mask_param, dcpl_mb(k_i0))
+            if (ismask .and. wfat1) call wfat_mask_intd(geom, 
+     &           natom, 3*nch, nqn, nsh, v_m, mask_param,
      &           dcpl_mb(k_ij0))
-            if (ismask_k .and. wfat1) then
+            if (ismask .and. wfat1) then
                call wfat_mask_intd(geom, natom, nch, nqn, nsh,
-     &              v_m, mask_k, dcpl_mb(k_ik1_0))
+     &              v_m, mask_param, dcpl_mb(k_ik1_0))
                call wfat_mask_intd(geom, natom, nch, nqn, nsh,
-     &              v_m, mask_k, dcpl_mb(k_ik2_0))
+     &              v_m, mask_param, dcpl_mb(k_ik2_0))
             endif
-               
-            
+                           
 c           ==== Quadrature summation ====
             call wfat_celf_1pt(geom, icent, v_c, celm, celf)
             wtcelf = celf * dbl_mb(k_wt+ipt-1)
@@ -325,7 +291,6 @@ cfordebug     &           write(luout, '("@grid: ", i8, 2es20.10, '//
 cfordebug     &           '3es20.10, i5)')
 cfordebug     &           jpt, dcpl_mb(k_om), dbl_mb(k_vc), celf,
 cfordebug     &           dbl_mb(k_wt+ipt-1), celm
-            
 
 c           ==== Print progress ====
             pr_count = pr_count + 1
@@ -354,42 +319,28 @@ c     ==== Reorder elements of intgl ====
      &     dcpl_mb(k_ij_), dcpl_mb(k_ij),
      &     dcpl_mb(k_ik1_), dcpl_mb(k_ik1),
      &     dcpl_mb(k_ik2_), dcpl_mb(k_ik2))
-      
-
-cforcheck      write(luout, '("sum CHAN_INT = ", 2e14.5)')
-cforcheck     &     sum(dcpl_mb(k_il : k_il+nil-1))
-cforcheck      write(luout, '("max of real part = ", e14.5)')
-cforcheck     &     maxval(abs(real(dcpl_mb(k_il : k_il+nil-1))))
-cforcheck      write(luout, '("max of imag part = ", e14.5)')
-cforcheck     &     maxval(abs(imag(dcpl_mb(k_il : k_il+nil-1))))
 
       
 c     ==== Accumulate to global intgl (g_il) ====
       call ga_acc(g_il, 1, nil, 1, 1, dcpl_mb(k_il), nil, 1.0d0)
       call ga_sync()
       call ga_norm1(g_il, normch)
-cfordebug      if (ndid==0) write(luout, '("intgl norm = ", es14.6)') normch
 
       if (wfat1) then
          call ga_acc(g_j, 1, nij, 1, 1, dcpl_mb(k_ij), nij, 1.0d0)
 c         call ga_zero(g_j)
          call ga_sync()
          call ga_norm1(g_j, normch)
-         if (ndid==0) write(luout, '("intgl_j norm = ", es14.6)') normch
 
          call ga_acc(g_k(1), 1, nik1, 1, 1, dcpl_mb(k_ik1), nik1, 1.0d0)
 c         call ga_zero(g_k(1))
          call ga_sync()
          call ga_norm1(g_k(1), normch)
-         if (ndid==0) write(luout, '("intgl_k1 norm = ", es14.6)')
-     &        normch
 
          call ga_acc(g_k(2), 1, nik2, 1, 1, dcpl_mb(k_ik2), nik2, 1.0d0)
 c         call ga_zero(g_k(2))
          call ga_sync()
          call ga_norm1(g_k(2), normch)
-         if (ndid==0) write(luout, '("intgl_k2 norm = ", es14.6)')
-     &        normch
       endif
 
       
@@ -962,25 +913,29 @@ c=======================================================
       double precision val(3)
 
 
-      write(luout, '("Overlaps of the 0-th order ionized orbital '//
-     &     'and their first order corrections")')
+      write(luout, '(2/)')
+      write(luout, '(5x, "Overlaps of the 0-th order ionized orbital '//
+     &     'and their first order corrections:")')
 
       if (.not. ma_alloc_get(mt_dbl, nbas0**2, 'ovl', l_ov, k_ov))
      &     call errquit('WFAT: Cannot allocate ovl ', 74, MA_ERR)
       call ga_get(gwf_ovl, 1, nbas0, 1, nbas0, dbl_mb(k_ov), nbas0)
-
 
       do i = 1, nch
          do j = 1, 3
             call wfat_mat_element(nbas0, vch1(:,j,i), vch(:,i),
      &           dbl_mb(k_ov), val(j))
          enddo
-         write(luout, '("Channel : ", i5)') i
-         write(luout, '("  <v_x|v> = ", es21.12)') val(1)
-         write(luout, '("  <v_y|v> = ", es21.12)') val(2)
-         write(luout, '("  <v_z|v> = ", es21.12)') val(3)
-         write(luout, '(" ")')
+         write(luout, '(5x, "Channel : ", i5)') i
+         write(luout, '(7x, "  <v_x|v> = ", es21.12)') val(1)
+         write(luout, '(7x, "  <v_y|v> = ", es21.12)') val(2)
+         write(luout, '(7x, "  <v_z|v> = ", es21.12)') val(3)
       enddo
+
+      write(luout, '(5x, "The above three numbers should be close to '//
+     &     'zero. Non-zero values indicate ", /, '//
+     &     '5x, "a bug and should be resolved.")')
+      write(luout, '(" ")')
 
       if (.not. ma_free_heap(l_ov))
      &     call errquit('WFAT: Cannot deallocate ovl', 74, MA_ERR )

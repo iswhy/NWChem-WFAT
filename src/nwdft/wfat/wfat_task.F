@@ -181,7 +181,13 @@ c     ==== Get the reduced density matrix ====
 c     ==== Get mask parameters ====
       call wfat_get_masks(rtdb, dbl_mb(k_eg), ismask_i, mask_param, 
      &     ismask_e, ergmask, amsk, bmsk)
+      if (ismask_i .and. ndid==0) call wfat_print_mask(mask_param(1),
+     &     mask_param(2))
 
+      
+c     ==== Print grid info ====#
+c      call wfat_print_grid()
+      
       
 c     ==== Calculate or store OEWFAT integrals ====
       smh = 0.0d0
@@ -193,8 +199,8 @@ c           ==== Calculate OE-WFAT integrals on 'start' startup mode ====
      &           int_mb(k_sp), nqn, int_mb(k_npa), int_mb(k_mpa), lmax, 
      &           gqual, zion, wf_msm, smh, res_mode, wfat1, nlgl, nbas0,
      &           nspin0, dbl_mb(k_rd), dbl_mb(k_cf), dbl_mb(k_eg), 
-     &           dbl_mb(k_ps), dbl_mb(k_cmm), dbl_mb(k_idp), g_il, g_j,
-     &           g_k)
+     &           dbl_mb(k_ps), dbl_mb(k_cmm), dbl_mb(k_idp), ismask_i, 
+     &           mask_param, g_il, g_j, g_k)
             
 c           ==== Store the OE-WFAT integrals freshly calculated ====
             if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,

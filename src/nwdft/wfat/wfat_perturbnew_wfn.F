@@ -27,28 +27,17 @@ c     ==== Calculate dipole matrix in the MO basis ====
       if (.not. MA_alloc_get(MT_DBL, nbas0**2*nspin0*3, 'dpmo',
      &     l_dpo, k_dpo)) 
      &     call errquit('WFAT: dpmo allocation failed', 19, MA_ERR)
-      ctr = (/ 0.0d0, 0.0d0, 0.0d0 /)      !0.0d0                                     !! 1)
+      ctr = (/ 0.0d0, 0.0d0, 0.0d0 /)                !! 1)
       call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
-
-cc      write(luout, '("X dipole MO:")')
-cc      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_dpo))
-cc      write(luout, '("Y dipole MO:")')
-cc      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_dpo+nbas0**2))
-cc      write(luout, '("Z dipole MO:")')
-cc      call wfat_dprintmat(nbas0, nbas0, 'f', dbl_mb(k_dpo+2*nbas0**2))
 
       
 c     ==== Compute the static polarizabilities in molecular frame ====
       call wfat_calc_polb(nch, orbid, spinid, dbl_mb(k_dpo), pb)
-      if (ndid==0) then
-         write(luout, '("Polarizability tensor = ")')
-         do i = 1, nch
-            write(luout, '(3x, "Channel : ", i4)') i
-            call wfat_dprintmat(3, 3, 'e', pb(:,:,i))
-         enddo
+      if (ndid == 0) then
+         call wfat_print_polb_tensors(nch, pb)
       endif
       call ga_sync()
-
+      
 
 c     ==== MO coefficients ====
       if (.not. MA_alloc_get(MT_DBL, nbas0**2*nspin0, 'mo',
@@ -91,18 +80,11 @@ c     ==== the first order correction terms  ====
       enddo
 
 
-      if (ndid==0) then
-         write(luout, '("vch1 = ")')
-         call wfat_dprintmat(nbas0, 3, 'e', vch1(:,:,1))
-      endif
+cdebug      if (ndid==0) then
+cdebug         write(luout, '("vch1 = ")')
+cdebug         call wfat_dprintmat(nbas0, 3, 'e', vch1(:,:,1))
+cdebug      endif
       
-      vpt = (/ 0.5d0, 0.3d0, 0.4d0/)
-      do i = 1, 3
-         call wfat_eval_vector(geom_hd, bas_hd, vpt, vch1(:,i,1), val)
-         if (ndid==0) write(luout, '("vch1 val = ", i3, es15.7)') i, val
-      enddo
-      
-
       
 c     ==== Deallocations ====
       if (.not. MA_free_heap(l_mo))

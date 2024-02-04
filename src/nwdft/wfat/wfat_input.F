@@ -30,11 +30,14 @@ c=======================================================
 #include "rtdb.fh"      
       integer rtdb
       
-      logical tt, ll1, ll2
-      character*50 field
+      logical tt, ll1, ll2, ll3
+      character*50 field, tail_unit
       character*255 ss
       integer i1, i2, k
+      double precision ang2bohr
 
+      parameter(ang2bohr=1.8897261255d0)
+      
       logical wfat_inp_paraqn, wfat_inp_movec, wfat_inp_omgpos
       logical wfat_inp_field, wfat_inp_perturb, wfat_inp_dt
       logical wfat_inp_tmax, wfat_inp_ffc
@@ -326,10 +329,21 @@ c           ==== OPTIONAL INPUTS ====
                wfat_mask_exist = .true.
                ll1 = inp_f(wfat_mask_param(1))
                ll2 = inp_f(wfat_mask_param(2))
+               ll3 = inp_a(tail_unit)
+               if (.not. ll3 .or. inp_compare(.false., 'angstrom',
+     &              tail_unit)) then
+                  wfat_mask_param = wfat_mask_param * ang2bohr
+               else if (inp_compare(.false., 'bohr', tail_unit)) then
+                  !do nothing
+               else
+                  call errquit('WFAT: The option for the unit of '//
+     &                 'tailmask is angstrom or bohr', 90, INPUT_ERR)
+               endif
                wfat_mask_stat = (ll1 .and. ll2)
                if (wfat_mask_stat) wfat_mask = .true.
             else if (inp_compare(.false., 'field_factor', field)) then
                ffc_exist = .true.
+               ffc_type0 = -9999
                ffc_stat = wfat_inp_ffc(ffc_type0, ergffc)
             else if (inp_compare(.false., 'perturb', field)) then
                perturb_exist = .true.
