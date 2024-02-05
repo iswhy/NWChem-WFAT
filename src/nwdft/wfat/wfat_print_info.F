@@ -569,3 +569,40 @@ c=======================================================
       end
 c=======================================================
       
+
+c=======================================================
+c=======================================================
+      subroutine wfat_print_o(nch, nqn, nid, mid, o)
+
+      implicit none
+#include "stdio.fh"
+      integer nch
+      integer nqn
+      integer nid(nqn)
+      integer mid(nqn)
+      double precision o(2,nqn,nch)
+
+      character*6 n_str, m_str
+      integer i, j
+
+      write(luout, '(2/)')
+      call util_print_centered(luout, 'O coefficients', 23,
+     &     .true.)
+      write(luout, '("")')
+
+      do i = 1, nch
+         write(luout, '(5x, "Channel : ", i4)') i
+         write(luout, '(5x, 2a4, 2a19)')
+     &        'n', 'm', 'Constant part', 'Orientation part'
+         call wfat_print_repeat(luout, 46, 5, '-')
+         write(luout, '("")')
+         do j = 1, nqn
+            write(luout, '(5x, 2i4, 2es19.8)')
+     &           nid(j), mid(j), o(1,j,i), o(2,j,i)
+         enddo
+         write(luout, '("")')
+      enddo
+
+      end
+c=======================================================
+      

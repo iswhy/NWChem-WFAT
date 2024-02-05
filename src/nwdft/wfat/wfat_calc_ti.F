@@ -113,18 +113,12 @@ c     ==== When WFAT1 is active ====
      &        1, RTDB_ERR)
          do i = 1, nch
             do iqn = 1, nqn
-               call wfat_calc_o(0, 0, -0.917956d0, 1.0d0, ooo)
-cfordebug               call wfat_calc_o(0, 0, -0.917956d0, 1.0d0, ooo_)
-               write(luout, '("He o_nu : ", 2i4, 4es21.12)')
-     &              i, iqn, ooo(1), ooo(2), ooo_(1), ooo_(2)
                i_on = k_on + 2*nqn*(i-1) + 2*(iqn-1)
-               write(luout, '("zi = ", es14.5)') zi
                call wfat_calc_o(nid(iqn), mid(iqn), erg(i), zi,
      &              dbl_mb(i_on))
-               write(luout, '("o_nu : ", 2i4, 2es21.12)')
-     &              i, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
             enddo
          enddo
+         call wfat_print_o(nch, nqn, nid, mid, dbl_mb(k_on))
       endif
 
       

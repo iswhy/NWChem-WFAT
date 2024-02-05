@@ -16,19 +16,16 @@ c=======================================================
       kp = sqrt(2 * abs(erg))
       gmm = (1.0d0 - m**2) / 4.0d0
       bt0 = zq - kp*(n + (abs(m)+1)/2.0d0)
-
       
       call wfat_calc_o_intl(n, m, erg, zq, oi)
-
-c      call wfat_calc_o_intl_trapz(n, m, erg, zq, oi)
-      
+cdebug      call wfat_calc_o_intl_trapz(n, m, erg, zq, oi)
       
       o(1) = 1/(4*kp**3)*(1 + gmm**2/2 - gmm*(4*bt0/kp-(bt0/kp)**2)
      &       + 4*bt0/kp + (7.0d0/2)*(bt0/kp)**2 - 4*(bt0/kp)**3 
      &       + (bt0/kp)**4/2) + oi(1)
       o(2) = -1.0d0/(2*kp**2) + oi(2)
 
-      write(luout, '("oo = ", 2es21.12)') oi(1), oi(2)
+cdebug      write(luout, '("oo = ", 2es21.12)') oi(1), oi(2)
       end
 c=======================================================
 
