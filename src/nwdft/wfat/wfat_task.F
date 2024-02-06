@@ -297,7 +297,7 @@ c        ==== When WFAT(1) is in use ====
          
 c        ==== Printing the WFAT integrals ====
          if (wfat1) then
-            call wfat_print_integrals(nch, nqn, natm, lmax, 
+            call wfat_print_wfat1_ints(nch, nqn, natm, lmax, 
      &           int_mb(k_npa), int_mb(k_mpa), wfat1, dcpl_mb(k_in), 
      &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
          else

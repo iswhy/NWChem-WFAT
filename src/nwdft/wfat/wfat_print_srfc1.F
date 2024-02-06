@@ -20,17 +20,6 @@ c=======================================================
      &   'been terminated by calling wfat_endprint_srfc1.',
      &   1, UERR)
 
-
-
-cc      List of parameters to be added:
-cc      WF_SF1_FNAME(2)
-cc      WF_SF1_UNIT(2)
-cc      WF_SF1_PRINT_READY(2)
-
-
-
-      
-
       wf1_suff = (/ 'wfatj', 'wfatk' /)
       do i = 1, 2
          call util_file_name(wf1_suff(i), .false., .false.,

@@ -224,7 +224,7 @@ c     ==== Printings ====
             call wfat_print_wfat0_ints(1, nqn, natm, lmax, 
      &           int_mb(k_npa), int_mb(k_mpa), dcpl_mb(k_in))
          endif
-cOLD         call wfat_print_integrals(1, nqn, natm, lmax, int_mb(k_npa),
+cOLD         call wfat_print_wfat1_ints(1, nqn, natm, lmax, int_mb(k_npa),
 cOLD     &     int_mb(k_mpa), wfat1, dcpl_mb(k_in), czero, czero, czero)
 
 

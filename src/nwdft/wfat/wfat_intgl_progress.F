@@ -57,7 +57,7 @@ c=================================================
          write(npt_tot_str, '(i12)') int(npt_tot)
          write(dt_str, '(f12.2)') dt
          write(luout, '(7x, "Progress : ", i3, "% ", a, 3x, '//
-     &        '"delta t = ", a, " s")')
+     &        '"time needed = ", a, " s")')
      &        k*10, '('//trim(adjustl(nptx_str))//'/'
      &        //trim(adjustl(npt_tot_str))//')', trim(adjustl(dt_str))
       endif

@@ -67,7 +67,7 @@ c==== Imam ====
       integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch), pr_count
       integer pr_chk(10), kk, g_nptx, g_npt_tot
       double precision atp(3), znuc, v_c(3), v_m(3), normch, celf
-      double precision wtcelf, numnel, t_now, t_last, t_start, dt_all
+      double precision wtcelf, t_now, t_last, t_start, dt_all
       double precision dt_prog, nptx, npt_tot, kp, dum1, dum2, dum3
       double complex czero
       
@@ -118,8 +118,9 @@ c     second column.
       
 c     ==== Some analyses and tests (optional) ====
       call wfat_sometests(rtdb, zi, nch, erg, lmax_, chmmt)
-      call wfat_mulliken(rtdb, geom, bas, nb, ns, rdm, nch, vch, spinid,
-     &                   chpos)
+      if (res_mode)
+     &     call wfat_mulliken(rtdb, geom, bas, nb, ns, rdm, nch, vch, 
+     &                   spinid, chpos)
 
 
 c     ==== Allocate grid-related arrays ====
@@ -163,8 +164,8 @@ c     ==== Calculate WFAT(1) Omega ====
 
       if (ndid == 0) then
          write(luout, '(2/)')
-         call util_print_centered(luout, 'Computation the WFAT '//
-     &        'integrals', 30, .true.)
+         call util_print_centered(luout, 'Computation of the WFAT '//
+     &        'integrals', 50, .true.)
          write(luout, '("")')
          write(luout, 901)
          write(luout, '("")')
@@ -172,8 +173,10 @@ c     ==== Calculate WFAT(1) Omega ====
  901  format(
      &     5x, 'The calculation of the WFAT integrals has started. ',
      &     'If this is a ''start'' type job, this part can take ', /,
-     &     5x, 'up to several minutes, so please wait. The progress ',
-     &     'of this calculation will be shown below.')
+     &     5x, 'up to several minutes, depending on the number of ',
+     &     'channels, parabolic quantum numbers, maximum angular ', /, 
+     &     5x, 'momentum, and integration grids, so please wait. ',
+     &     'The progress of this calculation will be shown below.')
       
       
 c     ==== BEGIN QUADRATURE SUMMATION ====

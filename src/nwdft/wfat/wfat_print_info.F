@@ -513,7 +513,7 @@ c=======================================================
       parameter (ang2bohr=1.8897261255d0)
       
       write(luout, '(2/)')
-      call util_print_centered(luout, 'Mask Information', 28, .true.)
+      call util_print_centered(luout, 'Mask Information', 38, .true.)
       write(luout, '(1x)')
       write(luout, '(5x, "Masking is active. The integrand of the '//
      &     'WFAT integrals will be masked with ", /, '//

@@ -4,6 +4,8 @@ c=======================================================
      &     lmax, nat, nptp, centid, ptlim, gq, nlgl, zq, omg1, omg2)
 
       implicit none
+#include "util.fh"
+#include "global.fh"
 #include "stdio.fh"      
 #include "mafdecls.fh"
 #include "errquit.fh"
@@ -25,11 +27,14 @@ c=======================================================
       double complex omg1((1+lmax)**2, nqn, nch, nptp)     ! [output],
       double complex omg2((1+lmax)**2, nqn, nch, nptp)     ! [output],
 
+      character*12 dt_s
       integer l_r, l_t, l_p, l_sp, l_id, l_q1, l_q2
       integer k_r, k_t, k_p, k_sp, k_id, k_q1, k_q2
-      integer nsh, i, ii, j, n, m, nl, i_sp, k
+      integer ndid, nsh, i, ii, j, n, m, nl, i_sp, k
+      double precision t_now, t_last, t_start, dt_all, dt_prog
 
 
+      ndid = ga_nodeid()
       if (.not. MA_alloc_get(MT_DBL, nptp, 'r', l_r, k_r))
      &     call errquit('WFAT: r allocation failed', 59, MA_ERR)
       if (.not. MA_alloc_get(MT_DBL, nptp, 't', l_t, k_t))
@@ -43,18 +48,33 @@ c=======================================================
      &     call errquit('WFAT: indx allocation failed', 59, MA_ERR)
       
 
+      if (ndid == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 'Computation of the Q '//
+     &        'functions', 50, .true.)
+         write(luout, '("")')
+         write(luout, 901)
+         write(luout, '("")')
+      endif
+ 901  format(
+     &     5x, 'The computation of the Q functions needed by WFAT(1) ',
+     &     'has started. This part can take up to several minutes, ', /,
+     &     5x, 'depending on the number of channels, parabolic ',
+     &     'quantum numbers, maximum angular momentum, and integration',
+     &      /, 5x,'grids, so please wait. The progress of ',
+     &     'this calculation will be shown below.')
+
+      
+      t_last = util_cpusec()
+      t_start = t_last
       do i = 1, nch
 c        ==== Get the grid points with the current channel center ====
          call wfat_get_gridpt_cents(geom, nat, centid, ptlim, 
      &        chpos(:,i), gq, dbl_mb(k_r), dbl_mb(k_t), dbl_mb(k_p))
-         
-         write(luout, '("Sorting for channel : ", i4, " .....")',
-     &        advance='no') i
          do k = 1, nptp
             int_mb(k_id+k-1) = k
          enddo
          call wfat_dsortx(dbl_mb(k_r), 1, nptp, int_mb(k_id))
-         write(luout, '(" [Finished]")')
 
          
 c        ==== Calculate the spherical harmonics for all (l,m) ====
@@ -83,8 +103,8 @@ c           ==== Calculate Q_{(l,m)}^\nu at all points above ====
      &           dbl_mb(k_q1), dbl_mb(k_q2))
 
 
-c           ==== Calculate WFAT(1) Omega for all (l,m) and ====
-c           ====             all points above              ====
+c           ==== Calculate WFAT(1) Omega for all (l,m) ====
+c           ====        and all points above           ====
             call wfat_omega_wfat1_nm(nptp, lmax, m, dbl_mb(k_q1), 
      &           dbl_mb(k_q2), dcpl_mb(k_sp), omg1(:,j,i,:),
      &           omg2(:,j,i,:))
@@ -94,8 +114,20 @@ c           ====             all points above              ====
      &           'deallocation failed', 32, MA_ERR)
             if (.not. MA_free_heap(l_q2)) call errquit('WFAT: q2 '//
      &           'deallocation failed', 32, MA_ERR)
+
+c           ==== Print timing ====
+            t_now = util_cpusec()
+            dt_prog = t_now - t_last
+            t_last = t_now
+            call wfat_omega_wfat1_progress(i, n, m, dt_prog)
+            call ga_sync() 
          enddo
       enddo
+      dt_all = t_now - t_start
+      write(dt_s, '(f12.2)') dt_all
+      if (ndid == 0) write(luout, '(5x, "The computation of the Q '//
+     &     'functions for WFAT(1) takes ", a, " s.")')
+     &     trim(adjustl(dt_s))
 
       
 c     ==== Deallocations ====
@@ -148,4 +180,35 @@ c     and parabolic quantum number.
 
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_omega_wfat1_progress(ich, n, m, dt)
+
+      implicit none
+#include "global.fh"
+#include "stdio.fh"
+      integer ich
+      integer n
+      integer m
+      double precision dt
+
+      character*12 i_s, n_s, m_s, dt_s
+
+      write(i_s, '(i12)') ich
+      write(n_s, '(i12)') n
+      write(m_s, '(i12)') m
+      write(dt_s, '(f12.2)') dt
+
+      if (ga_nodeid() == 0) then
+         write(luout, '(7x, "Channel: ", a, ",  n = ", a, ",  m = ",'//
+     &        'a, ",  time needed = ", a, " s")')
+     &        trim(adjustl(i_s)), trim(adjustl(n_s)),
+     &        trim(adjustl(m_s)), trim(adjustl(dt_s))
+      endif
+      
+      end
+c=======================================================
+      
       
