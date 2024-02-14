@@ -148,8 +148,8 @@ c
       logical task_rt_tddft
       external task_rt_tddft
 
-      logical task_wfat, task_mewfat, task_wfat_2a1e
-      external task_wfat, task_mewfat, task_wfat_2a1e
+      logical task_wfat, task_mewfat
+      external task_wfat, task_mewfat
 
 c      logical embed_optimize
 c      external embed_optimize
@@ -405,7 +405,6 @@ c          status = embed_optimize(rtdb)
          status = task_rt_tddft(rtdb)
       else if (inp_compare(.false., 'oewfat', operation)) then
          status = task_wfat(rtdb)
-cdebugging         status = task_wfat_2a1e(rtdb)
       else if (inp_compare(.false., 'mewfat', operation)) then
          status = task_mewfat(rtdb)
       else if (inp_compare(.false., 'freq', operation)) then

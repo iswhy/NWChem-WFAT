@@ -3,6 +3,27 @@ c===============================================================
       logical function task_wfat(rtdb)
 
       implicit none
+#include "wfat_input.fh"
+      integer rtdb
+
+      logical task_oewfat, task_wfat_2a1e
+      external task_oewfat, task_wfat_2a1e
+      
+      if (s2a1e) then
+         task_wfat = task_wfat_2a1e(rtdb)
+      else
+         task_wfat = task_oewfat(rtdb)
+      endif
+      
+      end
+c===============================================================
+
+      
+c===============================================================
+c===============================================================
+      logical function task_oewfat(rtdb)
+
+      implicit none
 #include "errquit.fh"
 #include "stdio.fh"
 #include "rtdb.fh"
@@ -40,6 +61,7 @@ c===============================================================
 
       
       ndid = ga_nodeid()
+      task_oewfat = .false.
 
       
 c     ==============================
@@ -387,7 +409,7 @@ cforCHECK      if (.not. rtdb_print(rtdb, .false.))
 cforCHECK     &     call errquit('WFAT: Cannot print RTDB.', 1, RTDB_ERR)
 
       
-      task_wfat = .true.
+      task_oewfat = .true.
       call wfat_close_task('OE')
       
       end
