@@ -361,8 +361,12 @@ c           ==== OPTIONAL INPUTS ====
      &              prtb_maxord, prtb_maxord_exist, prtb_maxord_stat)
             else if (inp_compare(.false., 'system_2a1e', field)) then
                s2a1e_exist = .true.
-               s2a1e_stat = .true.
-               s2a1e = .true.
+               s2a1e_stat = wfat_inp_s2a1e(wfat2a_nc, wfat2a_q, 
+     &              wfat2a_inter, wfat2a_mag, wfat2a_pot, 
+     &              wfat2a_potparam, wfat2a_fedvr, wfat2a_nfe, 
+     &              wfat2a_fenodes, wfat2a_ndvr, wfat2a_nr, wfat2a_kein,
+     &              wfat2a_kemult, wfat2a_maxit, wfat2a_nt)
+               s2a1e = s2a1e_stat
 
 c           ==== End ====
             else if (inp_compare(.false., 'end', field)) then
@@ -1157,6 +1161,112 @@ c=======================================================
       
 
       wfat_inp_omgpos = .true.
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_inp_s2a1e(nq, q, d, mag, p, pparam, fedvr, nfe, 
+     &     fen, ndvr, nr, kein, kemult, maxit, nt)
+
+      implicit none
+      integer nq
+      double precision q(2)
+      double precision d
+      integer mag
+      character*3 p   ! 'cou' or 'eff'
+      double precision pparam(2)
+      logical fedvr
+      integer nfe
+      double precision fen(MAX_FEN)
+      integer ndvr(MAX_FEN)
+      integer nr(3)
+      double precision kein
+      double precision kemult
+      integer maxit
+      integer nt(3)
+
+
+      do while (inp_read())
+         if (inp_a(field)) then
+
+            if (inp_compare(.false., 'system', field)) then
+               sys_exist = .true.
+               sys_stat = inp_f(q(1))
+               if (inp_f(d)) then
+                  if (.not. inp_f(q(2))) sys_stat = .false.
+                  nq = 2
+               else
+                  nq = 1
+               endif
+            else if (inp_compare(.false., 'magnetic', field)) then
+               mag_exist = .true.
+               mag_stat = inp_i(mag)
+            else if (inp_compare(.false., 'potential', field)) then
+               
+            else if (inp_compare(.false., 'fedvr', field)) then
+               fedvr_exist = .true.
+               fedvr_stat = .true.
+               fedvr = .true.
+            else if (inp_compare(.false., 'fenodes', field)) then
+               fen_exist = .true.
+               fen = -999.0d0
+               n_fen = 0
+               do i = 1, MAX_FEN
+                  if (inp_f(fen(i))) then
+                     n_fen = n_fen + 1
+                  else if (inp_a(adum)) then
+                     call errquit('WFAT: The values provided for the '//
+     &                    'input directive ''fenodes'' must be a '//
+     &                    'decimal.', 40, INPUT_ERR)
+                  else
+                     exit
+                  endif
+               enddo
+            else if (inp_compare(.false., 'ndvr', field)) then
+               ndvr_exist = .true.
+               ndvr = -999
+               n_ndvr = 0
+               do i = 1, MAX_FEN
+                  if (inp_i(ndvr(i))) then
+                     n_ndvr = n_ndvr + 1
+                  else if (inp_a(adum)) then
+                     call errquit('WFAT: The values provided for the '//
+     &                    'input directive ''ndvr'' must be an '//
+     &                    'integer.', 40, INPUT_ERR)
+                  else
+                     exit
+                  endif
+               enddo
+            else if (inp_compare(.false., 'end', field)) then
+               exit
+            else
+               call errquit('WFAT: Unknown input directive '''//
+     &              trim(adjustl(field))//''' is found under the '//
+     &              '''system_s2a1e'' subdirective', 1, INPUT_ERR)
+            endif
+         endif
+      enddo
+
+
+      using_fedvr = (fedvr_exist .or. fen_exist .or. ndvr_exist)
+      using_lagdvr = (lagdvr_exist .or. nr_exist .or. kein_exist
+     &     .or. kemult_exist .or. maxit_exist)
+      
+      if (using_fedvr .and. using_lagdvr)
+     &     call errquit('WFAT: Both FEDVR and Laguerre DVR radial '//
+     &     'are chosen. Choose only one of them.', 50, INUT_ERR)
+               
+      if (n_fen == n_ndvr) then
+         nfe = n_fen
+      else
+         call errquit('WFAT: The number of entries provided for '//
+     &        '''fenodes'' must be the same as that for ''ndvr''.',
+     &        21, INPUT_ERR)
+      endif
+
 
       end
 c=======================================================
