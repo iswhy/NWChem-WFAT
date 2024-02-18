@@ -1188,14 +1188,55 @@ c=======================================================
       integer maxit
       integer nt(3)
 
+      character*50 field
+      character*1 adum
+      logical sys_exist, sys_stat, mag_exist, mag_stat, p_exist, p_stat
+      logical pparam_exist, pparam_stat, fedvr_exist, fedvr_stat
+      logical fen_exist, fen_stat, ndvr_exist, ndvr_stat, lagdvr_exist
+      logical lagdvr_stat, nr_exist, nr_stat, kein_exist, kein_stat
+      logical kemult_exist, kemult_stat, maxit_exist, maxit_stat
+      logical nt_exist, nt_stat
+      logical using_fedvr, using_lagdvr
+      integer i, n_fen, n_ndvr
+      
+      sys_exist = .false.
+      sys_stat = .false.
+      mag_exist = .false.
+      mag_stat = .false.
+      p_exist = .false.
+      p_stat = .false.
+      pparam_exist = .false.
+      pparam_stat = .false.
+      fedvr_exist = .false.
+      fedvr_stat = .false.
+      fen_exist = .false.
+      fen_stat = .false.
+      ndvr_exist = .false.
+      ndvr_stat = .false.
+      lagdvr_exist = .false.
+      lagdvr_stat = .false.
+      nr_exist = .false.
+      nr_stat = .false.
+      kein_exist = .false.
+      kein_stat = .false.
+      kemult_exist = .false.
+      kemult_stat = .false.
+      maxit_exist = .false.
+      maxit_stat = .false.
+      nt_exist = .false.
+      nt_stat = .false.
+      
 
       do while (inp_read())
          if (inp_a(field)) then
 
             if (inp_compare(.false., 'system', field)) then
                sys_exist = .true.
+c              == q1 ==
                sys_stat = inp_f(q(1))
+c              == internuc. distance ==
                if (inp_f(d)) then
+c                 == q2 ==
                   if (.not. inp_f(q(2))) sys_stat = .false.
                   nq = 2
                else
@@ -1205,11 +1246,28 @@ c=======================================================
                mag_exist = .true.
                mag_stat = inp_i(mag)
             else if (inp_compare(.false., 'potential', field)) then
-               
+               p_exist = .true.
+               p_stat = inp_a(p)
+               if (inp_compare(.false., 'cou', p)) then
+                  if (inp_f(pparam(1))) then
+                     pparam_exist(1) = .true.
+                     pparam_stat(1) = .true.
+                  endif
+               else if (inp_compare(.false., 'eff', p)) then
+                  pparam_stat(1) = inp_f(pparam(1))
+                  pparam_stat(2) = inp_f(pparam(2))
+                  if (pparam_stat(1) .and. pparam_stat(2)) then
+                     pparam_exist(1:2) = .true.
+                  endif
+               else
+                  call errquit('WFAT: The potential type of the '//
+     &                 'input directive ''potential'' can only admit '//
+     &                 '''cou'' (Coulomb) or ''eff'' (effective '//
+     &                 'Coulomb)', 27, INPUT_ERR)
+               endif
             else if (inp_compare(.false., 'fedvr', field)) then
                fedvr_exist = .true.
                fedvr_stat = .true.
-               fedvr = .true.
             else if (inp_compare(.false., 'fenodes', field)) then
                fen_exist = .true.
                fen = -999.0d0
@@ -1222,6 +1280,7 @@ c=======================================================
      &                    'input directive ''fenodes'' must be a '//
      &                    'decimal.', 40, INPUT_ERR)
                   else
+                     fen_stat = .true.
                      exit
                   endif
                enddo
@@ -1237,9 +1296,38 @@ c=======================================================
      &                    'input directive ''ndvr'' must be an '//
      &                    'integer.', 40, INPUT_ERR)
                   else
+                     ndvr_stat
                      exit
                   endif
                enddo
+            else if (inp_compare(.false., 'lagdvr', field)) then
+               lagdvr_exist = .true.
+               lagdvr_stat = .true.
+            else if (inp_compare(.false., 'lagdvr_n', field)) then
+               nr = -999
+               nr_stat(1) = inp_i(nr(1))
+               if (nr_stat(1)) nr_exist(1) = .true.
+               nr_stat(2) = inp_i(nr(2))
+               if (nr_stat(2)) nr_exist(2) = .true.
+               nr_stat(3) = inp_i(nr(3))
+               if (nr_stat(3)) nr_exist(3) = .true.
+            else if (inp_compare(.false., 'ke_init', field)) then
+               kein_exist = .true.
+               kein_stat = inp_f(kein)
+            else if (inp_compare(.false., 'ke_multiplier', field)) then
+               kemult_exist = .true.
+               kemult_stat = inp_f(kemult)
+            else if (inp_compare(.false., 'maxit', field)) then
+               maxit_exist = .true.
+               maxit_stat = inp_i(maxit)
+            else if (inp_compare(.false., 'legdvr_n', field)) then
+               nt = -999
+               nt_stat(1) = inp_i(nt(1))
+               if (nt_stat(1)) nt_exist(1) = .true.
+               nt_stat(2) = inp_i(nt(2))
+               if (nt_stat(2)) nt_exist(2) = .true.
+               nt_stat(3) = inp_i(nt(3))
+               if (nt_stat(3)) nt_exist(3) = .true.
             else if (inp_compare(.false., 'end', field)) then
                exit
             else
@@ -1254,19 +1342,90 @@ c=======================================================
       using_fedvr = (fedvr_exist .or. fen_exist .or. ndvr_exist)
       using_lagdvr = (lagdvr_exist .or. nr_exist .or. kein_exist
      &     .or. kemult_exist .or. maxit_exist)
-      
       if (using_fedvr .and. using_lagdvr)
-     &     call errquit('WFAT: Both FEDVR and Laguerre DVR radial '//
-     &     'are chosen. Choose only one of them.', 50, INUT_ERR)
-               
-      if (n_fen == n_ndvr) then
-         nfe = n_fen
+     &     call errquit('WFAT: The basis choices FEDVR and '//
+     &     'Laguerre DVR are mutually exclusive. Meaning, the '//
+     &     'appearance of any FEDVR-related directives (''fedvr'', '//
+     &     '''nodes'', and ''ndvr'') implies the mandatory absence '//
+     &     'of any Laguerre DVR-related directives (''lagdvr'', '//
+     &     '''lagdvr_nr'', ''ke_init'', ''ke_multplier'', and '//
+     &     '''maxit''), and vice versa.)', 50, INPUT_ERR)
+            
+      
+c     ==== Mandatory inputs' existence checks ====
+      if (.not. sys_exist)
+     &     call errquit('INPUT ERROR: Cannot find input directive '//
+     &     '''system'' needed for WFAT-2a1e calculation.', 0, INPUT_ERR)
+      if (.not. mag_exist)
+     &     call errquit('INPUT ERROR: Cannot find input directive '//
+     &     '''magnetic'' needed for WFAT-2a1e calculation.',
+     &     0, INPUT_ERR)
+
+c     ==== Optional inputs' existence checks ====
+c     ==== Basis ====
+      if (.not. using_fedvr .and. .not. using_lagdvr)       ! 1)
+     &     using_fedvr = .true.
+c     1) If no basis information is provided, then defaults to FEDVR.
+      
+      fedvr = using_fedvr       !1)
+c     1) The choice of radial basis can be implied from the existence of
+c        directives related to the basis. However, it is recommended to
+c        explicitly state the choice by typing 'fedvr' for FEDVR or 'lagdvr'
+c        for Laguerre DVR.
+
+      if (fedvr) then
+c        == FE nodes ==
+         if (.not. fen_exist) then
+            n_fen = DEF_NFENODES
+            fen(1:n_fen) = (/ 1.0, 3.0, 6.0, 10.0, 14.0, 18.0, 22.0,
+     &                        26.0, 30.0 /)
+         endif
+c        == FE number of DVRs ==
+         if (.not. ndvr_exist) then
+            n_ndvr = DEF_NFENODES
+            ndvr(1:n_ndvr) = (/ 6, 25, 18, 16, 15, 15, 10, 10, 10 /)
+         endif
+c        == Number of FEs ==
+         if (n_fen == n_ndvr) then
+            nfe = n_fen
+         else
+            call errquit('WFAT: The number of entries provided for '//
+     &           '''fenodes'' must be the same as that for ''ndvr''.',
+     &           21, INPUT_ERR)
+         endif
       else
-         call errquit('WFAT: The number of entries provided for '//
-     &        '''fenodes'' must be the same as that for ''ndvr''.',
-     &        21, INPUT_ERR)
+c        == Number of radial Laguerre DVRs ==
+         if (.not. nr_exist(1)) nr(1) = DEF_LAGDVR_NR
+         if (.not. nr_exist(2)) nr(2) = nr(1)
+         if (.not. nr_exist(3)) nr(3) = nr(1)
+c        == Initial/guess ke ==
+         if (.not. kein_exist) kein = DEF_KEIN
+c        == ke multiplier ==
+         if (.not. kemul_exist) kein = DEF_KEMULT
+c        == Max. iterations ==
+         if (.not. maxit_exist) maxit = DEF_2A1E_MAXIT
       endif
 
+c     == Number of angular assoc. Legendre DVRs ==
+      if (.not. nt_exist(1)) nt(1) = DEF_LAGDVR_NT
+      if (.not. nt_exist(2)) nt(2) = nt(1)
+      if (.not. nt_exist(3)) nt(3) = nt(1)      
+      
+c     ==== Potential ====
+      if (.not. p_exist) then
+         if (nq == 1) then
+            p = 'eff'
+         else if (nq == 2) then
+            p = 'cou'
+         endif
+      endif
+      if (p == 'cou') then
+         if (.not. pparam_exist(1)) pparam(1) = DEF_SOFT_COULOMB
+      else if (p == 'eff') then
+         if (.not. (pparam_exist(1) .and. pparam_exist(2)))
+     &        call errquit('WFAT: When potential type is ''eff'', two'//
+     &        ' potential parameters are required.', 14, INPUT_ERR)
+      endif         
 
       end
 c=======================================================
