@@ -837,26 +837,26 @@ c=======================================================
       character*1 m
 
       
-      field_need = .false.          ! needed when oe or me
-      beta_need = .false.           ! needed when oe or me
-      gamma_need = .false.          ! needed when oe or me
-      beta_tmd_need = .false.       ! needed when oe or me
-      gamma_tmd_need = .false.      ! needed when oe or me
-      nktmd_need = .false.          ! needed when oe or me
-      orbid_need = .false.          ! needed when oe
-      paraqn_need = .false.         ! needed when oe or me
-      gqual_need = .false.          ! needed when oe or me
-      omgpos_need = .false.         ! needed when oe or me
-      dgnthr_need = .false.         ! needed when oe or me
-      lmax_need = .false.           ! needed when oe or me
-      intgl_need = .false.          ! needed when oe or me
-      movec_need = .false.          ! needed when oe or me
-      movec1_need = .false.         ! needed when me
-      wfat1_need = .false.          ! needed when oe or me
-      nlgl_need = .false.           ! needed when oe or me
-      dthr_need = .false.           ! needed when oe or me
-      ffc_need = .false.       ! needed when oe or me
-      wfat_mask_need = .false.      ! needed when oe or me
+      field_need = .false.              ! needed when oe or me
+      beta_need = .false.               ! needed when oe or me
+      gamma_need = .false.              ! needed when oe or me
+      beta_tmd_need = .false.           ! needed when oe or me
+      gamma_tmd_need = .false.          ! needed when oe or me
+      nktmd_need = .false.              ! needed when oe or me
+      orbid_need = .false.              ! needed when oe
+      paraqn_need = .false.             ! needed when oe or me
+      gqual_need = .false.              ! needed when oe or me
+      omgpos_need = .false.             ! needed when oe or me
+      dgnthr_need = .false.             ! needed when oe or me
+      lmax_need = .false.               ! needed when oe or me
+      intgl_need = .false.              ! needed when oe or me
+      movec_need = .false.              ! needed when oe or me
+      movec1_need = .false.             ! needed when me
+      wfat1_need = .false.              ! needed when oe or me
+      nlgl_need = .false.               ! needed when oe or me
+      dthr_need = .false.               ! needed when oe or me
+      ffc_need = .false.                ! needed when oe or me
+      wfat_mask_need = .false.          ! needed when oe or me
       prtb_type_need = .false.      ! needed when oe
       prtb_ord_need = .false.       ! needed when oe
       prtb_bt_need = .false.        ! needed when oe
@@ -921,7 +921,6 @@ c=======================================================
      &     ffc_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     wfat_mask_need)
-
       call wfat_need_input0(rt, tmd, tmda, .false., .false., .false., 
      &     .false., prtb_type_need)
       call wfat_need_input0(rt, tmd, tmda, .false., .false., .false., 
@@ -946,7 +945,6 @@ c=======================================================
          call wfat_need_input0(rt, tmd, tmda, .false., .false., .false.,
      &        .false., prtb_maxord_need)
       endif
-
 
 
 cOLD      if (print_iony .or. print_avbeta .or. print_avgamma .or.
@@ -1805,6 +1803,71 @@ cOLD      if (prtb_ord_need .and. os) then
      &        call errquit('WFAT: Failed writing erg_ffc to RTDB', 1,
      &        RTDB_ERR)
       endif
-         
+
+      if (s2a1e) then
+         if (.not. rtdb_put(rtdb, 'wfat:2a1e_nc', mt_int, 1, wfat2a_nc))
+     &        call errquit('WFAT: Failed writing 2a1e_nc to RTDB', 1,
+     &        RTDB_ERR)
+         if (.not. rtdb_put(rtdb, 'wfat:2a1e_q', mt_dbl, 2, wfat2a_q))
+     &        call errquit('WFAT: Failed writing 2a1e_q to RTDB', 1,
+     &        RTDB_ERR)
+         if (.not. rtdb_put(rtdb, 'wfat:internuc', mt_dbl, 1,
+     &        wfat2a_inter))
+     &        call errquit('WFAT: Failed writing internuc to RTDB', 1,
+     &        RTDB_ERR)
+         if (.not. rtdb_put(rtdb, 'wfat:2a1e_m', mt_int, 1, wfat2a_mag))
+     &        call errquit('WFAT: Failed writing 2a1e_m to RTDB', 1,
+     &        RTDB_ERR)
+         if (.not. rtdb_cput(rtdb, 'wfat:2a1e_pot', 1, wfat2a_pot))
+     &        call errquit('WFAT: Failed writing 2a1e_pot to RTDB', 1,
+     &        RTDB_ERR)
+         if (.not. rtdb_put(rtdb, 'wfat:2a1e_potparam', mt_dbl, 2,
+     &        wfat2a_potparam))
+     &        call errquit('WFAT: Failed writing 2a1e_potparam to RTDB',
+     &        1, RTDB_ERR)
+         if (.not. rtdb_put(rtdb, 'wfat:2a1e_nel', mt_int, 1,
+     &        wfat2a_nel))
+     &        call errquit('WFAT: Failed writing 2a1e_nel to RTDB', 1,
+     &        RTDB_ERR)
+         if (.not. rtdb_put(rtdb, 'wfat:2a1e_nt', mt_int, 3, wfat2a_nt))
+     &        call errquit('WFAT: Failed writing 2a1e_nt to RTDB', 1,
+     &        RTDB_ERR)
+         if (wfat2a_fedvr) then
+            if (.not. rtdb_put(rtdb, 'wfat:fedvr', mt_log, 1,
+     &           wfat2a_fedvr))
+     &           call errquit('WFAT: Failed writing fedvr to RTDB', 1,
+     &           RTDB_ERR)
+            if (.not. rtdb_put(rtdb, 'wfat:2a1e_nfe', mt_int, 1,
+     &           wfat2a_nfe))
+     &           call errquit('WFAT: Failed writing 2a1e_nfe to RTDB', 
+     &           1, RTDB_ERR)
+            if (.not. rtdb_put(rtdb, 'wfat:2a1e_fenodes', mt_dbl,
+     &           wfat2a_nfe, wfat2a_fenodes))
+     &           call errquit('WFAT: Failed writing 2a1e_fenodes to '//
+     &           'RTDB', 1, RTDB_ERR)
+            if (.not. rtdb_put(rtdb, 'wfat:2a1e_ndvr', mt_int,
+     &           wfat2a_nfe, wfat2a_ndvr))
+     &           call errquit('WFAT: Failed writing 2a1e_ndvr to '//
+     &           'RTDB', 1, RTDB_ERR)
+         else
+            if (.not. rtdb_put(rtdb, 'wfat:2a1e_nr', mt_int, 3,
+     &           wfat2a_nr))
+     &           call errquit('WFAT: Failed writing 2a1e_nr to RTDB',
+     &           1, RTDB_ERR)
+            if (.not. rtdb_put(rtdb, 'wfat:2a1e_inke', mt_dbl, 1, 
+     &           wfat2a_kein))
+     &           call errquit('WFAT: Failed writing 2a1e_inke to RTDB',
+     &           1, RTDB_ERR)
+            if (.not. rtdb_put(rtdb, 'wfat:2a1e_multke', mt_dbl, 1, 
+     &           wfat2a_kemult))
+     &           call errquit('WFAT: Failed writing 2a1e_multke to '//
+     &           'RTDB', 1, RTDB_ERR)
+            if (.not. rtdb_put(rtdb, 'wfat:2a1e_maxit', mt_int, 1,
+     &           wfat2a_maxit))
+     &           call errquit('WFAT: Failed writing 2a1e_maxit to RTDB',
+     &           1, RTDB_ERR)
+         endif
+      endif      
+      
       end
 c=======================================================

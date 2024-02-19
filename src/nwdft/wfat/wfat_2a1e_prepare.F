@@ -68,7 +68,7 @@ c===============================================================
 
       if (fedvr) then
 c        ==== No. of FEs ====
-         if (.not. rtdb_get(rtdb, 'wfat:2a1efd_nfe', mt_int, 1, nfe))
+         if (.not. rtdb_get(rtdb, 'wfat:2a1e_nfe', mt_int, 1, nfe))
      &        call errquit('WFAT: Failed reading 2a1e_nfe from rtdb',
      &        1, RTDB_ERR)
          
@@ -94,7 +94,7 @@ c     ==== No. of DVRs in each FE ====
       if (.not. ma_alloc_get(MT_INT, nfe, 'ndvr', l_ndvr, k_ndvr))
      &     call errquit('WFAT: Cannot allocate ndvr', 3, MA_ERR)
       if (fedvr) then
-         if (.not. rtdb_get(rtdb, 'wfat:2a1efd_ndvr', mt_int, nfe,
+         if (.not. rtdb_get(rtdb, 'wfat:2a1e_ndvr', mt_int, nfe,
      &        int_mb(k_ndvr))) call errquit('WFAT: Failed reading '//
      &        '2a1e_ndvr from rtdb', 1, RTDB_ERR)
       endif
@@ -104,7 +104,7 @@ c     ==== The boundary nodes of the FEs ====
       if (.not. ma_alloc_get(MT_DBL, nfe, 'fenodes', l_fen, k_fen))
      &     call errquit('WFAT: Cannot allocate fenodes', 3, MA_ERR)
       if (fedvr) then
-         if (.not. rtdb_get(rtdb, 'wfat:2a1efd_fenodes', mt_dbl, nfe, 
+         if (.not. rtdb_get(rtdb, 'wfat:2a1e_fenodes', mt_dbl, nfe, 
      &        dbl_mb(k_fen))) call errquit('WFAT: Failed reading '//
      &        '2a1e_fenodes from rtdb', 1, RTDB_ERR)
       endif

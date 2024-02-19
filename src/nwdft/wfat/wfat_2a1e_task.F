@@ -46,7 +46,7 @@ c     ==============================
 
 
       res_mode = .false.
-      if (.not. rtdb_get(rtdb, 'wfat:2a1efd', mt_log, 1, fedvr))
+      if (.not. rtdb_get(rtdb, 'wfat:fedvr', mt_log, 1, fedvr))
      &     fedvr = .false.
       
 

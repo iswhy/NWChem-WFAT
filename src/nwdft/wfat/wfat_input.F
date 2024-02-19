@@ -25,7 +25,7 @@ c=======================================================
       implicit none
 #include "errquit.fh"
 #include "wfat_input.fh"
-#include "inp.fh"      
+#include "inp.fh"
 #include "stdio.fh"
 #include "rtdb.fh"      
       integer rtdb
@@ -363,9 +363,9 @@ c           ==== OPTIONAL INPUTS ====
                s2a1e_exist = .true.
                s2a1e_stat = wfat_inp_s2a1e(wfat2a_nc, wfat2a_q, 
      &              wfat2a_inter, wfat2a_mag, wfat2a_pot, 
-     &              wfat2a_potparam, wfat2a_fedvr, wfat2a_nfe, 
-     &              wfat2a_fenodes, wfat2a_ndvr, wfat2a_nr, wfat2a_kein,
-     &              wfat2a_kemult, wfat2a_maxit, wfat2a_nt)
+     &              wfat2a_potparam, wfat2a_nel, wfat2a_fedvr, 
+     &              wfat2a_nfe, wfat2a_fenodes, wfat2a_ndvr, wfat2a_nr, 
+     &              wfat2a_kein, wfat2a_kemult, wfat2a_maxit, wfat2a_nt)
                s2a1e = s2a1e_stat
 
 c           ==== End ====
@@ -1168,16 +1168,20 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_inp_s2a1e(nq, q, d, mag, p, pparam, fedvr, nfe, 
-     &     fen, ndvr, nr, kein, kemult, maxit, nt)
+      subroutine wfat_inp_s2a1e(nq, q, d, mag, p, pparam, nel, fedvr, 
+     &     nfe, fen, ndvr, nr, kein, kemult, maxit, nt)
 
       implicit none
+#include "errquit.fh"
+#include "inp.fh"
+#include "wfat_input.fh"
       integer nq
       double precision q(2)
       double precision d
       integer mag
       character*3 p   ! 'cou' or 'eff'
       double precision pparam(2)
+      integer nel
       logical fedvr
       integer nfe
       double precision fen(MAX_FEN)
@@ -1195,10 +1199,11 @@ c=======================================================
       logical fen_exist, fen_stat, ndvr_exist, ndvr_stat, lagdvr_exist
       logical lagdvr_stat, nr_exist, nr_stat, kein_exist, kein_stat
       logical kemult_exist, kemult_stat, maxit_exist, maxit_stat
-      logical nt_exist, nt_stat
+      logical nt_exist, nt_stat, nel_exist, nel_stat
       logical using_fedvr, using_lagdvr
       integer i, n_fen, n_ndvr
       
+
       sys_exist = .false.
       sys_stat = .false.
       mag_exist = .false.
@@ -1207,6 +1212,8 @@ c=======================================================
       p_stat = .false.
       pparam_exist = .false.
       pparam_stat = .false.
+      nel_ecist = .false.
+      nel_stat = .false.
       fedvr_exist = .false.
       fedvr_stat = .false.
       fen_exist = .false.
@@ -1232,6 +1239,7 @@ c=======================================================
 
             if (inp_compare(.false., 'system', field)) then
                sys_exist = .true.
+               q = -999.0d0
 c              == q1 ==
                sys_stat = inp_f(q(1))
 c              == internuc. distance ==
@@ -1242,9 +1250,11 @@ c                 == q2 ==
                else
                   nq = 1
                endif
+c           ==== Magnetic quantum number ====
             else if (inp_compare(.false., 'magnetic', field)) then
                mag_exist = .true.
                mag_stat = inp_i(mag)
+c           ==== Potential type ====
             else if (inp_compare(.false., 'potential', field)) then
                p_exist = .true.
                p_stat = inp_a(p)
@@ -1259,15 +1269,23 @@ c                 == q2 ==
                   if (pparam_stat(1) .and. pparam_stat(2)) then
                      pparam_exist(1:2) = .true.
                   endif
+c                 == Number of electrons ==
+                  nel_stat = inp_i(nel)     ! 3)
+                  if (nel_stat) nel_exist = .true.
+c                 3) By definition, when effective potential is chosen, the number
+c                    of electrons can be any number N because the remaining N-1
+c                    electrons are represented as an effective potential screening.
                else
                   call errquit('WFAT: The potential type of the '//
      &                 'input directive ''potential'' can only admit '//
      &                 '''cou'' (Coulomb) or ''eff'' (effective '//
      &                 'Coulomb)', 27, INPUT_ERR)
                endif
+c           ==== FEDVR option ====
             else if (inp_compare(.false., 'fedvr', field)) then
                fedvr_exist = .true.
                fedvr_stat = .true.
+c           ==== Finite element (FE) nodes ====
             else if (inp_compare(.false., 'fenodes', field)) then
                fen_exist = .true.
                fen = -999.0d0
@@ -1284,6 +1302,7 @@ c                 == q2 ==
                      exit
                   endif
                enddo
+c           ==== Number of DVRs in FEs ====
             else if (inp_compare(.false., 'ndvr', field)) then
                ndvr_exist = .true.
                ndvr = -999
@@ -1300,9 +1319,11 @@ c                 == q2 ==
                      exit
                   endif
                enddo
+c           ==== Laguerre DVR option ====
             else if (inp_compare(.false., 'lagdvr', field)) then
                lagdvr_exist = .true.
                lagdvr_stat = .true.
+c           ==== Number of Laguerre DVRs ====
             else if (inp_compare(.false., 'lagdvr_n', field)) then
                nr = -999
                nr_stat(1) = inp_i(nr(1))
@@ -1311,15 +1332,19 @@ c                 == q2 ==
                if (nr_stat(2)) nr_exist(2) = .true.
                nr_stat(3) = inp_i(nr(3))
                if (nr_stat(3)) nr_exist(3) = .true.
+c           ==== Initial ke ====
             else if (inp_compare(.false., 'ke_init', field)) then
                kein_exist = .true.
                kein_stat = inp_f(kein)
+c           ==== ke multipler ====
             else if (inp_compare(.false., 'ke_multiplier', field)) then
                kemult_exist = .true.
                kemult_stat = inp_f(kemult)
+c           ==== Max. iteration to determine ke ====
             else if (inp_compare(.false., 'maxit', field)) then
                maxit_exist = .true.
                maxit_stat = inp_i(maxit)
+c           ==== Number of assoc. Legendre DVRs ====
             else if (inp_compare(.false., 'legdvr_n', field)) then
                nt = -999
                nt_stat(1) = inp_i(nt(1))
@@ -1328,6 +1353,7 @@ c                 == q2 ==
                if (nt_stat(2)) nt_exist(2) = .true.
                nt_stat(3) = inp_i(nt(3))
                if (nt_stat(3)) nt_exist(3) = .true.
+c           ==== End statement ====
             else if (inp_compare(.false., 'end', field)) then
                exit
             else
@@ -1407,7 +1433,7 @@ c        == Max. iterations ==
       endif
 
 c     == Number of angular assoc. Legendre DVRs ==
-      if (.not. nt_exist(1)) nt(1) = DEF_LAGDVR_NT
+      if (.not. nt_exist(1)) nt(1) = DEF_LEGDVR_NT
       if (.not. nt_exist(2)) nt(2) = nt(1)
       if (.not. nt_exist(3)) nt(3) = nt(1)      
       
@@ -1425,7 +1451,18 @@ c     ==== Potential ====
          if (.not. (pparam_exist(1) .and. pparam_exist(2)))
      &        call errquit('WFAT: When potential type is ''eff'', two'//
      &        ' potential parameters are required.', 14, INPUT_ERR)
-      endif         
+      endif
+      
+c     ==== Number of electrons ====
+      if (.not. nel_exist) then         !2)
+         if (p == 'cou') then
+            nel = 1
+         else if (p == 'eff') then
+            nel = sum(q(1:nq))
+         endif
+      endif
+c     2) The default value for the number of electrons depends on potential
+c        type.
 
       end
 c=======================================================
