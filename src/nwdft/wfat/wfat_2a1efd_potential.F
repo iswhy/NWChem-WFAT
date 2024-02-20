@@ -55,9 +55,9 @@ c     ==== Radial part ====
       call wfat_eval0_fedvr(nfe, ndvr, maxn, xq, wq, nr, r, scr(ptm),
      &     scr(pr))
       scr(pr:pr+nr-1) = scr(pr:pr+nr-1) / r
-      write(luout, '("sum pr = ", 2es14.6)') r, sum(scr(pr:pr+nr-1))
-      call wfat_dprintmat(1, nr, 'e', scr(pr))
-      call errquit('stopping inside wfat_fd_pot.', 3, UERR)
+cc      write(luout, '("sum pr = ", 2es14.6)') r, sum(scr(pr:pr+nr-1))
+cc      call wfat_dprintmat(1, nr, 'e', scr(pr))
+cc      call errquit('stopping inside wfat_fd_pot.', 3, UERR)
       
 c     ==== Theta part ====
       t = vpt(3) / r

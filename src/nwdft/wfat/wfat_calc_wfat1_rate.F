@@ -31,9 +31,6 @@ c============================================================
       double complex gn_, an_, an2
 
       
-c      - fix dn for negative m.  
-      
-
 c     ==== Get the passive rotation matrix ===
       call wfat_passrot(bt, gm, protmat)
       

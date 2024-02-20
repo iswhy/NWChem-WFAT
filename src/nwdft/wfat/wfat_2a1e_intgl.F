@@ -369,21 +369,16 @@ c     ==== Accumulate to global intgl (g_il) ====
 c         call ga_zero(g_j)
          call ga_sync()
          call ga_norm1(g_j, normch)
-         if (ndid==0) write(luout, '("intgl_j norm = ", es14.6)') normch
 
          call ga_acc(g_k(1), 1, nik1, 1, 1, dcpl_mb(k_ik1), nik1, 1.0d0)
 c         call ga_zero(g_k(1))
          call ga_sync()
          call ga_norm1(g_k(1), normch)
-         if (ndid==0) write(luout, '("intgl_k1 norm = ", es14.6)')
-     &        normch
 
          call ga_acc(g_k(2), 1, nik2, 1, 1, dcpl_mb(k_ik2), nik2, 1.0d0)
 c         call ga_zero(g_k(2))
          call ga_sync()
          call ga_norm1(g_k(2), normch)
-         if (ndid==0) write(luout, '("intgl_k2 norm = ", es14.6)')
-     &        normch
       endif
       
 
