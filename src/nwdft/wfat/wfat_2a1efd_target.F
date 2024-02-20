@@ -1,7 +1,7 @@
 c==========================================================
 c==========================================================
-      subroutine wfat_2a1efd_target(geom, mch, sphi, orbid, eps, ni, n,
-     &     maxn, xq, wq, nr, nt, cf, erg, dipole)
+      subroutine wfat_2a1efd_target(geom, mch, sphi, orbid, pottype, 
+     &     nel, potparam, ni, n, maxn, xq, wq, nr, nt, cf, erg, dipole)
 
       implicit none
 #include "stdio.fh"
@@ -11,7 +11,9 @@ c==========================================================
       integer mch
       integer sphi
       integer orbid
-      double precision eps
+      character*3 pottype
+      integer nel                    ! [input], not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)
       integer ni
       integer n(ni)
       integer maxn
@@ -28,8 +30,8 @@ c==========================================================
 
       
 c     ==== Solve the eigenproblem for GS ====
-      call wfat_2a1efd_solve(mch, ni, n, maxn, xq, wq, nt, geom, eps, 
-     &     cf, erg)
+      call wfat_2a1efd_solve(mch, ni, n, maxn, xq, wq, nt, geom, 
+     &     pottype, nel, potparam, cf, erg)
 
 
 c     ==== Electronic dipole moment ====

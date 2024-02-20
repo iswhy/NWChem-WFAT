@@ -1,7 +1,7 @@
 c==========================================================
 c==========================================================
       subroutine wfat_2a1efd_solve(m, ni, n, maxn, xq, wq, nt, geom,
-     &     eps, coef, erg)
+     &     pottype, nel, potparam, coef, erg)
 
       implicit none
 #include "stdio.fh"
@@ -15,7 +15,9 @@ c==========================================================
       double precision wq(maxn,ni)
       integer nt
       integer geom
-      double precision eps       ! [input], smooth Coulomb parameter.
+      character*3 pottype
+      integer nel                    ! [input], not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)
       double precision coef(*)   ! [output], size nr*nt x nr*nt
       double precision erg(*)    ! [output], size nr*nt
       
@@ -95,7 +97,7 @@ c     ====================
 c     ==== Hamiltonian construction ====
       call wfat_2a1e_hamiltonian(nr, nt, dbl_mb(k_x), dbl_mb(k_t),
      &     dbl_mb(k_gr), dbl_mb(k_ht), dbl_mb(k_hr), dbl_mb(k_gt), 
-     &     1.0d0, geom, eps, coef)
+     &     1.0d0, geom, pottype, nel, potparam, coef)
       
 c     ==== Hamiltonian diagonalization ====
       write(luout, '("dsyev nr nt = ", 2i4)') nr, nt
@@ -715,3 +717,19 @@ c      write(luout, '("heres0")')
 c     REFERENCES:
 c     [1] SIAM REVIEW Vol. 46, No. 3, pp. 501–517.
 c=======================================================
+
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_get_fedvrnr(nfe, ndvr, nr)
+
+      implicit none
+      integer nfe
+      integer ndvr(nfe)
+      integer nr
+
+      nr = (sum(ndvr) - nfe*2) + (nfe - 1)
+
+      end
+c=======================================================
+      

@@ -4,7 +4,9 @@ c=====================================================
      &     ismask_e, ergmask, amsk, bmsk)
 
       implicit none
+#include "stdio.fh"
 #include "rtdb.fh"
+#include "errquit.fh"
 #include "mafdecls.fh"
       integer rtdb
       double precision erg(*)
@@ -15,17 +17,24 @@ c=====================================================
       double precision amsk
       double precision bmsk
 
+      logical using_mask
       double precision abmask(2)
 
+      if (.not. rtdb_get(rtdb, 'wfat:mask', mt_log, 1, using_mask))
+     &     call errquit('WFAT: Failed reading mask from RTDB', 1, 
+     &     RTDB_ERR)
+      
       ismask_i = .false.
-      if (rtdb_get(rtdb, 'wfat:mask_g', mt_dbl, 2, mask_param)) then
+      if (using_mask .and. rtdb_get(rtdb, 'wfat:mask_g', mt_dbl, 2,
+     &     mask_param)) then
          ismask_i = .true.
       else
          mask_param = (/ -1.0d6, -1.0d6 /)
       endif
 
       ismask_e = .false.
-      if (rtdb_get(rtdb, 'wfat:mask_gjk', mt_dbl, 2, abmask)) then
+      if (using_mask .and. rtdb_get(rtdb, 'wfat:mask_gjk', mt_dbl, 2,
+     &     abmask)) then
          ismask_e = .true.
          ergmask = erg(1)
          amsk = abmask(1)

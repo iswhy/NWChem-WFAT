@@ -1,7 +1,7 @@
 c==========================================================
 c==========================================================
       subroutine wfat_2a1e_solve(m, nr, nt, geom, ke, adapt_ke, maxiter,
-     &     id_target, eps, coef, erg)
+     &     id_target, pottype, nel, potparam, coef, erg)
 
       implicit none
 #include "stdio.fh"
@@ -15,7 +15,9 @@ c==========================================================
       logical adapt_ke
       integer maxiter                        ! [input], only used when adapt_ke=.true.
       integer id_target                      ! [input], only used when adapt_ke=.true.
-      double precision eps                   ! [input], smooth Coulomb parameter.
+      character*3 pottype
+      integer nel                    ! [input], not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)
       double precision coef(nr*nt, nr*nt)    ! [output],
       double precision erg(nr*nt)            ! [output],
       
@@ -116,7 +118,7 @@ c     ==== Hamiltonian construction ====
       do iter = 1, maxiter_
          call wfat_2a1e_hamiltonian(nr, nt, dbl_mb(k_x), dbl_mb(k_t),
      &        dbl_mb(k_gr), dbl_mb(k_ht), dbl_mb(k_hr), dbl_mb(k_gt), 
-     &        ke, geom, eps, coef)
+     &        ke, geom, pottype, nel, potparam, coef)
       
 c        ==== Hamiltonian diagonalization ====
          call wfat_dsyev_wrap(nr*nt, coef, erg)
@@ -166,7 +168,7 @@ c==========================================================
 c==========================================================
 c==========================================================
       subroutine wfat_2a1e_hamiltonian(nr, nt, xquad, tquad, gr, ht, hr,
-     &     gt, ke, geom, eps, hm)
+     &     gt, ke, geom, pottype, nel, potparam, hm)
 
       implicit none
 #include "mafdecls.fh"      
@@ -182,8 +184,13 @@ c==========================================================
       double precision gt(nt, nt)
       double precision ke
       integer geom
-      double precision eps
+      character*3 pottype
+      integer nel                    ! [input], not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)      ! 1)
       double precision hm(nr*nt, nr*nt)
+      
+c     1) When pottype = 'cou', potparam(1) = soft Coulomb parameter, while potparam(2) is unused.
+c        When pottype = 'eff', potparam(1:2) = the two screening parameters.
 
       integer i, j, n, i_tm1, i_tm2, l_tm1, k_tm1, l_tm2, k_tm2, i_r
       integer i_t
@@ -218,17 +225,9 @@ c     ==== Nuclear attraction part ====
          do i_t = 1, nt
             t = tquad(i_t) * deg2rad
             i = i + 1
-
-cOLD            vdist1 = (/ x/ke*sin(t), x/ke*cos(t) - z1 /)
-cOLD            vdist2 = (/ x/ke*sin(t), x/ke*cos(t) - z2 /)
-cOLD            dist1 = sqrt(sum(vdist1 * vdist1) + eps)
-cOLD            dist2 = sqrt(sum(vdist2 * vdist2) + eps)
-cOLD            pot = - (q1/dist1 + q2/dist2)
-
-cOLD            pot = - (1/x) * ke
-
             vpt = (/ x/ke*sin(t), 0.0d0, x/ke*cos(t) /)
-            call wfat_2a1e_potential(geom, vpt, eps, pot)
+            call wfat_2a1e_potential(geom, vpt, pottype, nel, potparam,
+     &           pot)
             hm(i,i) = hm(i,i) + pot
          enddo
       enddo

@@ -1,20 +1,32 @@
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_potential(geom, vpt, eps, pot)
+      subroutine wfat_2a1e_potential(geom, vpt, pottype, nel, param,
+     &     pot)
 
       implicit none
 #include "errquit.fh"
 #include "geom.fh"
       integer geom
       double precision vpt(3)
-      double precision eps
+      character*3 pottype
+      integer nel                ! not used when pottype = 'cou', but still has to be supplied a value.
+      double precision param(2)  ! 1)
       double precision pot
 
-      character*16 t
-      integer i, nc, nel
-      double precision dr(3), atp(3), q, dist, u, v, q_tot
-      
+c     1) When pottype = 'cou', param(1) = soft Coulomb parameter, while param(2) is unused.
+c        When pottype = 'eff', param(1:2) = the two screening parameters.
 
+      character*16 t
+      integer i, nc
+      double precision dr(3), atp(3), q, dist
+
+      
+      if (pottype /= 'cou' .and. pottype /= 'eff') then
+         call errquit('WFAT: Undefined value assigned to the input '//
+     &        'argument pottype of wfat_2a1e_potential (pottype = '//
+     &        pottype//').')
+      endif
+      
       if (.not. geom_ncent(geom, nc))
      &     call errquit('WFAT: Cannot get ncenters.', 28, GEOM_ERR)
 
@@ -24,15 +36,17 @@ c===============================================================
      &        call errquit('WFAT: geom center info failed.', 45,
      &        GEOM_ERR)
          dr = vpt - atp
-         dist = sqrt(sum(dr*dr) + eps)
-         pot = pot + (-q)/dist
+         if (pottype == 'cou') then
+            dist = sqrt(sum(dr*dr) + param(1))
+            pot = pot + (-q)/dist
+         else if (pottype == 'eff') then
+            dist = sqrt(sum(dr*dr))
+            pot = pot - (nel - (nel-1)*
+     &           (1-1.0d0/(param(2)/param(1)*(exp(param(1)*dist)-1)+1)))
+     &           / dist
+         endif
+      enddo
 
-
-cc         if (.not. geom_nuc_charge(geom, q_tot))
-cc     &        call errquit('WFAT: geom center info failed.', 45,
-cc     &        GEOM_ERR)
-cc         nel = int(q_tot)
-cc
 ccc        == Ne ==
 ccc         u = 1.704d0
 ccc         v = 2.810d0
@@ -45,9 +59,7 @@ ccc        == Kr ==
 cc         u = 1.340d0
 cc         v = 4.311d0
 cc         
-cc         pot = pot - (nel - (nel-1)*(1-1.0d0/(v/u*(exp(u*dist)-1)+1)))
-cc     &        /dist
-      enddo
+      
 
       end
 c===============================================================
@@ -55,8 +67,8 @@ c===============================================================
       
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_vcpsi(geom, sphi, m, nr, nt, ke, eps, zi, 
-     &     vcf, chpos, vpt, scr, vc_psi)
+      subroutine wfat_2a1e_vcpsi(geom, sphi, m, nr, nt, ke, pottype, 
+     &     nel, potparam, zi, vcf, chpos, vpt, scr, vc_psi)
 
       implicit none
 #include "stdio.fh"
@@ -66,7 +78,9 @@ c===============================================================
       integer nr
       integer nt
       double precision ke
-      double precision eps
+      character*3 pottype
+      integer nel                ! not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)  ! 1)
       double precision zi
       double precision vcf(nr*nt)
       double precision chpos(3)
@@ -119,7 +133,7 @@ c     ==== Phi part ====
       call wfat_2a1e_eval_phi(sp, m, phi, sc)
       
       
-      call wfat_2a1e_potential(geom, vpt, eps, pot)
+      call wfat_2a1e_potential(geom, vpt, pottype, nel, potparam, pot)
       dr = vpt - chpos
       s = zi / sqrt(sum(dr*dr))
       vc_psi = -(pot + s) * sum(vcf(:) * scr(pb:pb+nr*nt-1)) * sc
@@ -131,8 +145,8 @@ c===============================================================
 c===============================================================
 c===============================================================
       subroutine wfat_2a1e_vcpsi_ord1(geom, sphi, m, nr, nt, nr_m, nt_m,
-     &     nr_p, nt_p, ke, eps, zi, vcf, cfx, cfy, cfz, chpos, vpt, scr,
-     &     vc_psi, vc_cpsi)
+     &     nr_p, nt_p, ke, pottype, nel, potparam, zi, vcf, cfx, cfy, 
+     &     cfz, chpos, vpt, scr, vc_psi, vc_cpsi)
 
       implicit none
       integer geom                    ! [input]
@@ -145,7 +159,9 @@ c===============================================================
       integer nr_p                    ! [input]
       integer nt_p                    ! [input]
       double precision ke             ! [input]
-      double precision eps            ! [input]
+      character*3 pottype             ! [input]
+      integer nel                     ! not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)    ! [input], 1)
       double precision zi             ! [input]
       double precision vcf(nr*nt)     ! [input]
       double precision cfx(1:*)       ! [input]
@@ -261,7 +277,7 @@ c     ==== Phi part ====
       
 
 c     ==== The potential term ====
-      call wfat_2a1e_potential(geom, vpt, eps, pot)
+      call wfat_2a1e_potential(geom, vpt, pottype, nel, potparam, pot)
       dr = vpt - chpos
       s = zi / sqrt(sum(dr*dr))
 

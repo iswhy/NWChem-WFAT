@@ -253,7 +253,7 @@ c     ==== Checking existence of OPTIONAL INPUTS ====
       endif
       if (.not. wfat_mask_exist) then
          wfat_mask = DEF_WFAT_MASK
-         wfat_mask_param = (/ 1.0d0, 1.0d10 /)
+         wfat_mask_param = (/ -1.0d6, -1.0d6 /)
          wfat_mask_stat = .true.
       else if (wfat_mask_exist .and. or) then
          write(luout, 202) 'tailmask', 'tailmask'
@@ -1148,14 +1148,20 @@ c        ==== Check orbitals ID ====
             if (is == 1) spin_str = 'a'
             if (is == 2) spin_str = 'b'
             if (s2a1e) then
-               if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr', mt_int, 1, nrr))
-     &              call errquit('WFAT: Error in getting 2a1e_nr '//
-     &              'from RTDB', 1, RTDB_ERR)
-               if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt', mt_int, 1, ntt))
-     &              call errquit('WFAT: Error in getting 2a1e_nt '//
-     &              'from RTDB', 1, RTDB_ERR)
-               
-               call wfat_ival_inrange(wfat_orbid0(i), 1, nrr*ntt,
+c               if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr', mt_int, 1, nrr))
+c     &              call errquit('WFAT: Error in getting 2a1e_nr '//
+c     &              'from RTDB', 1, RTDB_ERR)
+c               if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt', mt_int, 1, ntt))
+c     &              call errquit('WFAT: Error in getting 2a1e_nt '//
+c     &              'from RTDB', 1, RTDB_ERR)
+
+               ntt = wfat2a_nt(1)
+               if (wfat2a_fedvr) then
+                  call wfat_get_fedvrnr(wfat2a_nfe, wfat2a_ndvr, nrr)
+               else
+                  nrr = wfat2a_nr(1)
+               endif
+               call wfat_ival_inrange(wfat_orbid0(i), 1, nrr*ntt, 
      &              'WFAT', '''orb_id''', 'o', r)
                write(ss1, '(i10)') 1
                write(ss2, '(i10)') nrr*ntt
@@ -1248,7 +1254,7 @@ c     ==== Check parabolic quantum numbers ====
      &        '''diagthr''', 'e', w, r)
       endif
 
-      if (wfat_mask_need) then
+      if (wfat_mask_need .and. wfat_mask) then
          call wfat_dval_atleast(wfat_mask_param(1), 0.0d0, 'g', 'WFAT',
      &        '''tailmask:param_1''', 'e', w, r)
          call wfat_dval_atleast(wfat_mask_param(2), 0.0d0, 'g', 'WFAT',
@@ -1779,18 +1785,20 @@ cOLD      if (prtb_ord_need .and. os) then
          if (.not. rtdb_put(rtdb, 'wfat:mask', mt_log, 1, wfat_mask))
      &        call errquit('WFAT: Failed writing mask to RTDB', 1,
      &        RTDB_ERR)
-         if (.not. rtdb_put(rtdb, 'wfat:mask_g', mt_dbl, 2,
-     &        wfat_mask_param))
-     &        call errquit('WFAT: Failed writing mask_g to RTDB', 1,
-     &        RTDB_ERR)
-         if (.not. rtdb_put(rtdb, 'wfat:mask_j', mt_dbl, 2,
-     &        wfat_mask_param))
-     &        call errquit('WFAT: Failed writing mask_j to RTDB', 1,
-     &        RTDB_ERR)
-         if (.not. rtdb_put(rtdb, 'wfat:mask_k', mt_dbl, 2,
-     &        wfat_mask_param))
-     &        call errquit('WFAT: Failed writing mask_k to RTDB', 1,
-     &        RTDB_ERR)
+         if (wfat_mask) then
+            if (.not. rtdb_put(rtdb, 'wfat:mask_g', mt_dbl, 2,
+     &           wfat_mask_param))
+     &           call errquit('WFAT: Failed writing mask_g to RTDB', 1,
+     &           RTDB_ERR)
+            if (.not. rtdb_put(rtdb, 'wfat:mask_j', mt_dbl, 2,
+     &           wfat_mask_param))
+     &           call errquit('WFAT: Failed writing mask_j to RTDB', 1,
+     &           RTDB_ERR)
+            if (.not. rtdb_put(rtdb, 'wfat:mask_k', mt_dbl, 2,
+     &           wfat_mask_param))
+     &           call errquit('WFAT: Failed writing mask_k to RTDB', 1,
+     &           RTDB_ERR)
+         endif
       endif
 
       if (ffc_need) then

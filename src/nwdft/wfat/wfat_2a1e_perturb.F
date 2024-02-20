@@ -1,7 +1,8 @@
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_perturb(geom, m, sphi, orbid, eps, ke, nr,
-     &     nt, nr_m, nt_m, nr_p, nt_p, cf, erg, cfx, cfy, cfz, polb)
+      subroutine wfat_2a1e_perturb(geom, m, sphi, orbid, pottype, nel, 
+     &     potparam, ke, nr, nt, nr_m, nt_m, nr_p, nt_p, cf, erg, cfx,
+     &     cfy, cfz, polb)
 
       implicit none
 #include "stdio.fh"      
@@ -11,7 +12,9 @@ c===============================================================
       integer m                            ! [input],
       integer sphi                         ! [input],
       integer orbid                        ! [input],
-      double precision eps                 ! [input],
+      character*3 pottype
+      integer nel                    ! [input], not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)
       double precision ke                  ! [input],
       integer nr                           ! [input],
       integer nt                           ! [input],
@@ -38,7 +41,7 @@ c     ==== Solve the m-1 eigenvectors ====
          if (.not. ma_alloc_get(MT_DBL, n_m, 'erg-', l_egm, k_egm))
      &        call errquit('WFAT: Cannot allocate erg-', 1, MA_ERR)
          call wfat_2a1e_solve(m-1, nr_m, nt_m, geom, ke, .false., 1,
-     &        1, eps, dbl_mb(k_cfm), dbl_mb(k_egm))
+     &        1, pottype, nel, potparam, dbl_mb(k_cfm), dbl_mb(k_egm))
       endif
 
 c     ==== Solve the m+1 eigenvectors ====
@@ -48,7 +51,7 @@ c     ==== Solve the m+1 eigenvectors ====
       if (.not. ma_alloc_get(MT_DBL, n_p, 'erg+', l_egp, k_egp))
      &     call errquit('WFAT: Cannot allocate erg+', 1, MA_ERR)
       call wfat_2a1e_solve(m+1, nr_p, nt_p, geom, ke, .false., 1,
-     &     1, eps, dbl_mb(k_cfp), dbl_mb(k_egp))
+     &     1, pottype, nel, potparam, dbl_mb(k_cfp), dbl_mb(k_egp))
       
 c     ==== Obtain the coefficients of the x, y, z ====
 c     ====    corrections to the wavefunction     ====

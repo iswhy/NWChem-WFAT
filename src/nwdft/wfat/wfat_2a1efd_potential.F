@@ -1,7 +1,8 @@
 c===============================================================
 c===============================================================
       subroutine wfat_2a1efd_vcpsi(geom, sphi, m, nfe, ndvr, maxn, xq, 
-     &     wq, nr, nt, eps, zi, vcf, chpos, vpt, scr, vc_psi)
+     &     wq, nr, nt, pottype, nel, potparam, zi, vcf, chpos, vpt, scr,
+     &     vc_psi)
 
       implicit none
 #include "errquit.fh"
@@ -16,7 +17,9 @@ c===============================================================
       double precision wq(maxn,nfe)
       integer nr         ! nr=sum(ndvr)-nfe*2+nfe-1
       integer nt
-      double precision eps
+      character*3 pottype
+      integer nel                ! not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)  ! 1)
       double precision zi
       double precision vcf(nr*nt)
       double precision chpos(3)
@@ -81,7 +84,7 @@ c     ==== The wavefunction evaluated at vpt ====
       wfn = wfn * sc
 
       
-      call wfat_2a1e_potential(geom, vpt, eps, pot)
+      call wfat_2a1e_potential(geom, vpt, pottype, nel, potparam, pot)
       dr = vpt - chpos
       s = zi / sqrt(sum(dr*dr))
       vc_psi = -(pot + s) * wfn
@@ -93,15 +96,15 @@ c===============================================================
 c===============================================================
 c===============================================================
       subroutine wfat_2a1efd_vcpsi_ord1(geom, sphi, m, nfe, ndvr, maxn,
-     &     xq, wq, nr, nt, nt_m, nt_p, eps, zi, vcf, cfx, cfy, cfz, 
-     &     chpos, vpt, scr, vc_psi, vc_cpsi)
+     &     xq, wq, nr, nt, nt_m, nt_p, pottype, nel, potparam, zi, vcf, 
+     &     cfx, cfy, cfz, chpos, vpt, scr, vc_psi, vc_cpsi)
 
       implicit none
 #include "errquit.fh"
 #include "stdio.fh"
-      integer geom              ! [input]
+      integer geom                    ! [input]
       integer sphi                    ! [input]
-      integer m                 ! [input]
+      integer m                       ! [input]
       integer nfe
       integer ndvr(nfe)
       integer maxn
@@ -111,7 +114,9 @@ c===============================================================
       integer nt                      ! [input]
       integer nt_m                    ! [input]
       integer nt_p                    ! [input]
-      double precision eps            ! [input]
+      character*3 pottype
+      integer nel                     ! not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)    ! [input], 1)
       double precision zi             ! [input]
       double precision vcf(nr*nt)     ! [input]
       double precision cfx(1:*)       ! [input]
@@ -217,7 +222,7 @@ c     ==== Phi part ====
       call wfat_2a1e_eval_phi(sp_, m+1, phi, scy_p)
 
 c     ==== The potential term ====
-      call wfat_2a1e_potential(geom, vpt, eps, pot)
+      call wfat_2a1e_potential(geom, vpt, pottype, nel, potparam, pot)
       dr = vpt - chpos
       s = zi / sqrt(sum(dr*dr))
 

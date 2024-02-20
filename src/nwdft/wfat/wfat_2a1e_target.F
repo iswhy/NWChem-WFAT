@@ -1,7 +1,7 @@
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_target(geom, m, sphi, target, eps, 
-     &     nr, nt, init_ke, maxiter, cf, erg, dipole, ke)
+      subroutine wfat_2a1e_target(geom, m, sphi, target, pottype, nel, 
+     &     potparam, nr, nt, init_ke, maxiter, cf, erg, dipole, ke)
 
       implicit none
 #include "stdio.fh"      
@@ -11,7 +11,9 @@ c===============================================================
       integer m
       integer sphi
       integer target
-      double precision eps
+      character*3 pottype
+      integer nel                    ! [input], not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)
       integer nr
       integer nt
       double precision init_ke
@@ -26,9 +28,9 @@ c===============================================================
       
       ke = init_ke
       call wfat_2a1e_solve(m, nr, nt, geom, ke, .true., maxiter, target,
-     &     eps, cf, erg)
+     &     pottype, nel, potparam, cf, erg)
 c      call wfat_2a1e_solve(m, nr, nt, geom, ke, .false., maxiter, 
-c     &     target, eps, cf, erg)
+c     &     target, pottype, nel, potparam, cf, erg)
 
 
 c     ==== Electronic dipole moment ====

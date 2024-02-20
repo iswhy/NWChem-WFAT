@@ -1,8 +1,8 @@
 c===============================================================
 c===============================================================
       subroutine wfat_2a1efd_perturb(geom, mch, sphi, orbid, nfe, ndvr, 
-     &     maxn, xq, wq, nr, nt, nt_m, nt_p, eps, cf, erg, cfx, cfy, 
-     &     cfz, polb)
+     &     maxn, xq, wq, nr, nt, nt_m, nt_p, pottype, nel, potparam, cf,
+     &     erg, cfx, cfy, cfz, polb)
 
       implicit none
 #include "stdio.fh"      
@@ -21,8 +21,10 @@ c===============================================================
       integer nt                           ! [input],
       integer nt_m                         ! [input],
       integer nt_p                         ! [input],
-      double precision eps                 ! [input],
-      double precision cf(nr*nt, nr*nt) ! [input],
+      character*3 pottype
+      integer nel                          ! [input], not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)
+      double precision cf(nr*nt, nr*nt)    ! [input],
       double precision erg(nr*nt)          ! [input],
       double precision cfx(1:*)            ! [output], The minimum size is nr_p*nt_p if m=0, if m>0, the minimum size is nr_m*nt_m + nr_p*nt_p.
       double precision cfy(1:*)            ! [output], The minimum size is nr_p*nt_p if m=0, if m>0, the minimum size is nr_m*nt_m + nr_p*nt_p.
@@ -41,7 +43,8 @@ c     ==== Solve the m-1 eigenvectors ====
          if (.not. ma_alloc_get(MT_DBL, n_m, 'erg-', l_egm, k_egm))
      &        call errquit('WFAT: Cannot allocate erg-', 1, MA_ERR)
          call wfat_2a1efd_solve(mch-1, nfe, ndvr, maxn, xq, wq, nt_m, 
-     &        geom, eps, dbl_mb(k_cfm), dbl_mb(k_egm))
+     &        geom, pottype, nel, potparam, dbl_mb(k_cfm),
+     &        dbl_mb(k_egm))
       endif
 
 c     ==== Solve the m+1 eigenvectors ====
@@ -51,7 +54,7 @@ c     ==== Solve the m+1 eigenvectors ====
       if (.not. ma_alloc_get(MT_DBL, n_p, 'erg+', l_egp, k_egp))
      &     call errquit('WFAT: Cannot allocate erg+', 1, MA_ERR)
       call wfat_2a1efd_solve(mch+1, nfe, ndvr, maxn, xq, wq, nt_p, geom,
-     &     eps, dbl_mb(k_cfp), dbl_mb(k_egp))
+     &     pottype, nel, potparam, dbl_mb(k_cfp), dbl_mb(k_egp))
 
 c     ==== Obtain the coefficients of the x, y, z ====
 c     ====    corrections to the wavefunction     ====

@@ -40,10 +40,10 @@ c=======================================================
       
       logical wfat_inp_paraqn, wfat_inp_movec, wfat_inp_omgpos
       logical wfat_inp_field, wfat_inp_perturb, wfat_inp_dt
-      logical wfat_inp_tmax, wfat_inp_ffc
+      logical wfat_inp_tmax, wfat_inp_ffc, wfat_inp_s2a1e
       external wfat_inp_paraqn, wfat_inp_movec, wfat_inp_omgpos
       external wfat_inp_field, wfat_inp_perturb, wfat_inp_dt
-      external wfat_inp_tmax, wfat_inp_ffc
+      external wfat_inp_tmax, wfat_inp_ffc, wfat_inp_s2a1e
 
       
       WFAT_PRINT_OPTIONS = (/ 'srfc', 'rate', 'yield', 'avbeta', 
@@ -1172,6 +1172,7 @@ c=======================================================
      &     nfe, fen, ndvr, nr, kein, kemult, maxit, nt)
 
       implicit none
+#include "stdio.fh"
 #include "errquit.fh"
 #include "inp.fh"
 #include "wfat_input.fh"
@@ -1195,11 +1196,11 @@ c=======================================================
       character*50 field
       character*1 adum
       logical sys_exist, sys_stat, mag_exist, mag_stat, p_exist, p_stat
-      logical pparam_exist, pparam_stat, fedvr_exist, fedvr_stat
+      logical pparam_exist(2), pparam_stat(2), fedvr_exist, fedvr_stat
       logical fen_exist, fen_stat, ndvr_exist, ndvr_stat, lagdvr_exist
-      logical lagdvr_stat, nr_exist, nr_stat, kein_exist, kein_stat
-      logical kemult_exist, kemult_stat, maxit_exist, maxit_stat
-      logical nt_exist, nt_stat, nel_exist, nel_stat
+      logical lagdvr_stat, nr_exist(3), nr_stat(3), kein_exist
+      logical kein_stat, kemult_exist, kemult_stat, maxit_exist
+      logical maxit_stat, nt_exist(3), nt_stat(3), nel_exist, nel_stat
       logical using_fedvr, using_lagdvr
       integer i, n_fen, n_ndvr
       
@@ -1212,7 +1213,7 @@ c=======================================================
       p_stat = .false.
       pparam_exist = .false.
       pparam_stat = .false.
-      nel_ecist = .false.
+      nel_exist = .false.
       nel_stat = .false.
       fedvr_exist = .false.
       fedvr_stat = .false.
@@ -1259,18 +1260,20 @@ c           ==== Potential type ====
                p_exist = .true.
                p_stat = inp_a(p)
                if (inp_compare(.false., 'cou', p)) then
+c                 Syntax: potential cou [<float soft_coulomb>]
                   if (inp_f(pparam(1))) then
                      pparam_exist(1) = .true.
                      pparam_stat(1) = .true.
                   endif
                else if (inp_compare(.false., 'eff', p)) then
+c                 Syntax: potential eff <float param1> <float param2> [<integer nelec>]
                   pparam_stat(1) = inp_f(pparam(1))
                   pparam_stat(2) = inp_f(pparam(2))
                   if (pparam_stat(1) .and. pparam_stat(2)) then
                      pparam_exist(1:2) = .true.
                   endif
 c                 == Number of electrons ==
-                  nel_stat = inp_i(nel)     ! 3)
+                  nel_stat = inp_i(nel)           ! 3)
                   if (nel_stat) nel_exist = .true.
 c                 3) By definition, when effective potential is chosen, the number
 c                    of electrons can be any number N because the remaining N-1
@@ -1315,7 +1318,7 @@ c           ==== Number of DVRs in FEs ====
      &                    'input directive ''ndvr'' must be an '//
      &                    'integer.', 40, INPUT_ERR)
                   else
-                     ndvr_stat
+                     ndvr_stat = .true.
                      exit
                   endif
                enddo
@@ -1366,7 +1369,7 @@ c           ==== End statement ====
 
 
       using_fedvr = (fedvr_exist .or. fen_exist .or. ndvr_exist)
-      using_lagdvr = (lagdvr_exist .or. nr_exist .or. kein_exist
+      using_lagdvr = (lagdvr_exist .or. nr_exist(1) .or. kein_exist
      &     .or. kemult_exist .or. maxit_exist)
       if (using_fedvr .and. using_lagdvr)
      &     call errquit('WFAT: The basis choices FEDVR and '//
@@ -1427,7 +1430,7 @@ c        == Number of radial Laguerre DVRs ==
 c        == Initial/guess ke ==
          if (.not. kein_exist) kein = DEF_KEIN
 c        == ke multiplier ==
-         if (.not. kemul_exist) kein = DEF_KEMULT
+         if (.not. kemult_exist) kein = DEF_KEMULT
 c        == Max. iterations ==
          if (.not. maxit_exist) maxit = DEF_2A1E_MAXIT
       endif
@@ -1458,7 +1461,7 @@ c     ==== Number of electrons ====
          if (p == 'cou') then
             nel = 1
          else if (p == 'eff') then
-            nel = sum(q(1:nq))
+            nel = nint( sum(q(1:nq)) )
          endif
       endif
 c     2) The default value for the number of electrons depends on potential

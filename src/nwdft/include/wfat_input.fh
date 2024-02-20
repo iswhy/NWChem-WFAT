@@ -104,7 +104,7 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     prtb_type_need, prtb_ord_need, prtb_bt_need, prtb_gm_need,
      &     prtb_dgnthr_need, prtb_offthr_need, prtb_e1thr_need, 
      &     prtb_itrthr_need, prtb_maxitr_need, prtb_ordthr_need, 
-     &     prtb_maxord_need, 
+     &     prtb_maxord_need
       
       integer
      &     wfat_nbeta, wfat_ngamma, g_wfat_bt, g_wfat_gm,
@@ -200,8 +200,9 @@ c     == Integers ==
      &     wfat_nbeta, wfat_ngamma, g_wfat_bt, g_wfat_gm, wfat_orbid0,
      &     wfat_orbid, n_orbid, wfat_spinid, npara, n_npara, mpara,
      &     nktmd, wfat_lmax, wfat_gqual, prtb_ord, prtb_maxitr,
-     &     prtb_maxord, wfat_nlgl, ffc_type0, wfat2a_nel, wfat2a_nfe, 
-     &     wfat2a_ndvr, wfat2a_nr, wfat2a_maxit, wfat2a_nt,
+     &     prtb_maxord, wfat_nlgl, ffc_type0, wfat2a_nc, wfat2a_mag, 
+     &     wfat2a_nel, wfat2a_nfe, wfat2a_ndvr, wfat2a_nr, wfat2a_maxit,
+     &     wfat2a_nt,
 c     == Doubles ==
      &     wfat_beta_start, wfat_beta_last, 
      &     wfat_gamma_start,  wfat_gamma_last, 

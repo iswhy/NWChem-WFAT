@@ -86,7 +86,7 @@ c     ==== Read some quantities from RDB ====
       if (nc <= 0 .or. nc >=3)
      &     call errquit('WFAT: The number of 2a1e centers must be '//
      &     'either 1 or 2.', 93, UERR)
-      if (.not. rtdb_get(rtdb, 'wfat:2a1e_q', mt_dbl, nc, ch(1:nc)))
+      if (.not. rtdb_get(rtdb, 'wfat:2a1e_q', mt_dbl, 2, ch))
      &     call errquit('WFAT: Failed reading 2a1e_q from RTDB.',
      &     1, RTDB_ERR)
       if (nc == 2) then

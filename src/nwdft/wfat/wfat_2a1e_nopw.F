@@ -1,8 +1,9 @@
 c===============================================================
 c===============================================================
       subroutine wfat_2a1e_task_nopw(rtdb, geom, nqn, nid, mid, gq, zi,
-     &     celm, sphi, mch, nr, nt, orbid, vcf, ke, erg, chmmt0, eps,
-     &     wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, cfx, cfy, cfz)
+     &     celm, sphi, mch, nr, nt, orbid, vcf, ke, erg, chmmt0, 
+     &     pottype, nel, potparam, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p,
+     &     cfx, cfy, cfz)
 
       implicit none
 #include "stdio.fh"      
@@ -27,7 +28,9 @@ c===============================================================
       double precision ke
       double precision erg
       double precision chmmt0(3)
-      double precision eps
+      character*3 pottype
+      integer nel                ! not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)  ! 1)
       logical wfat1
       integer nlgl                 ! [input], only used when wfat1=.true.
       integer nr_m                 ! [input], only used when wfat1=.true.
@@ -117,8 +120,9 @@ c     ==== Calculate and print structure factor and ion yield ====
             
             call wfat_2a1e_intgl_nopw(rtdb, geom, nqn, nid, mid, bt, gm,
      &           gq, zi, celm, sphi, mch, nr, nt, ke, orbid, vcf, erg, 
-     &           chmmt0, eps, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, cfx,
-     &           cfy, cfz, chpos, chmmt, g_il, g_j, g_k)
+     &           chmmt0, pottype, nel, potparam, wfat1, nlgl, nr_m, 
+     &           nt_m, nr_p, nt_p, cfx, cfy, cfz, chpos, chmmt, g_il,
+     &           g_j, g_k)
 
             write(luout, '("g_il:")')
             call ga_print(g_il)
@@ -210,8 +214,8 @@ c===============================================================
 c===============================================================
       subroutine wfat_2a1e_intgl_nopw(rtdb, geom, nqn, nid, mid, bt, gm,
      &     gq, zi, celm, sphi, mch, nr, nt, ke, orbid, vcf, erg, chmmt0,
-     &     eps, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, cfx, cfy, cfz,
-     &     chpos, chmmt, g_il, g_j, g_k)
+     &     pottype, nel, potparam, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, 
+     &     cfx, cfy, cfz, chpos, chmmt, g_il, g_j, g_k)
 
       implicit none
 #include "util.fh"
@@ -240,7 +244,9 @@ c===============================================================
       double precision vcf(nr*nt)  ! [input],
       double precision erg         ! [input],
       double precision chmmt0(3)   ! [input],
-      double precision eps         ! [input],
+      character*3 pottype
+      integer nel                  ! not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2) ! 1)
       logical wfat1                ! [input],
       integer nlgl                 ! [input], only used when wfat1=.true.
       integer nr_m                 ! [input], only used when wfat1=.true.
@@ -448,17 +454,20 @@ c        ==== Loop over all quadrature points around the current atom ====
 c           ==== Calculate vc|psi> ====
             if (wfat1) then
                call wfat_2a1e_vcpsi_ord1(geom, sphi, mch, nr, nt, nr_m,
-     &              nt_m, nr_p, nt_p, ke, eps, zi, vcf, cfx, cfy, cfz, 
-     &              chpos, v_m, dbl_mb(k_sc), vc_psi, vc_cpsi)
-               call wfat_2a1e_vcpsi(geom, sphi, mch, nr, nt, ke, eps, 
-     &              zi, vcf, chpos, v_m, dbl_mb(k_sc), vc_psi)
+     &              nt_m, nr_p, nt_p, ke, pottype, nel, potparam, zi, 
+     &              vcf, cfx, cfy, cfz, chpos, v_m, dbl_mb(k_sc),
+     &              vc_psi, vc_cpsi)
+               call wfat_2a1e_vcpsi(geom, sphi, mch, nr, nt, ke, 
+     &              pottype, nel, potparam, zi, vcf, chpos, v_m,
+     &              dbl_mb(k_sc), vc_psi)
                vc_cpsi_ = sum(cu * vc_cpsi)
 c               vc_cpsi_ = vc_cpsi(3)
                sumvc = sumvc + vc_psi
                sumvcc = sumvcc + vc_cpsi_
             else
-               call wfat_2a1e_vcpsi(geom, sphi, mch, nr, nt, ke, eps, 
-     &              zi, vcf, chpos, v_m, dbl_mb(k_sc), vc_psi)
+               call wfat_2a1e_vcpsi(geom, sphi, mch, nr, nt, ke, 
+     &              pottype, nel, potparam, zi, vcf, chpos, v_m,
+     &              dbl_mb(k_sc), vc_psi)
                sumvc = sumvc + vc_psi
             endif
 

@@ -1,18 +1,20 @@
 c===============================================================
 c===============================================================
       subroutine wfat_2a1e_prep_system(rtdb, mch, sphi, spinid, orbid, 
-     &     eps)
+     &     pottype, nel, potparam)
 
       implicit none
 #include "mafdecls.fh"
 #include "rtdb.fh"
 #include "errquit.fh"
-      integer rtdb               ! [input],
-      integer mch                ! [output],
-      integer sphi               ! [output],
-      integer spinid             ! [output],
-      integer orbid              ! [output],
-      double precision eps       ! [output],
+      integer rtdb                  ! [input],
+      integer mch                   ! [output],
+      integer sphi                  ! [output],
+      integer spinid                ! [output],
+      integer orbid                 ! [output],
+      character*3 pottype           ! [output],
+      integer nel                   ! [output], not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)  ! [output],
 
       
 c     ==== The m (magnetic) quantum number ====
@@ -33,11 +35,20 @@ c     ==== The eigenstate ID within the above (m,k) ====
      &     call errquit('WFAT: Failed reading spinid from rtdb',
      &     18, INPUT_ERR)
 
-c     ==== The soft Coulomb parameter ====
-      if (.not. rtdb_get(rtdb, 'wfat:2a1e_eps', mt_dbl, 1, eps))
-     &     call errquit('WFAT: Failed reading 2a1e_eps from rtdb',
+c     ==== The Potential parameters ====
+      if (.not. rtdb_cget(rtdb, 'wfat:2a1e_pot', 1, pottype))
+     &     call errquit('WFAT: Failed reading 2a1e_pot from RTDB', 1,
+     &     RTDB_ERR)
+
+      if (.not. rtdb_get(rtdb, 'wfat:2a1e_potparam', mt_dbl, 2,
+     &     potparam))
+     &     call errquit('WFAT: Failed reading 2a1e_potparam from RTDB',
      &     1, RTDB_ERR)
 
+      if (.not. rtdb_get(rtdb, 'wfat:2a1e_nel', mt_int, 1, nel))
+     &     call errquit('WFAT: Failed reading 2a1e_nel from RTDB', 1, 
+     &     RTDB_ERR)
+      
       end
 c===============================================================
 
@@ -65,6 +76,8 @@ c===============================================================
       integer l_xquad, k_xquad   ! [output],
       integer l_wquad, k_wquad   ! [output],
 
+      integer nr_temp(3), nt_temp(3)
+      
 
       if (fedvr) then
 c        ==== No. of FEs ====
@@ -129,18 +142,21 @@ c     ==== FEDVR points and weights in all FEs ====
          
 c     ==== The number of radial bases ====
       if (fedvr) then
-         nr = (sum(int_mb(k_ndvr:k_ndvr+nfe-1)) - nfe*2) + (nfe - 1)
+cOLD         nr = (sum(int_mb(k_ndvr:k_ndvr+nfe-1)) - nfe*2) + (nfe - 1)
+         call wfat_get_fedvrnr(nfe, int_mb(k_ndvr), nr)
       else
-         if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr', mt_int, 1, nr))
+         if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr', mt_int, 3, nr_temp))
      &        call errquit('WFAT: Failed reading 2a1e_nr from rtdb',
      &        1, RTDB_ERR)
+         nr = nr_temp(1)
       endif
          
 
 c     ==== The number of polar DVR basis ====
-      if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt', mt_int, 1, nt))
+      if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt', mt_int, 3, nt_temp))
      &     call errquit('WFAT: Failed reading 2a1e_nt from rtdb',
      &     1, RTDB_ERR)
+      nt = nt_temp(1)
       
       end
 c===============================================================
@@ -210,24 +226,29 @@ c===============================================================
       integer l_cfy, k_cfy   ! [output].
       integer l_cfz, k_cfz   ! [output].
 
-      integer n_m, n_p, nz
+      integer n_m, n_p, nz, nr_temp(3), nt_temp(3)
 
 
+      if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt', mt_int, 3, nt_temp))
+     &     call errquit('WFAT: Failed reading 2a1e_nt from rtdb.',
+     &     1, RTDB_ERR)
+      if (.not. fedvr) then
+         if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr', mt_int, 3, nr_temp))
+     &        call errquit('WFAT: Failed reading 2a1e_nr from rtdb.',
+     &        1, RTDB_ERR)
+      endif
+      
       if (wfat1) then
 c        ==== The number of radial DVR basis for m-1 spectrum ====
          if (m >= 1) then
             if (fedvr) then
                nr_m = nr
             else
-               if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr_m', mt_int, 1,
-     &              nr_m)) call errquit('WFAT: Failed reading '//
-     &              '2a1e_nr_m from rtdb', 1, RTDB_ERR)
+               nr_m = nr_temp(2)
             endif
             
 c           ==== The number of polar DVR basis for m-1 spectrum ====
-            if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt_m', mt_int, 1, nt_m))
-     &           call errquit('WFAT: Failed reading 2a1e_nt_m from '//
-     &           'rtdb', 1, RTDB_ERR)
+            nt_m = nt_temp(2)
          else
             nr_m = 0
             nt_m = 0
@@ -237,15 +258,11 @@ c        ==== The number of radial DVR basis for m+1 spectrum ====
          if (fedvr) then
             nr_p = nr
          else
-            if (.not. rtdb_get(rtdb, 'wfat:2a1e_nr_p', mt_int, 1, nr_p))
-     &           call errquit('WFAT: Failed reading 2a1e_nr_p from '//
-     &           'rtdb', 1, RTDB_ERR)
+            nr_p = nr_temp(3)
          endif
          
 c        ==== The number of polar DVR basis for m+1 spectrum ====
-         if (.not. rtdb_get(rtdb, 'wfat:2a1e_nt_p', mt_int, 1, nt_p))
-     &        call errquit('WFAT: Failed reading 2a1e_nt_p from rtdb',
-     &        1, RTDB_ERR)
+         nt_p = nt_temp(3)
       else
          nr_m = 1
          nt_m = 1

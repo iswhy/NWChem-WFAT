@@ -1,9 +1,10 @@
 c===============================================================
 c===============================================================
       subroutine wfat_2a1e_intgl(rtdb, geom, nqn, nid, mid, lmax_,
-     &     gq, zi, celm, sphi, mch, nr, nt, ke, orbid, vcf, erg, chmmt0,
-     &     eps, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, cfx, cfy, cfz,
-     &     fedvr, nfe, ndvr, maxn, xq, wq, chpos, chmmt, g_il, g_j, g_k)
+     &     gq, zi, celm, sphi, mch, nr, nt, ke, vcf, erg, chmmt, chpos,
+     &     pottype, nel, potparam, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, 
+     &     cfx, cfy, cfz, fedvr, nfe, ndvr, maxn, xq, wq, ismask, 
+     &     mask_param, g_il, g_j, g_k)
 
       implicit none
 #include "util.fh"
@@ -13,50 +14,52 @@ c===============================================================
 #include "global.fh"
 #include "errquit.fh"
 #include "geom.fh"
-      integer rtdb                 ! [input],
-      integer geom                 ! [input],
-      integer nqn                  ! [input],
-      integer nid(nqn)             ! [input],
-      integer mid(nqn)             ! [input],
-      integer lmax_                ! [input],
-      integer gq                   ! [input],
-      double precision zi          ! [input],
-      integer celm                 ! [input],
-      integer sphi                 ! [input],
-      integer mch                  ! [input],
-      integer nr                   ! [input],
-      integer nt                   ! [input],
-      double precision ke          ! [input],
-      integer orbid                ! [input],
-      double precision vcf(nr*nt)  ! [input],
-      double precision erg         ! [input],
-      double precision chmmt0(3)   ! [input],
-      double precision eps         ! [input],
-      logical wfat1                ! [input],
-      integer nlgl                 ! [input], only used when wfat1=.true.
-      integer nr_m                 ! [input], only used when wfat1=.true.
-      integer nt_m                 ! [input], only used when wfat1=.true.
-      integer nr_p                 ! [input], only used when wfat1=.true.
-      integer nt_p                 ! [input], only used when wfat1=.true.
-      double precision cfx(1:*)    ! [input], only used when wfat1=.true.
-      double precision cfy(1:*)    ! [input], only used when wfat1=.true.
-cOLD      double precision cfz(nr*nt) ! [input], only used when wfat1=.true.
-      double precision cfz(1:*) ! [input], only used when wfat1=.true.
-      logical fedvr
-      integer nfe
-      integer ndvr(*)              ! size is nfe
-      integer maxn
-      double precision xq(*)       ! size is maxn*nfe
-      double precision wq(*)       ! size is maxn*nfe
-      double precision chpos(3)    ! [output],
-      double precision chmmt(3)    ! [output],
-      integer g_il                 ! [output],
-      integer g_j                  ! [output], only calculated when wfat1=.true.
-      integer g_k(2)               ! [output], only calculated when wfat1=.true.
+      integer rtdb                    ! [input],
+      integer geom                    ! [input],
+      integer nqn                     ! [input],
+      integer nid(nqn)                ! [input],
+      integer mid(nqn)                ! [input],
+      integer lmax_                   ! [input],
+      integer gq                      ! [input],
+      double precision zi             ! [input],
+      integer celm                    ! [input],
+      integer sphi                    ! [input],
+      integer mch                     ! [input],
+      integer nr                      ! [input],
+      integer nt                      ! [input],
+      double precision ke             ! [input],
+      double precision vcf(nr*nt)     ! [input],
+      double precision erg            ! [input],
+      double precision chmmt(3)       ! [input],
+      double precision chpos(3)       ! [input],
+      character*3 pottype             ! [input]
+      integer nel                     ! not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)    ! [input], 1)
+      logical wfat1                   ! [input],
+      integer nlgl                    ! [input], only used when wfat1=.true.
+      integer nr_m                    ! [input], only used when wfat1=.true.
+      integer nt_m                    ! [input], only used when wfat1=.true.
+      integer nr_p                    ! [input], only used when wfat1=.true.
+      integer nt_p                    ! [input], only used when wfat1=.true.
+      double precision cfx(1:*)       ! [input], only used when wfat1=.true.
+      double precision cfy(1:*)       ! [input], only used when wfat1=.true.
+cOLD      double precision cfz(nr*n   t) ! [input], only used when wfat1=.true.
+      double precision cfz(1:*)       ! [input], only used when wfat1=.true.
+      logical fedvr                   ! [input],
+      integer nfe                     ! [input],
+      integer ndvr(*)                 ! [input], size is nfe
+      integer maxn                    ! [input],
+      double precision xq(*)          ! [input], size is maxn*nfe
+      double precision wq(*)          ! [input], size is maxn*nfe
+      logical ismask                  ! [input]
+      double precision mask_param(2)  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
+      integer g_il                    ! [output],
+      integer g_j                     ! [output], only calculated when wfat1=.true.
+      integer g_k(2)                  ! [output], only calculated when wfat1=.true.
 
       character*12 dt_str
       character*16 tag
-      logical ismask_g, ismask_j, ismask_k, t1
+      logical t1
       integer ndid, natom, max_npt, nscr, nsh, nom, ni0, ni_, nil
       integer nij0, nij_, nij, nik1_0, nik1_, nik1, nik2_0, nik2_, nik2
       integer natomp, nptp, pr_chk(10), g_nptx, nptx, jpt, pr_count, kk
@@ -68,10 +71,10 @@ cOLD      double precision cfz(nr*nt) ! [input], only used when wfat1=.true.
       integer k_pt, k_wt, k_sc, k_om, k_i0, k_i_, k_il, k_icp, k_ipp
       integer k_ij0, k_ij_, k_ij, k_ik1_0, k_ik1_, k_ik1, k_ik2_0
       integer k_ik2_, k_ik2, k_om1, k_om2, k_dr, k_dt
-      double precision mask_g(2), mask_j(2), mask_k(2), npt_tot, t_now
+      double precision npt_tot, t_now
       double precision t_last, t_start, celf, atp(3), znuc, v_c(3)
       double precision v_m(3), vc_psi, wtcelf, dt_prog, dt_all, normch
-      double precision iondip(3), vc_cpsi(3), ovl1
+      double precision vc_cpsi(3), ovl1
       double precision polb_
       double complex czero
       integer nch, nch1, imf
@@ -83,39 +86,10 @@ cOLD      double precision cfz(nr*nt) ! [input], only used when wfat1=.true.
       ndid = ga_nodeid()
 
 
-      write(luout, '("ke: ", 2es18.8)') ke, erg
-      write(luout, '("fdint nr = ", i4 )') nr
-      
-
 c     ==== Get number of atoms ====
       if (.not. geom_ncent(geom, natom))
      &     call errquit('WFAT: Getting natom failed', 51, GEOM_ERR)
-
-
-      ismask_g = .false.
-      if (rtdb_get(rtdb, 'wfat:mask_g', mt_dbl, 2, mask_g))
-     &     ismask_g = .true.
-      ismask_j = .false.
-      if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_j', mt_dbl, 2, mask_j))
-     &     ismask_j = .true.
-      ismask_k = .false.
-      if (wfat1 .and. rtdb_get(rtdb, 'wfat:mask_k', mt_dbl, 2, mask_k))
-     &     ismask_k = .true.
-
-      if (ismask_g) write(luout, '("Masking g")')
-      if (ismask_j) write(luout, '("Masking j")')
-      if (ismask_k) write(luout, '("Masking k")')
       
-
-c     ==== Obtain properties of the ionized channel ====
-c     nch1 = the number of channels that contains the correction terms (needed for WFAT(1)),
-c            it is equal to 3 because the ionized channel has three correction terms 
-c            associated to the three cartesian components of the dipole operator.
-      call wfat_2a1e_orbcent(geom, chmmt0, chpos, chmmt)
-      iondip = (/ 0.0d0, 0.0d0, 0.0d0 /)
-      call wfat_print_orb_property(nch, orbid, 1, erg, chpos, chmmt,
-     &     iondip)
-
       
 c     ==== Some tests ====
       call wfat_sometests(rtdb, zi, nch, erg, lmax_, chmmt)
@@ -189,6 +163,9 @@ c     ==== Obtaining grid ranges for the current process ====
 
 c     ==== Calculate WFAT(1) Omega ====
       if (wfat1) then
+c        nch1 = the number of channels that contains the correction terms (needed for
+c               WFAT(1)), it is equal to 3 because the ionized channel has three correction
+c               terms associated to the three cartesian components of the dipole operator.
          call wfat_alloc_intgl_wfat1(lmax_, nqn, nch, nch1, natom,
      &        nptp, nsh, nij0, nij_, nij,
      &        l_ij0, k_ij0, l_ij_, k_ij_, l_ij, k_ij,
@@ -264,23 +241,24 @@ c           ==== Calculate vc|psi> ====
             if (wfat1) then
                if (fedvr) then
                   call wfat_2a1efd_vcpsi_ord1(geom, sphi, mch, nfe, 
-     &                 ndvr, maxn, xq, wq, nr, nt, nt_m, nt_p, eps, zi,
-     &                 vcf, cfx, cfy, cfz, chpos, v_m, dbl_mb(k_sc),
-     &                 vc_psi, vc_cpsi)
+     &                 ndvr, maxn, xq, wq, nr, nt, nt_m, nt_p, pottype, 
+     &                 nel, potparam, zi, vcf, cfx, cfy, cfz, chpos, 
+     &                 v_m, dbl_mb(k_sc), vc_psi, vc_cpsi)
                else
                   call wfat_2a1e_vcpsi_ord1(geom, sphi, mch, nr, nt,
-     &                 nr_m, nt_m, nr_p, nt_p, ke, eps, zi, vcf, cfx,
-     &                 cfy, cfz, chpos, v_m, dbl_mb(k_sc), vc_psi,
-     &                 vc_cpsi)
+     &                 nr_m, nt_m, nr_p, nt_p, ke, pottype, nel, 
+     &                 potparam, zi, vcf, cfx, cfy, cfz, chpos, v_m, 
+     &                 dbl_mb(k_sc), vc_psi, vc_cpsi)
                endif
             else
                if (fedvr) then
                   call wfat_2a1efd_vcpsi(geom, sphi, mch, nfe, ndvr, 
-     &                 maxn, xq, wq, nr, nt, eps, zi, vcf, chpos, v_m,
-     &                 dbl_mb(k_sc), vc_psi)
+     &                 maxn, xq, wq, nr, nt, pottype, nel, potparam, zi,
+     &                 vcf, chpos, v_m, dbl_mb(k_sc), vc_psi)
                else
-                  call wfat_2a1e_vcpsi(geom, sphi, mch, nr, nt, ke, eps,
-     &                 zi, vcf, chpos, v_m, dbl_mb(k_sc), vc_psi)
+                  call wfat_2a1e_vcpsi(geom, sphi, mch, nr, nt, ke, 
+     &                 pottype, nel, potparam, zi, vcf, chpos, v_m,
+     &                 dbl_mb(k_sc), vc_psi)
                endif
             endif
             
@@ -306,15 +284,15 @@ c           =====           and K^{(n,m)}_{l,m'}                ====
             endif
 
 c           ==== Apply masks to the integrands ====
-            if (ismask_g) call wfat_mask_intd(geom, natom, nch, 
-     &           nqn, nsh, v_m, mask_g, dcpl_mb(k_i0))
-            if (ismask_j .and. wfat1) call wfat_mask_intd(geom, natom, 
-     &           3*nch, nqn, nsh, v_m, mask_j, dcpl_mb(k_ij0))
-            if (ismask_k .and. wfat1) then
+            if (ismask) call wfat_mask_intd(geom, natom, nch, 
+     &           nqn, nsh, v_m, mask_param, dcpl_mb(k_i0))
+            if (ismask .and. wfat1) call wfat_mask_intd(geom, natom, 
+     &           3*nch, nqn, nsh, v_m, mask_param, dcpl_mb(k_ij0))
+            if (ismask .and. wfat1) then
                call wfat_mask_intd(geom, natom, nch, nqn, nsh,
-     &              v_m, mask_k, dcpl_mb(k_ik1_0))
+     &              v_m, mask_param, dcpl_mb(k_ik1_0))
                call wfat_mask_intd(geom, natom, nch, nqn, nsh,
-     &              v_m, mask_k, dcpl_mb(k_ik2_0))
+     &              v_m, mask_param, dcpl_mb(k_ik2_0))
             endif
 
 c           ==== Quadrature summation ====
