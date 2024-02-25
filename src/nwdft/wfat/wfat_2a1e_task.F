@@ -179,13 +179,13 @@ c     ==== Compute the OEWFAT integrals ====
      &     int_mb(k_ndvr), maxn, dbl_mb(k_xquad), dbl_mb(k_wquad), 
      &     ismask_i, mask_param, g_il, g_j, g_k)
       
-c      call wfat_2a1e_intgl(rtdb, geom_hd, nqn, int_mb(k_npa), 
-c     &     int_mb(k_mpa), lmax, gqual, zion, wf_msm, sphi, mch, nr, nt, 
-c     &     out_ke, orbid, dbl_mb(i_cf), dbl_mb(i_eg), edip, pottype, nel_2a, potparam, wfat1,
-c     &     nlgl, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy),
-c     &     dbl_mb(k_cfz), fedvr, nfe, idum, maxn, 
-c     &     ddum, ddum, chpos, chmmt, g_il, g_j,
-c     &     g_k)
+cOLD      call wfat_2a1e_intgl(rtdb, geom_hd, nqn, int_mb(k_npa), 
+cOLD     &     int_mb(k_mpa), lmax, gqual, zion, wf_msm, sphi, mch, nr, nt, 
+cOLD     &     out_ke, orbid, dbl_mb(i_cf), dbl_mb(i_eg), edip, pottype, nel_2a, potparam, wfat1,
+cOLD     &     nlgl, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy),
+cOLD     &     dbl_mb(k_cfz), fedvr, nfe, idum, maxn, 
+cOLD     &     ddum, ddum, chpos, chmmt, g_il, g_j,
+cOLD     &     g_k)
 
       
 c     ==== No partial wave mode ====
@@ -244,6 +244,16 @@ c        ==================================================
 c        ==== Calculate and print important quantities ====
 c        ==================================================
          if (td == 'td') then
+clater            if (pr_srfc .or. pr_yild .or. pr_avbeta .or. pr_avgamma)
+clater     &           call wfat_calc_td(rtdb, geom_hd, pr_srfc, pr_yild, 
+clater     &           pr_avbeta, pr_avgamma, nlas, las_env, dbl_mb(k_al), 
+clater     &           dbl_mb(k_wl), dbl_mb(k_pl), dbl_mb(k_tl), dbl_mb(k_dl),
+clater     &           ntime, tmax, extf, nch, int_mb(k_or0), int_mb(k_sp),
+clater     &           dbl_mb(i_eg), dbl_mb(k_cmm), nqn, int_mb(k_npa), 
+clater     &           int_mb(k_mpa), lmax, zion, dcpl_mb(k_in), wfat1, 
+clater     &           ndgsub, max_ndgsub, int_mb(k_dgs), int_mb(k_ndgs),
+clater     &           dbl_mb(k_dps), dbl_mb(k_pbs), dcpl_mb(k_inj), 
+clater     &           dcpl_mb(k_ink1), dcpl_mb(k_ink2))
          else
             if (pr_srfc .or. pr_rate)
      &           call wfat_calc_ti(rtdb, geom_hd, pr_srfc, pr_rate,

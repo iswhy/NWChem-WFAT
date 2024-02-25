@@ -43,7 +43,7 @@ c===============================================================
       integer nt_p                    ! [input], only used when wfat1=.true.
       double precision cfx(1:*)       ! [input], only used when wfat1=.true.
       double precision cfy(1:*)       ! [input], only used when wfat1=.true.
-cOLD      double precision cfz(nr*n   t) ! [input], only used when wfat1=.true.
+cOLD      double precision cfz(nr*nt) ! [input], only used when wfat1=.true.
       double precision cfz(1:*)       ! [input], only used when wfat1=.true.
       logical fedvr                   ! [input],
       integer nfe                     ! [input],
@@ -177,7 +177,6 @@ c               terms associated to the three cartesian components of the dipole
      &        mid, lmax_, natomp, nptp, int_mb(k_icp), int_mb(k_ipp),
      &        gq, nlgl, zi, dcpl_mb(k_om1), dcpl_mb(k_om2))
       endif
-
       
       if (ndid == 0) then
          write(luout, '(2/)')
@@ -193,10 +192,8 @@ c               terms associated to the three cartesian components of the dipole
      &     5x, 'up to several minutes, so please wait. The progress ',
      &     'of this calculation will be shown below.')
 
-
       
 c     ==== BEGIN QUADRATURE SUMMATION ====
-c     ==== Loop over atoms ====
       call ga_sync()
       call wfat_get_intgl_chkpt(nptp, pr_chk)
       call wfat_init_progress(nptp, g_nptx, npt_tot)
@@ -214,7 +211,9 @@ c     ==== Loop over atoms ====
          dcpl_mb(k_ik1_ : k_ik1_+nik1_-1) = czero
          dcpl_mb(k_ik2_ : k_ik2_+nik2_-1) = czero
       endif
+
       
+c     ==== Loop over atoms ====
       do ic = 1, natomp
          icent = int_mb(k_icp + ic - 1)
          if (.not. geom_cent_get(geom, icent, tag, atp, znuc))

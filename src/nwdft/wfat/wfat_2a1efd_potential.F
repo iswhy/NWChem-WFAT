@@ -285,4 +285,113 @@ c     ==== V_c \psi^{(1)} ====
       
       end
 c===============================================================
+
+
+c===============================================================
+c===============================================================
+      subroutine wfat_2a1efd_collect_vcpsi(geom, sphi, m, nfe, ndvr, 
+     &        maxn, xq, wq, nr, nt, nptp, pottype, nel, potparam, zi, 
+     &        vcf, chpos, vpt, vc_psi)
+
+      implicit none
+#include "stdio.fh"      
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer geom                  ! [input],
+      integer sphi                  ! [input],
+      integer m                     ! [input],
+      integer nfe                   ! [input],
+      integer ndvr(*)               ! [input], size is nfe
+      integer maxn                  ! [input],
+      double precision xq(*)        ! [input], size is maxn*nfe
+      double precision wq(*)        ! [input], size is maxn*nfe
+      integer nr                    ! [input],
+      integer nt                    ! [input],
+      integer nptp                  ! [input],
+      character*3 pottype           ! [input],
+      integer nel                   ! [input], not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)  ! [input], 1)
+      double precision zi           ! [input],
+      double precision vcf(nr*nt)   ! [input],
+      double precision chpos(3)     ! [input],
+      double precision vpt(3,nptp)  ! [input],
+      double precision vc_psi(nptp) ! [output],
+
+      integer nscr, l_sc, k_sc, i
+
+      nscr = nr + nt + nr*nt + maxn**2 + maxn
+      if (.not. MA_alloc_get(MT_DBL, nscr, 'vscr', l_sc, k_sc))
+     &     call errquit('WFAT: vscr allocation failed', 59, MA_ERR)
+      
+      do i = 1, nptp
+         call wfat_2a1efd_vcpsi(geom, sphi, m, nfe, ndvr, maxn, xq, 
+     &        wq, nr, nt, pottype, nel, potparam, zi, vcf, chpos, 
+     &        vpt(:,i), dbl_mb(k_sc), vc_psi(i))
+      enddo
+
+      if (.not. MA_free_heap(l_sc))
+     &     call errquit('WFAT: scratch deallocation failed', 61, MA_ERR)
+      
+      end
+c===============================================================
+      
+      
+c===============================================================
+c===============================================================
+      subroutine wfat_2a1efd_collect_vcpsi_ord1(geom, sphi, m, nfe, 
+     &     ndvr, maxn, xq, wq, nr, nt, nt_m, nt_p, nptp, pottype, nel, 
+     &     potparam, zi, vcf, cfx, cfy, cfz, chpos, vpt, vc_psi, 
+     &     vc_cpsi)
+
+      implicit none
+#include "stdio.fh"      
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer geom                      ! [input],
+      integer sphi                      ! [input],
+      integer m                         ! [input],
+      integer nfe                       ! [input],
+      integer ndvr(*)                   ! [input], size is nfe
+      integer maxn                      ! [input],
+      double precision xq(*)            ! [input], size is maxn*nfe
+      double precision wq(*)            ! [input], size is maxn*nfe
+      integer nr                        ! [input],
+      integer nt                        ! [input],
+      integer nt_m                      ! [input],
+      integer nt_p                      ! [input],
+      integer nptp                      ! [input],
+      character*3 pottype               ! [input],
+      integer nel                       ! [input], not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)      ! [input], 1)
+      double precision zi               ! [input],
+      double precision vcf(nr*nt)       ! [input],
+      double precision cfx(1:*)         ! [input],
+      double precision cfy(1:*)         ! [input],
+      double precision cfz(nr*nt)       ! [input],
+      double precision chpos(3)         ! [input],
+      double precision vpt(3,nptp)      ! [input],
+      double precision vc_psi(nptp)     ! [input],
+      double precision vc_cpsi(nptp, 3) ! [output],
+
+      integer nscr, l_sc, k_sc, i
+
+      nscr = maxn**2 + maxn +
+     &     (nr + nt + nr*nt) +
+     &     (nt_p + nr*nt_p)
+      if (m >= 1) nscr = nscr + (nt_m + nr*nt_m)
+      if (.not. MA_alloc_get(MT_DBL, nscr, 'vscr', l_sc, k_sc))
+     &     call errquit('WFAT: vscr allocation failed', 59, MA_ERR)
+      
+      do i = 1, nptp
+         call wfat_2a1efd_vcpsi_ord1(geom, sphi, m, nfe, ndvr, maxn, xq,
+     &        wq, nr, nt, nt_m, nt_p, pottype, nel, potparam, zi, vcf, 
+     &        cfx, cfy, cfz, chpos, vpt(:,i), dbl_mb(k_sc), vc_psi(i), 
+     &        vc_cpsi(i,:))
+      enddo
+
+      if (.not. MA_free_heap(l_sc))
+     &     call errquit('WFAT: scratch deallocation failed', 61, MA_ERR)
+
+      end
+c===============================================================
       

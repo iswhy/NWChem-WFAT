@@ -129,7 +129,7 @@ c     ====  function at all grid points  ====
      &        mask_param, dbl_mb(k_ma))
       endif
 
-c     ==== Allocate tau and as. coeff. at all grid points ====
+c     ==== Allocate tau at all grid points and as. coeff. ====
       if (.not. MA_alloc_get(MT_DCPL, nptp*nqn*nch, 'tau0',
      &     l_tu0, k_tu0))
      &     call errquit('WFAT: tau0 allocation failed', 81, MA_ERR)
@@ -282,14 +282,14 @@ c              ==== Print ionization rate ====
          enddo
       enddo
 
-
+      
 c     ==== Terminating printings ====
       if (ndid==0 .and. pr_srfc) then
          call wfat_endprint_structuref()
          if (wfat1) call wfat_endprint_srfc1()
       endif
       if (ndid==0 .and. pr_rate) call wfat_endprint_rate()
-
+      
 
 c     ==== Deallocations ====
       call wfat_erase_rate(l_sg, l_fc, l_rt)
