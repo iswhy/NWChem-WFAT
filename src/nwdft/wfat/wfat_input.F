@@ -1168,8 +1168,8 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_inp_s2a1e(nq, q, d, mag, p, pparam, nel, fedvr, 
-     &     nfe, fen, ndvr, nr, kein, kemult, maxit, nt)
+      logical function wfat_inp_s2a1e(nq, q, d, mag, p, pparam, nel, 
+     &     fedvr, nfe, fen, ndvr, nr, kein, kemult, maxit, nt)
 
       implicit none
 #include "stdio.fh"
@@ -1203,7 +1203,8 @@ c=======================================================
       logical maxit_stat, nt_exist(3), nt_stat(3), nel_exist, nel_stat
       logical using_fedvr, using_lagdvr
       integer i, n_fen, n_ndvr
-      
+
+      wfat_inp_s2a1e = .false.
 
       sys_exist = .false.
       sys_stat = .false.
@@ -1467,6 +1468,8 @@ c     ==== Number of electrons ====
 c     2) The default value for the number of electrons depends on potential
 c        type.
 
+      wfat_inp_s2a1e = .true.
+      
       end
 c=======================================================
 

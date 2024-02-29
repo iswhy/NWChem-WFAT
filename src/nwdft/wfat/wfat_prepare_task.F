@@ -603,7 +603,9 @@ c=================================================
 c     NOTES:
 c     1) intgl_j, intgl_k1, and intgl_k2 are allocated regardless of the value
 c        of wfat1 because these arrays will be input to the wfat_calc_ti subroutine
-c        later.
+c        later. However, when wfat1 is not active, the values of nintj and nintk
+c        returned by wfat_prep_wfat1_intgl (that must be called before calling this
+c        subroutine) are both 1.
 c=================================================
 
 

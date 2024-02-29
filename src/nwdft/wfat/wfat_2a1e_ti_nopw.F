@@ -1,12 +1,79 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_2a1e_ti_nopw()
+      subroutine wfat_2a1e_ti_nopw(rtdb, geom, nqn, nid, mid, gq, zi,
+     &     celm, sphi, mch, nr, nt, ke, vcf, erg, chmmt, chpos, orbid0,
+     &     spinid, pottype, nel, potparam, pr_srfc, pr_rate, fieldm, 
+     &     wfat1, nr_m, nt_m, nr_p, nt_p, cfx, cfy, cfz, pbs, fedvr, 
+     &     nfe, ndvr, maxn, xq, wq, ismask, mask_param)
 
       implicit none
+#include "global.fh"      
+#include "errquit.fh"
+#include "stdio.fh"
+#include "mafdecls.fh"
+#include "rtdb.fh"
+#include "geom.fh"
+      integer rtdb                    ! [input],
+      integer geom                    ! [input],
+      integer nqn                     ! [input],
+      integer nid(nqn)                ! [input],
+      integer mid(nqn)                ! [input],
+      integer gq                      ! [input],
+      double precision zi             ! [input],
+      integer celm                    ! [input],
+      integer sphi                    ! [input],
+      integer mch                     ! [input],
+      integer nr                      ! [input],
+      integer nt                      ! [input],
+      double precision ke             ! [input],
+      double precision vcf(nr*nt)     ! [input], the minimum number of columns is nch if wfat1 is .false., otherwise 4*nch.
+      double precision erg            ! [input],
+      double precision chmmt(3)       ! [input],
+      double precision chpos(3)       ! [input],
+      integer orbid0                  ! [input], orbital ID of ionized channels.
+      integer spinid                  ! [input], spin ID of ionized channels.
+      character*3 pottype             ! [input],
+      integer nel                     ! [input], not used when pottype = 'cou', but still has to be supplied a value.
+      double precision potparam(2)    ! [input], 1)
+      logical pr_srfc                 ! [input], if .true. then print structure factor.
+      logical pr_rate                 ! [input], if .true. then print ionization rate.
+      double precision fieldm         ! [input],
+      logical wfat1                   ! [input],
+      integer nr_m                    ! [input], only used when wfat1=.true.
+      integer nt_m                    ! [input], only used when wfat1=.true.
+      integer nr_p                    ! [input], only used when wfat1=.true.
+      integer nt_p                    ! [input], only used when wfat1=.true.
+      double precision cfx(1:*)       ! [input], only used when wfat1=.true.
+      double precision cfy(1:*)       ! [input], only used when wfat1=.true.
+      double precision cfz(1:*)       ! [input], only used when wfat1=.true.
+      double precision pbs(3)         ! [input]. Only used when wfat1=.true.. The diagonal elements of polarizability tensor (matrix), i.e. the xx, yy, zz components.
+      logical fedvr                   ! [input],
+      integer nfe                     ! [input], only used when fedvr=.true.
+      integer ndvr(*)                 ! [input], only used when fedvr=.true., size is nfe
+      integer maxn                    ! [input], only used when fedvr=.true.
+      double precision xq(*)          ! [input], only used when fedvr=.true., size is maxn*nfe
+      double precision wq(*)          ! [input], only used when fedvr=.true., size is maxn*nfe
+      logical ismask                  ! [input],
+      double precision mask_param(2)  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
 
+      logical gap
+      integer l_sg, l_fc, l_rt, l_icp, l_ipp, l_pt, l_wt, l_vc, l_cl
+      integer l_ma, l_tu0, l_tu1, l_acg, l_acj, l_ack, l_dum, l_sc, l_sx
+      integer l_pbd, l_sj, l_sk, l_on
+      integer k_sg, k_fc, k_rt, k_icp, k_ipp, k_pt, k_wt, k_vc, k_cl
+      integer k_ma, k_tu0, k_tu1, k_acg, k_acj, k_ack, k_dum, k_sc, k_sx
+      integer k_pbd, k_sj, k_sk, k_on
+      integer natom, n_sg, nfc, nrt, n_pt, n_wt, n_acg, n_acj, n_ack
+      integer n_dum, nsc, nsx, npbd, n_sj, n_sk, n_on
+      integer ndid, nbt, ngm, natp, nptp, i, k, iqn, i_on, ig, ib, i_tu0
+      integer i_vc, i_vcc, i_acj, nsub, maxnsub, dgs, ndgs
+      double precision bt_start, bt_last, dbt, dbtr, gm_start, gm_last
+      double precision dgm, dgmr, dthr, bt, gm, rate
+      double precision deg2rad
+      parameter(deg2rad=0.01745329251994d0)
 
       integer nch, nch1
-      parameter(nch=1, nch1=3)
+      parameter(nch=1, nch1=3, nsub=1, maxnsub=1, dgs=1, ndgs=1)
       
 
       call ga_sync()
@@ -100,20 +167,18 @@ c     ==== Obtain field factor ====
       
 c     ==== When WFAT1 is active ====
       if (wfat1) then
-         call wfat_prepare_an(maxn, natom, nch, nqn, nsc, l_sc, k_sc, 
+         call wfat_prepare_an(maxnsub, natom, nch, nqn, nsc, l_sc, k_sc,
      &        nsx, l_sx, k_sx, npbd, l_pbd, k_pbd, n_sj, l_sj, k_sj,
      &        n_sk, l_sk, k_sk, n_on, l_on, k_on)
          if (.not. rtdb_get(rtdb, 'wfat:dthr', mt_dbl, 1, dthr))
      &        call errquit('WFAT: Failed reading dthr from rtdb',
      &        1, RTDB_ERR)
-         do i = 1, nch
-            do iqn = 1, nqn
-               i_on = k_on + 2*nqn*(i-1) + 2*(iqn-1)
-               call wfat_calc_o(nid(iqn), mid(iqn), erg(i), zi,
-     &              dbl_mb(i_on))
-               write(luout, '("o_nu : ", 2i4, 2es21.12)')
-     &              i, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
-            enddo
+         do iqn = 1, nqn
+            i_on = k_on + 2*nqn*(1-1) + 2*(iqn-1)
+            call wfat_calc_o(nid(iqn), mid(iqn), erg, zi,
+     &           dbl_mb(i_on))
+            write(luout, '("o_nu : ", 2i4, 2es21.12)')
+     &           1, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
          enddo
       endif
 
@@ -184,10 +249,10 @@ c              ==== Calculate the structure factors ====
      &                 dcpl_mb(k_ack))
                   call wfat_get_srfc1(bt, gm, natom, nch, nqn, 0, mid, 
      &                 erg, chmmt, dcpl_mb(k_acg), dcpl_mb(k_acj),
-     &                 dcpl_mb(k_ack), dcpl_mb(k_dum), nsub, maxn, dgs, 
-     &                 ndgs, dthr, dps, pbs, .true., dbl_mb(k_sc),
-     &                 dcpl_mb(k_sx), dbl_mb(k_pbd), dcpl_mb(k_sg),
-     &                 dcpl_mb(k_sj), dcpl_mb(k_sk))
+     &                 dcpl_mb(k_ack), dcpl_mb(k_dum), nsub, maxnsub, 
+     &                 dgs, ndgs, dthr, chmmt, pbs, .true., 
+     &                 dbl_mb(k_sc), dcpl_mb(k_sx), dbl_mb(k_pbd), 
+     &                 dcpl_mb(k_sg), dcpl_mb(k_sj), dcpl_mb(k_sk))
                else
                   call wfat_get_srfc0(geom, bt, gm, nch, erg, nqn, mid,
      &                 0, chmmt, dcpl_mb(k_acg), .true., dcpl_mb(k_sg))
@@ -251,11 +316,6 @@ c     ==== Deallocations ====
      &        call errquit('WFAT: tau1 deallocation failed', 3, MA_ERR)
          call wfat_erase_an(l_sc, l_sx, l_pbd, l_sj, l_sk, l_on)
       endif
-      if (.not. MA_free_heap(l_si))
-     &     call errquit('WFAT: spinid1 deallocation failed', 61, MA_ERR)
-      if (.not. MA_free_heap(l_pos))
-     &     call errquit('WFAT: chpos1 deallocation failed', 61, MA_ERR)
-
       call ga_sync()
       
       end

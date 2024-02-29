@@ -56,7 +56,7 @@ c     ==== Get the passive rotation matrix ===
      &            (9-6*gmm)*bt0/4/kp**4 - (49+2*gmm)*bt0**2/8/kp**5 +
      &            3*bt0**3/2/kp**6 - bt0**4/8/kp**7
 
-cfordebug            write(luout, '("B_nu = ", f15.7)') bb_
+cfordebug            write(luout, '("B_nu - 2 Re(a_nu) = ", f15.7)') bb_
             on_ = on(1,iqn,i) + mu(3)*on(2,iqn,i)
             gn_ = sum(gn(:,iqn,i))
             an_ = sum(jn(:,iqn,i)) + sum(kn(:,iqn,i))
@@ -66,12 +66,13 @@ cfordebug            write(luout, '("B_nu = ", f15.7)') bb_
      &           2*ef*real(conjg(gn_)*an_))
 
 
-c           ==== for debug ====
+c           ==== These quantities below are only for debugging ====
             an2 = on_ + an_/gn_
             bb2 = bb_ + 2 * real(an2)
-c            write(luout, '("A_nu = ", 6f15.7)')
-c     &           bt, gm, aa, lpbz, pb(3,3,1), mu(3)
-c            write(luout, '("   an = ", 2f15.7)') an2
+            write(luout, '("A_nu = ", 6f15.7)')
+     &           bt, gm, aa, lpbz, pb(3,3,1), mu(3)
+            write(luout, '("   an = ", 2f15.7)') an2
+c            write(luout, '("   B_nu = ", 2f15.7)') bb2
          enddo
       enddo
       

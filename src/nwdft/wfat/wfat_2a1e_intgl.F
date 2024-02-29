@@ -46,11 +46,11 @@ c===============================================================
 cOLD      double precision cfz(nr*nt) ! [input], only used when wfat1=.true.
       double precision cfz(1:*)       ! [input], only used when wfat1=.true.
       logical fedvr                   ! [input],
-      integer nfe                     ! [input],
-      integer ndvr(*)                 ! [input], size is nfe
-      integer maxn                    ! [input],
-      double precision xq(*)          ! [input], size is maxn*nfe
-      double precision wq(*)          ! [input], size is maxn*nfe
+      integer nfe                     ! [input], only used when fedvr=.true.
+      integer ndvr(*)                 ! [input], only used when fedvr=.true., size is nfe
+      integer maxn                    ! [input], only used when fedvr=.true.
+      double precision xq(*)          ! [input], only used when fedvr=.true., size is maxn*nfe
+      double precision wq(*)          ! [input], only used when fedvr=.true., size is maxn*nfe
       logical ismask                  ! [input]
       double precision mask_param(2)  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
       integer g_il                    ! [output],

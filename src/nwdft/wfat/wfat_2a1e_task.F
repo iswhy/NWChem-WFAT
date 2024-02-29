@@ -10,13 +10,14 @@ c===============================================================
 #include "wfat_qm_param.fh"
 #include "wfat.fh"
 #include "errquit.fh"
+#include "msgids.fh"
       integer rtdb
 
       character*2 td
       character*3 pottype
       character*7 jobtype
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
-      logical pr_tmd, pr_tmd_atom
+      logical pr_tmd, pr_tmd_atom, os, oc, or, int_nosave
       logical res_mode, wfat1, rtdb_stat, fedvr, ismask_i, ismask_e
       integer l_cf, l_eg, l_npa, l_mpa, l_in, l_inj, l_ink1
       integer l_ink2, l_pb, l_cfx, l_cfy, l_cfz, l_ndvr, l_fen, l_xquad
@@ -78,6 +79,8 @@ c     ==== Extract the parameters of the quantum system ====
 
 c     ==== Allocate the coefficients and energies array ====
       call wfat_2a1e_prep_cf(nr, nt, l_cf, k_cf, l_eg, k_eg)
+      i_cf = k_cf + (orbid-1)*nr*nt
+      i_eg = k_eg + (orbid-1)
 
 
 c     ==== Obtain parabolic quantum numbers ====
@@ -165,28 +168,65 @@ c     ==== Prepare WFAT(1) integrals ====
       call wfat_prep_wfat1_intgl(wfat1, lmax, natm, nqn, nch, nintj, 
      &     g_j, nintk, g_k, npb, l_pb, k_pb)
       if (wfat1)
-     &     call wfat_2a1e_assign_polb(polb, dbl_mb(k_pb))
+     &     call wfat_2a1e_assign_polb(polb, dbl_mb(k_pb))   ! k_pb is not needed apparently, check if this line can be removed.
 
-            
-c     ==== Compute the OEWFAT integrals ====
-      i_cf = k_cf + (orbid-1)*nr*nt
-      i_eg = k_eg + (orbid-1)
-      call wfat_2a1e_intgl(rtdb, geom_hd, nqn, int_mb(k_npa), 
-     &     int_mb(k_mpa), lmax, gqual, zion, wf_msm, sphi, mch, nr, nt, 
-     &     out_ke, dbl_mb(i_cf), dbl_mb(i_eg), chmmt, chpos, pottype, 
-     &     nel_2a, potparam, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, 
-     &     dbl_mb(k_cfx), dbl_mb(k_cfy), dbl_mb(k_cfz), fedvr, nfe, 
-     &     int_mb(k_ndvr), maxn, dbl_mb(k_xquad), dbl_mb(k_wquad), 
-     &     ismask_i, mask_param, g_il, g_j, g_k)
+
       
-cOLD      call wfat_2a1e_intgl(rtdb, geom_hd, nqn, int_mb(k_npa), 
-cOLD     &     int_mb(k_mpa), lmax, gqual, zion, wf_msm, sphi, mch, nr, nt, 
-cOLD     &     out_ke, orbid, dbl_mb(i_cf), dbl_mb(i_eg), edip, pottype, nel_2a, potparam, wfat1,
-cOLD     &     nlgl, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy),
-cOLD     &     dbl_mb(k_cfz), fedvr, nfe, idum, maxn, 
-cOLD     &     ddum, ddum, chpos, chmmt, g_il, g_j,
-cOLD     &     g_k)
+      
 
+      call util_get_rtdb_state(rtdb, os, oc, or)
+      if (lmax >= 0) then
+         if (os .and. .not. or) then
+c           ==== Compute the OEWFAT integrals ====
+            call wfat_2a1e_intgl(rtdb, geom_hd, nqn, int_mb(k_npa), 
+     &           int_mb(k_mpa), lmax, gqual, zion, wf_msm, sphi, mch, 
+     &           nr, nt, out_ke, dbl_mb(i_cf), dbl_mb(i_eg), chmmt, 
+     &           chpos, pottype, nel_2a, potparam, wfat1, nlgl, nr_m, 
+     &           nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy), 
+     &           dbl_mb(k_cfz), fedvr, nfe, int_mb(k_ndvr), maxn, 
+     &           dbl_mb(k_xquad), dbl_mb(k_wquad), ismask_i, mask_param,
+     &           g_il, g_j, g_k)
+
+c           ==== Store the OE-WFAT integrals freshly calculated ====
+            if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,
+     &           int_nosave)) call errquit('WFAT: Cannot read '//
+     &           'intgl_nosave from RTDB', 1, RTDB_ERR)
+            if (ndid == 0 .and. .not. int_nosave) then
+               call wfat_store_intgl(rtdb, nsh, natm, nqn, nch,
+     &              dbl_mb(i_eg), chpos, chmmt, iondip, g_il)
+            else if (ndid == 0 .and. int_nosave) then
+               write(luout, '("ATTENTION: WFAT integrals are not '//
+     &              'saved.")')
+            endif
+            call ga_sync()
+         else if (.not. os .and. or) then
+c           ==== Binary-load WFAT integrals on 'restart' startup mode ====
+            if (ndid == 0) then
+               call wfat_load_intgl(rtdb, nsh, natm, nqn, nch,
+     &              dbl_mb(i_eg), chpos, chmmt, iondip, g_il)
+clater               call wfat_print_orb_property(nch, int_mb(k_or), 
+clater     &              int_mb(k_sp), dbl_mb(k_eg), dbl_mb(k_ps),
+clater     &              dbl_mb(k_cmm), dbl_mb(k_idp))
+            endif
+            call ga_sync()
+            
+            call ga_brdcst(msg_wfat_eg, dbl_mb(i_eg),
+     &                     ma_sizeof(MT_DBL, nch, MT_BYTE), 0)
+            call ga_brdcst(msg_wfat_cmm, chmmt,
+     &                     ma_sizeof(MT_DBL, 3, MT_BYTE), 0)
+         else
+            call errquit('WFAT: WFAT module requires the startup '//
+     &           'directive to be either ''start'' or ''restart''.',
+     &           1, UERR)
+         endif
+      else
+         if (.not. os .and. or) 
+     &        call errquit('WFAT: When performing WFAT calculation '//
+     &        'without partial wave expansion, the job must be a '//
+     &        'start type. Restart is not allowed', 38, UERR)
+      endif
+            
+      
       
 c     ==== No partial wave mode ====
 c      if (.not. fedvr)
@@ -197,13 +237,29 @@ c     &     potparam, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx),
 c     &     dbl_mb(k_cfy), dbl_mb(k_cfz))
       
 
+      if (wfat1) then
+clater            ctr = 0.0d0
+clater            call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
+         ndgsub = 1             ! 1)
+         max_ndgsub = 1
+         dgs(1,1) = 1
+         ndgs(1) = 1
+         dps(1,1,:,1) = chmmt
+         pbs(1,1,:,1) = 0.0d0
+         pbs(1,1,1:3,1) = polb
+c        1) The dipole moment matrix in the eigenstate basis of linear
+c           molecules is always diagonal. Hence, any degenerate eigenstate
+c           maybe treated in the same way as nondegenerate ones in the
+c           perturbation analysis.
+      endif
+
+      
 c     ==== Ionization calculations and printings ====
-      if (ndid == 0) then
+      if (lmax >= 0 .and. ndid == 0) then
          rtdb_stat = rtdb_parallel(.false.)
          if (.not. MA_alloc_get(MT_DCPL, nintg, 'intgl', l_in, k_in))
      &        call errquit('WFAT: Cannot allocate intgl.', 41, MA_ERR)
          call ga_get(g_il, 1, nintg, 1, 1, dcpl_mb(k_in), nintg)
-
 
 c        ==== When WFAT(1) is in use ====
          call wfat_prep_wfat1_ti(nintj, nintk, l_inj, k_inj, l_ink1, 
@@ -212,22 +268,7 @@ c        ==== When WFAT(1) is in use ====
             call ga_get(g_j, 1, nintj, 1, 1, dcpl_mb(k_inj), nintj)
             call ga_get(g_k(1), 1, nintk, 1, 1, dcpl_mb(k_ink1), nintk)
             call ga_get(g_k(2), 1, nintk, 1, 1, dcpl_mb(k_ink2), nintk)
-clater            ctr = 0.0d0
-clater            call wfat_calc_dpmo(ctr, dbl_mb(k_dpo))
-
-            ndgsub = 1               ! 1)
-            max_ndgsub = 1
-            dgs(1,1) = 1
-            ndgs(1) = 1
-            dps(1,1,:,1) = chmmt
-            pbs(1,1,:,1) = 0.0d0
-            pbs(1,1,1:3,1) = polb
-c           1) The dipole moment matrix in the eigenstate basis of linear
-c              molecules is always diagonal. Hence, any degenerate eigenstate
-c              maybe treated in the same ways as nondegenerate ones in the
-c              perturbation analysis.
          endif
-         
 
 c        ==== Printing the WFAT integrals ====
          if (wfat1) then
@@ -238,7 +279,6 @@ c        ==== Printing the WFAT integrals ====
             call wfat_print_wfat0_ints(nch, nqn, natm, lmax, 
      &           int_mb(k_npa), int_mb(k_mpa), dcpl_mb(k_in))
          endif
-
 
 c        ==================================================
 c        ==== Calculate and print important quantities ====
@@ -270,11 +310,20 @@ clater     &           int_mb(k_sp), dbl_mb(k_eg), dbl_mb(k_cmm), nqn,
 clater     &           int_mb(k_npa), int_mb(k_mpa), lmax, dcpl_mb(k_in),
 clater     &           res_mode)
          endif
-
          
          if (.not. MA_free_heap(l_in))
      &        call errquit('WFAT: intgl deallocation failed', 3, MA_ERR)
+         call wfat_erase_wfat1_ti(l_inj, l_ink1, l_ink2)
          rtdb_stat = rtdb_parallel(.true.)
+      else if (lmax < 0) then
+         call wfat_2a1e_ti_nopw(rtdb, geom_hd, nqn, int_mb(k_npa),
+     &        int_mb(k_mpa), gqual, zion, wf_msm, sphi, mch, nr, nt, 
+     &        out_ke, dbl_mb(i_cf), dbl_mb(i_eg), chmmt, chpos, orbid,
+     &        spinid, pottype, nel_2a, potparam, pr_srfc, pr_rate, 
+     &        fieldmag, wfat1, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), 
+     &        dbl_mb(k_cfy), dbl_mb(k_cfz), pbs, fedvr, nfe,
+     &        int_mb(k_ndvr), maxn, dbl_mb(k_xquad), dbl_mb(k_wquad),
+     &        ismask_i, mask_param)
       endif
       call ga_sync()
       
