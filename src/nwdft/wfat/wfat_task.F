@@ -3,13 +3,21 @@ c===============================================================
       logical function task_wfat(rtdb)
 
       implicit none
-#include "wfat_input.fh"
+#include "global.fh"
+#include "stdio.fh"
+#include "rtdb.fh"
+#include "errquit.fh"
       integer rtdb
 
+      character*32 theory
       logical task_oewfat, task_wfat_2a1e
       external task_oewfat, task_wfat_2a1e
-      
-      if (s2a1e) then
+
+      if (.not. rtdb_cget(rtdb, 'wfat:theory', 1, theory))
+     &     call errquit('WFAT: Error reading theory from rtdb',
+     &     1, RTDB_ERR)
+
+      if (trim(adjustl(theory)) == '2a1e') then
          task_wfat = task_wfat_2a1e(rtdb)
       else
          task_wfat = task_oewfat(rtdb)

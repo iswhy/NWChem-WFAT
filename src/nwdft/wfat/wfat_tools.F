@@ -1264,6 +1264,54 @@ c============================================================
 
 c============================================================
 c============================================================
+      subroutine wfat_ga_kron_prod(ma, na, mb, nb, a, b, g_c)
+
+      implicit none
+#include "global.fh"
+      integer ma
+      integer na
+      integer mb
+      integer nb
+      double precision a(ma,na)
+      double precision b(mb,nb)
+      integer g_c
+
+      integer ip, mp, ilo, ihi, jlo, jhi, i, j, ia, ja, ib, jb
+      
+      call ga_sync()
+      
+      ip = ga_nodeid()
+      call ga_distribution(g_c, ip, ilo, ihi, jlo, jhi)
+      mp = ihi - ilo + 1
+
+      do j = jlo, jhi
+         do i = ilo, ihi
+c           Given (i,j), find ia, ja, ib, and jb so that c(i,j) = a(ia,ja)*b(ib,jb).
+            if (mod(i,mb) == 0) then
+               ia = i/mb
+            else
+               ia = i/mb + 1
+            endif
+            if (mod(j,nb) == 0) then
+               ja = j/nb
+            else
+               ja = j/nb + 1
+            endif
+            ib = mod(i-1,mb) + 1
+            jb = mod(j-1,nb) + 1
+            
+            call ga_put(g_c, i, i, j, j, a(ia,ja) * b(ib,jb), 1)
+         enddo
+      enddo
+      
+      call ga_sync()
+      
+      end
+c============================================================
+
+
+c============================================================
+c============================================================
       subroutine wfat_isdiag(n, a, thr, isdiag)
 
       implicit none

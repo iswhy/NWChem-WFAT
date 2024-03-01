@@ -49,10 +49,17 @@ c     ==============================
 
 
       res_mode = .false.
-      if (.not. rtdb_get(rtdb, 'wfat:fedvr', mt_log, 1, fedvr))
-     &     fedvr = .false.
-      
+      if (.not. rtdb_get(rtdb, 'wfat:fedvr', mt_log, 1, fedvr)) then
+         fedvr = .false.
+         write(luout, '(/)')
+         write(luout, '("WARNING: Proceeding without using FEDVR '//
+     &        'radial basis. Laguerre DVR radial basis will be used. '//
+     &        'Be warned that Laguerre DVR basis is not thoroughly '//
+     &        'tested and is unstable for the latter WFAT integral '//
+     &        'computations.")')
+      endif
 
+      
 c     ==== Task title ====
       call ga_sync()
       jobtype = 'OE-2a1e'
@@ -69,7 +76,7 @@ c     ==== Extract the parameters of the quantum system ====
       call wfat_2a1e_prep_bas(rtdb, fedvr, init_ke, maxiter, nr, 
      &     nt, nfe, maxn, l_ndvr, k_ndvr, l_fen, k_fen, l_xquad, 
      &     k_xquad, l_wquad, k_wquad)
-      if (fedvr) then
+      if (fedvr .and. ndid == 0) then
          write(luout, '("r grid:")') 
          call wfat_dprintmat(maxn, nfe, 'e', dbl_mb(k_xquad))
          write(luout, '("w grid:")') 

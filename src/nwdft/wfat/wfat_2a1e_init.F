@@ -3,6 +3,7 @@ c===============================================================
       subroutine wfat_2a1e_init(rtdb)
 
       implicit none
+#include "stdio.fh"
 #include "geom.fh"
 #include "errquit.fh"
 #include "global.fh"

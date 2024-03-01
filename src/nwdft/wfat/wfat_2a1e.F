@@ -116,6 +116,10 @@ c     ==== Hamiltonian construction ====
       
       e0 = 0.0d0
       do iter = 1, maxiter_
+         call errquit('The call to wfat_2a1e_hamiltonian needs to be '//
+     &        'updated because this subroutine has changed its '//
+     &        'arguments list. Also use the GA diagonalization below.',
+     &        8, UERR)
          call wfat_2a1e_hamiltonian(nr, nt, dbl_mb(k_x), dbl_mb(k_t),
      &        dbl_mb(k_gr), dbl_mb(k_ht), dbl_mb(k_hr), dbl_mb(k_gt), 
      &        ke, geom, pottype, nel, potparam, coef)
@@ -168,10 +172,11 @@ c==========================================================
 c==========================================================
 c==========================================================
       subroutine wfat_2a1e_hamiltonian(nr, nt, xquad, tquad, gr, ht, hr,
-     &     gt, ke, geom, pottype, nel, potparam, hm)
+     &     gt, ke, geom, pottype, nel, potparam, g_h)
 
       implicit none
 #include "mafdecls.fh"      
+#include "global.fh"
 #include "errquit.fh"
 #include "stdio.fh"
       integer nr
@@ -187,16 +192,30 @@ c==========================================================
       character*3 pottype
       integer nel                    ! [input], not used when pottype = 'cou', but still has to be supplied a value.
       double precision potparam(2)      ! 1)
-      double precision hm(nr*nt, nr*nt)
+      integer g_h
       
 c     1) When pottype = 'cou', potparam(1) = soft Coulomb parameter, while potparam(2) is unused.
 c        When pottype = 'eff', potparam(1:2) = the two screening parameters.
 
-      integer i, j, n, i_tm1, i_tm2, l_tm1, k_tm1, l_tm2, k_tm2, i_r
-      integer i_t
+      integer i, g_tm1, g_tm2, g_pot, i_r, i_t, lo, hi, ndid
+      integer itype, idim1, idim2, l_tm1, k_tm1, l_tm2, k_tm2
       double precision x, t, vpt(3), pot
       double precision deg2rad
       parameter(deg2rad=0.01745329251994d0)
+
+      
+      call ga_sync()
+      ndid = ga_nodeid()
+
+      if (.not. ga_create(mt_dbl, nr*nt, nr*nt, 'tmp1', nr*nt, 0,
+     &     g_tm1)) call errquit('WFAT: Cannot create tmp1 global array.'
+     &     , 1, GA_ERR)
+      if (.not. ga_create(mt_dbl, nr*nt, nr*nt, 'tmp2', nr*nt, 0,
+     &     g_tm2)) call errquit('WFAT: Cannot create tmp2 global array.'
+     &     , 1, GA_ERR)
+      call wfat_ga_kron_prod(nr, nr, nt, nt, gr, ht, g_tm1)
+      call wfat_ga_kron_prod(nr, nr, nt, nt, hr, gt, g_tm2)
+
 
 
       if (.not. MA_alloc_get(MT_DBL, (nr*nt)**2, 'tmp1', l_tm1, k_tm1))
@@ -204,41 +223,55 @@ c        When pottype = 'eff', potparam(1:2) = the two screening parameters.
       if (.not. MA_alloc_get(MT_DBL, (nr*nt)**2, 'tmp2', l_tm2, k_tm2))
      &     call errquit('WFAT: tmp2 allocation failed', 59, MA_ERR)
       
-      call wfat_kron_prod(nr, nr, nt, nt, gr, ht, dbl_mb(k_tm1))
-      call wfat_kron_prod(nr, nr, nt, nt, hr, gt, dbl_mb(k_tm2))
+c      call wfat_kron_prod(nr, nr, nt, nt, gr, ht, dbl_mb(k_tm1))
+c      call wfat_kron_prod(nr, nr, nt, nt, hr, gt, dbl_mb(k_tm2))
+
+      if (ndid == 0) then
+c         call ga_put(g_tm1, 1, nr*nt, 1, nr*nt, dbl_mb(k_tm1), nr*nt)
+c         call ga_put(g_tm2, 1, nr*nt, 1, nr*nt, dbl_mb(k_tm2), nr*nt)
+      endif
+
+      
 
 c     ==== Kinetic part ====
-      n = nr * nt
-      do j = 1, n
-         do i = 1, n
-            i_tm1 = k_tm1 + (j-1)*n + (i-1)
-            i_tm2 = k_tm2 + (j-1)*n + (i-1)
-            hm(i,j) = -0.5d0 * (dbl_mb(i_tm1) + dbl_mb(i_tm2)) * ke**2
-         enddo
-      enddo
-
+      call ga_add(1.0d0, g_tm1, 1.0d0, g_tm2, g_h)
+      call ga_scale(g_h, -0.5d0*ke**2)
       
 c     ==== Nuclear attraction part ====
-      i = 0
-      do i_r = 1, nr
-         x = xquad(i_r)
-         do i_t = 1, nt
-            t = tquad(i_t) * deg2rad
-            i = i + 1
-            vpt = (/ x/ke*sin(t), 0.0d0, x/ke*cos(t) /)
-            call wfat_2a1e_potential(geom, vpt, pottype, nel, potparam,
-     &           pot)
-            hm(i,i) = hm(i,i) + pot
-         enddo
-      enddo
+      if (.not. nga_create(mt_dbl, 1, nr*nt, 'pot', 0, g_pot)) 
+     &     call errquit('WFAT: Cannot create tmp2 global array.', 
+     &     1, GA_ERR)
+      call ga_zero(g_pot)
+      call nga_distribution(g_pot, ga_nodeid(), lo, hi)
+      write(luout, '("ii ", 5i10)') ga_nodeid(), lo, hi
       
+      do i = lo, hi
+         i_r = i/nt + 1
+         x = xquad(i_r)
+         i_t = mod(i-1,nt) + 1
+         t = tquad(i_t) * deg2rad
+         vpt = (/ x/ke*sin(t), 0.0d0, x/ke*cos(t) /)
+         call wfat_2a1e_potential(geom, vpt, pottype, nel, potparam, 
+     &        pot)
+         call nga_put(g_pot, i, i, pot, 1)
+      enddo
+      call ga_sync()
+
+c     ==== Total Hamiltonian ====
+      call ga_add_diagonal(g_h, g_pot)
                   
 c     ==== Deallocations ====
+      if (.not. ga_destroy(g_tm1))
+     &     call errquit('WFAT: Cannot destroy tmp1.', 1, GA_ERR)
+      if (.not. ga_destroy(g_tm2))
+     &     call errquit('WFAT: Cannot destroy tmp2.', 1, GA_ERR)
+      if (.not. ga_destroy(g_pot))
+     &     call errquit('WFAT: Cannot destroy tmp2.', 1, GA_ERR)
+
       if (.not. ma_free_heap(l_tm1))
-     &     call errquit('WFAT: Cannot deallocate tmp1', 32, MA_ERR)
+     &     call errquit('WFAT: Cannot deallocate tmp1', 1, MA_ERR)
       if (.not. ma_free_heap(l_tm2))
-     &     call errquit('WFAT: Cannot deallocate tmp2', 32, MA_ERR)
-      
+     &     call errquit('WFAT: Cannot deallocate tmp2', 1, MA_ERR)
       end
 c==========================================================
 

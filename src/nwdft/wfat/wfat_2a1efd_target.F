@@ -6,6 +6,7 @@ c==========================================================
       implicit none
 #include "stdio.fh"
 #include "mafdecls.fh"      
+#include "global.fh"
 #include "errquit.fh"
       integer geom
       integer mch
@@ -25,8 +26,10 @@ c==========================================================
       double precision erg(nr*nt)
       double precision dipole(3)
 
-      integer l_dt, l_x
-      integer k_dt, k_x
+      integer l_dt, l_x, k_dt, k_x, ndid
+
+      
+      ndid = ga_nodeid()
 
       
 c     ==== Solve the eigenproblem for GS ====
@@ -47,7 +50,8 @@ c     ==== Electronic dipole moment ====
 
       
 c     ==== Analysis ====
-      call wfat_analyze_target(nr, nt, erg, dipole)
+      if (ndid == 0)
+     &     call wfat_analyze_target(nr, nt, erg, dipole)
       
       
 c     ==== Deallocations ====
