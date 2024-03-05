@@ -1,7 +1,7 @@
 c==========================================================
 c==========================================================
       subroutine wfat_2a1efd_solve(m, ni, n, maxn, xq, wq, nt, geom,
-     &     pottype, nel, potparam, coef, erg)
+     &     pottype, nel, potparam, g_cf, erg)
 
       implicit none
 #include "global.fh"
@@ -20,7 +20,7 @@ c==========================================================
       character*3 pottype
       integer nel                    ! [input], not used when pottype = 'cou', but still has to be supplied a value.
       double precision potparam(2)
-      double precision coef(*)   ! [output], size nr*nt x nr*nt
+      integer g_cf               ! [output], GA of size nr*nt x nr*nt
       double precision erg(*)    ! [output], size nr*nt
       
       integer l_hr, l_gr, l_lt, l_ut, l_ht, l_gt
@@ -37,16 +37,12 @@ c==========================================================
 c     =====================
 c     ==== Radial part ====
 c     =====================
-      tt2 = util_cpusec()
-      nr = (sum(n) - ni*2) + (ni - 1)
+      call wfat_get_fedvrnr(ni, n, nr)
       if (.not. ma_alloc_get(MT_DBL, nr*nr, 'g_r', l_gr, k_gr))
      &     call errquit('WFAT: Cannot allocate g_r', 3, MA_ERR)
       call wfat_2a1efd_d2r(ni, n, maxn, xq, wq, nr, dbl_mb(k_gr))
       
 c     ==== Get the radial quadrature nodes ====
-      tt1 = tt2
-      tt2 = util_cpusec()
-      if (ndid == 0) write(luout, '("treq 1 = ", f12.2)') tt2 - tt1
       if (.not. ma_alloc_get(MT_DBL, nr, 'xquad_', l_x, k_x))
      &     call errquit('WFAT: Cannot allocate xquad_', 3, MA_ERR)
       if (.not. ma_alloc_get(MT_DBL, nr*nr, 'h_r', l_hr, k_hr))
@@ -69,9 +65,6 @@ c     =====================
 c     ====================
 c     ==== Theta part ====
 c     ====================
-      tt1 = tt2
-      tt2 = util_cpusec()
-      if (ndid == 0) write(luout, '("treq 2 = ", f12.2)') tt2 - tt1
       if (.not. ma_alloc_get(MT_DBL, nt, 'lapt', l_lt, k_lt))
      &     call errquit('WFAT: Cannot allocate lapt', 1, MA_ERR)
       if (.not. ma_alloc_get(MT_DBL, nt*nt, 'u_t', l_ut, k_ut))
@@ -102,41 +95,16 @@ c     ====================
       
 
 c     ==== Hamiltonian construction ====
-      tt1 = tt2
-      tt2 = util_cpusec()
-      if (ndid == 0) write(luout, '("treq 3 = ", f12.2)') tt2 - tt1
-      if (.not. ga_create(mt_dbl, nr*nt, nr*nt, 'hamil', nr*nt, 0,
-     &     g_h)) call errquit('WFAT: Cannot create hamil global array.',
+      if (.not. ga_create(mt_dbl, nr*nt, nr*nt, 'hamil', nr*nt, 0, g_h))
+     &     call errquit('WFAT: Cannot create hamil global array.',
      &     1, GA_ERR)
       call wfat_2a1e_hamiltonian(nr, nt, dbl_mb(k_x), dbl_mb(k_t),
      &     dbl_mb(k_gr), dbl_mb(k_ht), dbl_mb(k_hr), dbl_mb(k_gt), 
      &     1.0d0, geom, pottype, nel, potparam, g_h)
       
 c     ==== Hamiltonian diagonalization ====
-      tt1 = tt2
-      tt2 = util_cpusec()
-      if (ndid == 0) write(luout, '("treq 4 = ", f12.2)') tt2 - tt1
-      
-      if (.not. ga_create(mt_dbl, nr*nt, nr*nt, 'coef', nr*nt, 0,
-     &     g_cf)) call errquit('WFAT: Cannot create coef global array.',
-     &     1, GA_ERR)
       call ga_diag_std(g_h, g_cf, erg)
-      call ga_get(g_cf, 1, nr*nt, 1, nr*nt, coef, nr*nt)
-c      if (ndid == 0) then
-c         do i = 1, 10
-c            write(luout, '("erg ", i, f16.8)') i, erg(i)
-c         enddo
-c      endif
-      
-      
       call ga_sync()
-
-      if (ndid == 0)
-     &     write(luout, '("FEDVR GS energy = ", f15.8, " H")') erg(1)
-      tt1 = tt2
-      tt2 = util_cpusec()
-      if (ndid == 0) write(luout, '("treq 5 = ", f12.2)') tt2 - tt1
-
       
 c     ==== Deallocations ====
       if (.not. ma_free_heap(l_gr))
@@ -161,8 +129,6 @@ c     ==== Deallocations ====
 
       if (.not. ga_destroy(g_h))
      &     call errquit('WFAT: Cannot destroy hamil.', 45, GA_ERR)
-      if (.not. ga_destroy(g_cf))
-     &     call errquit('WFAT: Cannot destroy coef.', 45, GA_ERR)
       
       end
 c==========================================================

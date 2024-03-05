@@ -107,25 +107,26 @@ c     ==== Deallocations ====
 c===============================================================
 c===============================================================
       subroutine wfat_2a1efd_dpo_col(c, m1, m2, s1, s2, nr, nt1, 
-     &     nt2, rq, dt, cf1, cf2, dp)
+     &     nt2, rq, dt, g_cf1, cf2, dp)
 
       implicit none
+#include "mafdecls.fh"
 #include "errquit.fh"
-      character*1 c                            ! [input]
-      integer m1                               ! [input]
-      integer m2                               ! [input]
-      integer s1                               ! [input]
-      integer s2                               ! [input]
-      integer nr                              ! [input]
-      integer nt1                              ! [input]
-      integer nt2                              ! [input]
+      character*1 c                      ! [input]
+      integer m1                         ! [input]
+      integer m2                         ! [input]
+      integer s1                         ! [input]
+      integer s2                         ! [input]
+      integer nr                         ! [input]
+      integer nt1                        ! [input]
+      integer nt2                        ! [input]
       double precision rq(nr)            ! [input]
-      double precision dt(nt1, nt2)            ! [input]
-      double precision cf1(nr*nt1, nr*nt1)   ! [input]
-      double precision cf2(nr*nt2)            ! [input]
-      double precision dp(nr*nt1)             ! [output]
+      double precision dt(nt1, nt2)      ! [input]
+      integer g_cf1                      ! [input], GA of size nr*nt1 x nr*nt1.
+      double precision cf2(nr*nt2)       ! [input]
+      double precision dp(nr*nt1)        ! [output]
 
-      integer p, i
+      integer p, i, l_cf1, k_cf1
 
       if (c /= 'x' .and. c /= 'y' .and. c /= 'z')
      &     call errquit('WFAT: The argument c of wfat_2a1efd_dpo_col '//
@@ -136,12 +137,19 @@ c===============================================================
          dp = 0.0d0
          return
       endif
-      
+
+      if (.not. ma_push_get(mt_dbl, nr*nt1, 'cf1', l_cf1, k_cf1))
+     &     call errquit('WFAT: Could not allocate cf1.', 56, MA_ERR)
+
       do i = 1, nr*nt1
+         call ga_get(g_cf1, 1, nr*nt1, i, i, dbl_mb(k_cf1), nr*nt1)
          call wfat_2a1efd_dpo(c, m2, p, nr, nt1, nt2, s1, s2,
-     &        cf1(:,i), cf2, rq, .true., dt, .false., dp(i))
+     &        dbl_mb(k_cf1), cf2, rq, .true., dt, .false., dp(i))
       enddo
 
+      if (.not. ma_pop_stack(l_cf1))
+     &     call errquit('WFAT: Could not deallocate cf1', 11, MA_ERR)
+      
       end
 c===============================================================
 

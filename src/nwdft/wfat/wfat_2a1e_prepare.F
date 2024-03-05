@@ -55,9 +55,9 @@ c===============================================================
 
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_prep_bas(rtdb, fedvr, init_ke, maxiter, nr, 
-     &     nt, nfe, maxn, l_ndvr, k_ndvr, l_fen, k_fen, l_xquad, 
-     &     k_xquad, l_wquad, k_wquad)
+      subroutine wfat_2a1e_prep_bas(rtdb, fedvr, init_ke, mult_ke, 
+     &     maxiter, nr, nt, nfe, maxn, l_ndvr, k_ndvr, l_fen, k_fen, 
+     &     l_xquad, k_xquad, l_wquad, k_wquad)
 
       implicit none
 #include "mafdecls.fh"
@@ -66,6 +66,7 @@ c===============================================================
       integer rtdb              ! [input],
       logical fedvr             ! [input],
       double precision init_ke   ! [output],
+      double precision mult_ke   ! [output],
       integer maxiter            ! [output],
       integer nr                 ! [output],
       integer nt                ! [output],
@@ -93,6 +94,12 @@ c        ==== No. of FEs ====
 c        ==== Initial basis exponent ===
          if (.not. rtdb_get(rtdb, 'wfat:2a1e_inke', mt_dbl, 1, init_ke))
      &        call errquit('WFAT: Failed reading 2a1e_inke from rtdb',
+     &        1, RTDB_ERR)
+
+c        ==== Exponential multipler ===
+         if (.not. rtdb_get(rtdb, 'wfat:2a1e_multke', mt_dbl, 1,
+     &        mult_ke))
+     &        call errquit('WFAT: Failed reading 2a1e_multke from rtdb',
      &        1, RTDB_ERR)
          
 c        ==== Maximum iteration ====
@@ -186,19 +193,28 @@ c===============================================================
 
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_prep_cf(nr, nt, l_cf, k_cf, l_eg, k_eg)
+      subroutine wfat_2a1e_prep_cf(nr, nt, g_cf, l_cf, k_cf, l_eg, k_eg)
 
       implicit none
 #include "errquit.fh"
+#include "global.fh"
 #include "mafdecls.fh"
       integer nr           ! [input]
       integer nt           ! [input]
+      integer g_cf         ! [output]
       integer l_cf, k_cf   ! [output]
       integer l_eg, k_eg   ! [output]
 
-      if (.not. ma_alloc_get(MT_DBL, (nr*nt)**2, '2a1e_coef',
-     &     l_cf, k_cf))
-     &     call errquit('WFAT: Cannot allocate 2a1e_coef', 1, MA_ERR)
+      if (.not. ga_create(mt_dbl, nr*nt, nr*nt, '2a1e_coef', nr*nt, 0,
+     &     g_cf))
+     &     call errquit('WFAT: Cannot create coef global array.',
+     &     1, GA_ERR)
+
+      if (.not. ma_alloc_get(MT_DBL, nr*nt, '2a1e_ion_coef', l_cf,
+     &     k_cf))
+     &     call errquit('WFAT: Cannot allocate 2a1e_ion_coef',
+     &     1, MA_ERR)
+
       if (.not. ma_alloc_get(MT_DBL, nr*nt, '2a1e_erg', l_eg, k_eg))
      &     call errquit('WFAT: Cannot allocate 2a1e_erg', 1, MA_ERR)
 
@@ -302,15 +318,18 @@ c===============================================================
       
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_erase_cf(l_cf, l_eg)
+      subroutine wfat_2a1e_erase_cf(g_cf, l_cf, l_eg)
 
       implicit none
 #include "mafdecls.fh"
+#include "global.fh"
 #include "errquit.fh"
-      integer l_cf, l_eg
+      integer g_cf, l_cf, l_eg
 
+      if (.not. ga_destroy(g_cf))
+     &     call errquit('WFAT: Cannot destroy 2a1e_coef.', 45, GA_ERR)
       if (.not. MA_free_heap(l_cf))
-     &     call errquit('WFAT: 2a1e_coef deallocation failed', 3,
+     &     call errquit('WFAT: 2a1e_ion_coef deallocation failed', 3,
      &     MA_ERR)
       if (.not. MA_free_heap(l_eg))
      &     call errquit('WFAT: 2a1e_erg deallocation failed', 3, MA_ERR)

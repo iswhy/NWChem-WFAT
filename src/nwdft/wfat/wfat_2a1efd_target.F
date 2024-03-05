@@ -1,7 +1,8 @@
 c==========================================================
 c==========================================================
       subroutine wfat_2a1efd_target(geom, mch, sphi, orbid, pottype, 
-     &     nel, potparam, ni, n, maxn, xq, wq, nr, nt, cf, erg, dipole)
+     &     nel, potparam, ni, n, maxn, xq, wq, nr, nt, g_cf, erg,
+     &     dipole)
 
       implicit none
 #include "stdio.fh"
@@ -22,19 +23,18 @@ c==========================================================
       double precision wq(maxn,ni)
       integer nr
       integer nt
-      double precision cf(nr*nt, nr*nt)
+      integer g_cf                  ! [input], GA of size nr*nt x nr*nt
       double precision erg(nr*nt)
       double precision dipole(3)
 
-      integer l_dt, l_x, k_dt, k_x, ndid
+      integer l_dt, l_x, k_dt, k_x, l_cf, k_cf, ndid
 
       
       ndid = ga_nodeid()
-
       
 c     ==== Solve the eigenproblem for GS ====
       call wfat_2a1efd_solve(mch, ni, n, maxn, xq, wq, nt, geom, 
-     &     pottype, nel, potparam, cf, erg)
+     &     pottype, nel, potparam, g_cf, erg)
 
 
 c     ==== Electronic dipole moment ====
@@ -44,9 +44,13 @@ c     ==== Electronic dipole moment ====
       if (.not. ma_alloc_get(MT_DBL, nr, 'xquad_', l_x, k_x))
      &     call errquit('WFAT: Cannot allocate xquad_', 86, MA_ERR)
       call wfat_fedvr_basnodes(ni, n, maxn, xq, dbl_mb(k_x))
+
+      if (.not. ma_alloc_get(mt_dbl, nr*nt, 'coef', l_cf, k_cf))
+     &     call errquit('WFAT: Could not allocate coef.', 56, MA_ERR)
+      call ga_get(g_cf, 1, nr*nt, orbid, orbid, dbl_mb(k_cf), nr*nt)
       call wfat_2a1efd_dpo('z', mch, 0, nr, nt, nt, sphi, sphi,
-     &     cf(:,orbid), cf(:,orbid), dbl_mb(k_x), .false., dbl_mb(k_dt),
-     &     .false., dipole(3))
+     &     dbl_mb(k_cf), dbl_mb(k_cf), dbl_mb(k_x), .false., 
+     &     dbl_mb(k_dt), .false., dipole(3))
 
       
 c     ==== Analysis ====
@@ -59,6 +63,8 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: Cannot deallocate dt', 1, MA_ERR)
       if (.not. ma_free_heap(l_x))
      &     call errquit('WFAT: Cannot deallocate xquad_', 1, MA_ERR)
+      if (.not. ma_free_heap(l_cf))
+     &     call errquit('WFAT: Could not deallocate coef', 11, MA_ERR)
 
       end
 c==========================================================

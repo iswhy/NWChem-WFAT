@@ -25,14 +25,14 @@ c===============================================================
       integer k_cf, k_eg, k_npa, k_mpa, k_in, k_inj, k_ink1
       integer k_ink2, k_pb, k_cfx, k_cfy, k_cfz, k_ndvr, k_fen, k_xquad
       integer k_wquad
-      integer mch, sphi, spinid, orbid, nr, nt, maxiter, i_cf, i_eg
+      integer mch, sphi, spinid, orbid, nr, nt, maxiter, i_eg
       integer lmax, gqual, nqn, nsh, nintg, g_il, ndid, nlgl, nel_2a
       integer nintj, nintk, g_j, g_k(2), npb, nr_m, nt_m, nr_p, nt_p
       integer ndgsub, max_ndgsub, dgs(1,1), ndgs(1), nfe, maxn, idum
-      double precision init_ke, out_ke, edip(3), chpos(3), chmmt(3)
-      double precision fieldmag, pb(3,3), polb(3), dps(1,1,3,1)
-      double precision pbs(1,1,6,1), ddum, potparam(2), mask_param(2)
-      double precision ergmask, amsk, bmsk, iondip(3)
+      double precision init_ke, out_ke, mult_ke, edip(3), chpos(3)
+      double precision chmmt(3), fieldmag, pb(3,3), polb(3)
+      double precision dps(1,1,3,1), pbs(1,1,6,1), ddum, potparam(2)
+      double precision mask_param(2), ergmask, amsk, bmsk, iondip(3)
 
       integer nch
       parameter(nch=1)
@@ -73,8 +73,8 @@ c     ==== Extract the general parameters ====
 c     ==== Extract the parameters of the quantum system ====
       call wfat_2a1e_prep_system(rtdb, mch, sphi, spinid, orbid,
      &     pottype, nel_2a, potparam)
-      call wfat_2a1e_prep_bas(rtdb, fedvr, init_ke, maxiter, nr, 
-     &     nt, nfe, maxn, l_ndvr, k_ndvr, l_fen, k_fen, l_xquad, 
+      call wfat_2a1e_prep_bas(rtdb, fedvr, init_ke, mult_ke, maxiter, 
+     &     nr, nt, nfe, maxn, l_ndvr, k_ndvr, l_fen, k_fen, l_xquad, 
      &     k_xquad, l_wquad, k_wquad)
       if (fedvr .and. ndid == 0) then
          write(luout, '("r grid:")') 
@@ -85,8 +85,8 @@ c     ==== Extract the parameters of the quantum system ====
 
 
 c     ==== Allocate the coefficients and energies array ====
-      call wfat_2a1e_prep_cf(nr, nt, l_cf, k_cf, l_eg, k_eg)
-      i_cf = k_cf + (orbid-1)*nr*nt
+      call wfat_2a1e_prep_cf(nr, nt, g_cf, l_cf, k_cf, l_eg, k_eg)
+      call ga_get(g_cf, 1, nr*nt, orbid, orbid, dbl_mb(k_cf), nr*nt)
       i_eg = k_eg + (orbid-1)
 
 
@@ -121,11 +121,11 @@ c     ====   eigenstate (the ionized channel)   ====
       if (fedvr) then
          call wfat_2a1efd_target(geom_hd, mch, sphi, orbid, pottype, 
      &        nel_2a, potparam, nfe, int_mb(k_ndvr), maxn, 
-     &        dbl_mb(k_xquad), dbl_mb(k_wquad), nr, nt, dbl_mb(k_cf),
+     &        dbl_mb(k_xquad), dbl_mb(k_wquad), nr, nt, g_cf,
      &        dbl_mb(k_eg), edip)
       else
          call wfat_2a1e_target(geom_hd, mch, sphi, orbid, pottype, 
-     &        nel_2a, potparam, nr, nt, init_ke, maxiter, dbl_mb(k_cf), 
+     &        nel_2a, potparam, nr, nt, init_ke, mult_ke, maxiter, g_cf,
      &        dbl_mb(k_eg), edip, out_ke)
       endif
       call wfat_2a1e_prep_cf1(wfat1, fedvr, rtdb, mch, nr, nt, nr_m, 
@@ -134,13 +134,13 @@ c     ====   eigenstate (the ionized channel)   ====
          if (fedvr) then
             call wfat_2a1efd_perturb(geom_hd, mch, sphi, orbid, nfe, 
      &           int_mb(k_ndvr), maxn, dbl_mb(k_xquad), dbl_mb(k_wquad),
-     &           nr, nt, nt_m, nt_p, pottype, nel_2a, potparam,
-     &           dbl_mb(k_cf), dbl_mb(k_eg), dbl_mb(k_cfx),
-     &           dbl_mb(k_cfy), dbl_mb(k_cfz), polb)
+     &           nr, nt, nt_m, nt_p, pottype, nel_2a, potparam, g_cf, 
+     &           dbl_mb(k_eg), dbl_mb(k_cfx), dbl_mb(k_cfy), 
+     &           dbl_mb(k_cfz), polb)
          else
             call wfat_2a1e_perturb(geom_hd, mch, sphi, orbid, pottype, 
-     &           nel_2a, potparam, out_ke, nr, nt, nr_m, nt_m, nr_p, 
-     &           nt_p, dbl_mb(k_cf), dbl_mb(k_eg), dbl_mb(k_cfx), 
+     &           nel_2a, potparam, out_ke, mult_ke, nr, nt, nr_m, nt_m, 
+     &           nr_p, nt_p, g_cf, dbl_mb(k_eg), dbl_mb(k_cfx), 
      &           dbl_mb(k_cfy), dbl_mb(k_cfz), polb)
          endif
       endif
@@ -187,7 +187,7 @@ c     ==== Prepare WFAT(1) integrals ====
 c           ==== Compute the OEWFAT integrals ====
             call wfat_2a1e_intgl(rtdb, geom_hd, nqn, int_mb(k_npa), 
      &           int_mb(k_mpa), lmax, gqual, zion, wf_msm, sphi, mch, 
-     &           nr, nt, out_ke, dbl_mb(i_cf), dbl_mb(i_eg), chmmt, 
+     &           nr, nt, out_ke, dbl_mb(k_cf), dbl_mb(i_eg), chmmt, 
      &           chpos, pottype, nel_2a, potparam, wfat1, nlgl, nr_m, 
      &           nt_m, nr_p, nt_p, dbl_mb(k_cfx), dbl_mb(k_cfy), 
      &           dbl_mb(k_cfz), fedvr, nfe, int_mb(k_ndvr), maxn, 
@@ -239,7 +239,7 @@ c     ==== No partial wave mode ====
 c      if (.not. fedvr)
 c     &     call wfat_2a1e_task_nopw(rtdb, geom_hd, nqn, int_mb(k_npa),
 c     &     int_mb(k_mpa), gqual, zion, wf_msm, sphi, mch, nr, nt, orbid,
-c     &     dbl_mb(i_cf), out_ke, dbl_mb(i_eg), edip, pottype, nel_2a, 
+c     &     dbl_mb(k_cf), out_ke, dbl_mb(i_eg), edip, pottype, nel_2a, 
 c     &     potparam, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx),
 c     &     dbl_mb(k_cfy), dbl_mb(k_cfz))
       
@@ -325,7 +325,7 @@ clater     &           res_mode)
       else if (lmax < 0) then
          call wfat_2a1e_ti_nopw(rtdb, geom_hd, nqn, int_mb(k_npa),
      &        int_mb(k_mpa), gqual, zion, wf_msm, sphi, mch, nr, nt, 
-     &        out_ke, dbl_mb(i_cf), dbl_mb(i_eg), chmmt, chpos, orbid,
+     &        out_ke, dbl_mb(k_cf), dbl_mb(i_eg), chmmt, chpos, orbid,
      &        spinid, pottype, nel_2a, potparam, pr_srfc, pr_rate, 
      &        fieldmag, wfat1, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), 
      &        dbl_mb(k_cfy), dbl_mb(k_cfz), pbs, fedvr, nfe,
@@ -338,7 +338,7 @@ clater     &           res_mode)
 c     ==== Deallocations ====
       call wfat_erase_paraqn(l_npa, l_mpa)
       call wfat_2a1e_erase_bas(l_ndvr, l_fen, l_xquad, l_wquad)
-      call wfat_2a1e_erase_cf(l_cf, l_eg)
+      call wfat_2a1e_erase_cf(g_cf, l_cf, l_eg)
       call wfat_2a1e_erase_cf1(l_cfx, l_cfy, l_cfz)
       if (.not. ga_destroy(g_il))
      &     call errquit('WFAT: Cannot destroy intgl.', 45, GA_ERR)

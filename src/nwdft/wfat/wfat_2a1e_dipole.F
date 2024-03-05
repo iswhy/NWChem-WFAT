@@ -912,9 +912,10 @@ c     ==== Normalization_factor / \pi ====
 c===============================================================
 c===============================================================
       subroutine wfat_2a1e_dpo_col(c, ke, m1, m2, s1, s2, nr1, nt1, nr2,
-     &     nt2, dr, dt, cf1, cf2, dp)
+     &     nt2, dr, dt, g_cf1, cf2, dp)
 
       implicit none
+#include "mafdecls.fh"
 #include "errquit.fh"
       character*1 c                            ! [input]
       double precision ke                      ! [input]
@@ -928,11 +929,11 @@ c===============================================================
       integer nt2                              ! [input]
       double precision dr(nr1, nr2)            ! [input]
       double precision dt(nt1, nt2)            ! [input]
-      double precision cf1(nr1*nt1, nr1*nt1)   ! [input]
+      integer g_cf1                            ! [input], GA of size nr1*nt1 x nr1*nt1.
       double precision cf2(nr2*nt2)            ! [input]
       double precision dp(nr1*nt1)             ! [output]
 
-      integer p, i
+      integer p, i, l_cf1, k_cf1
 
       if (c /= 'x' .and. c /= 'y' .and. c /= 'z')
      &     call errquit('WFAT: The argument c of wfat_2a1e_dpo_col '//
@@ -943,12 +944,20 @@ c===============================================================
          dp = 0.0d0
          return
       endif
+
+      if (.not. ma_push_get(mt_dbl, nr1*nt1, 'cf1', l_cf1, k_cf1))
+     &     call errquit('WFAT: Could not allocate cf1.', 56, MA_ERR)
       
       do i = 1, nr1*nt1
+         call ga_get(g_cf1, 1, nr1*nt1, i, i, dbl_mb(k_cf1), nr1*nt1)
          call wfat_2a1e_dpo(c, m2, p, nr1, nt1, nr2, nt2, s1, s2, ke,
-     &        cf1(:,i), cf2, .true., dr, .true., dt, .false., dp(i))
+     &        dbl_mb(k_cf1), cf2, .true., dr, .true., dt, .false.,
+     &        dp(i))
       enddo
 
+      if (.not. ma_pop_stack(l_cf1))
+     &     call errquit('WFAT: Could not deallocate cf1', 11, MA_ERR)
+      
       end
 c===============================================================
 
