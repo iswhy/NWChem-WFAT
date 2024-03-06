@@ -5,6 +5,7 @@ c===============================================================
      &     ke)
 
       implicit none
+#include "global.fh"
 #include "stdio.fh"      
 #include "mafdecls.fh"
 #include "errquit.fh"

@@ -27,7 +27,7 @@ c==========================================================
       integer l_x, l_t, l_tw
       integer k_hr, k_gr, k_lt, k_ut, k_ht, k_gt
       integer k_x, k_t, k_tw
-      integer nr, i, j, i_hr, i_x, ndid, g_h, g_cf
+      integer nr, i, j, i_hr, i_x, ndid, g_h
       double precision tt1, tt2, deg2rad
       parameter(deg2rad=0.01745329251994d0)
 
@@ -95,9 +95,11 @@ c     ====================
       
 
 c     ==== Hamiltonian construction ====
-      if (.not. ga_create(mt_dbl, nr*nt, nr*nt, 'hamil', nr*nt, 0, g_h))
-     &     call errquit('WFAT: Cannot create hamil global array.',
-     &     1, GA_ERR)
+      if (.not. ga_duplicate(g_cf, g_h, 'hamil'))
+     &     call errquit('WFAT: Cannot create hamil.', 36, GA_ERR)
+c      if (.not. ga_create(mt_dbl, nr*nt, nr*nt, 'hamil', nr*nt, 0, g_h))
+c     &     call errquit('WFAT: Cannot create hamil global array.',
+c     &     1, GA_ERR)
       call wfat_2a1e_hamiltonian(nr, nt, dbl_mb(k_x), dbl_mb(k_t),
      &     dbl_mb(k_gr), dbl_mb(k_ht), dbl_mb(k_hr), dbl_mb(k_gt), 
      &     1.0d0, geom, pottype, nel, potparam, g_h)

@@ -557,8 +557,8 @@ c      call errquit('stop here', 9, UERR)
 
 !========================================================
 !========================================================
-      subroutine wfat_2a1e_polb(m, sphi, orbid, nr1, nt1, nr2, nt2,
-     &     nr3, nt3, ke, erg1, erg2, erg3, cf1, cf2, cf3, numt, polb)
+      subroutine wfat_2a1e_polb(m, sphi, nr, nt, nr_m, nt_m, nr_p, nt_p,
+     &     ke, cf, cfx, cfy, cfz, numt, polb)
 
       implicit none
 #include "stdio.fh"      
@@ -566,139 +566,121 @@ c      call errquit('stop here', 9, UERR)
 #include "errquit.fh"
       integer m
       integer sphi         ! [input], sphi=1 for \cos(m\phi) and sphi=2 for \sin(m\phi)
-      integer orbid
-      integer nr1, nt1
-      integer nr2, nt2
-      integer nr3, nt3
+      integer nr, nt
+      integer nr_m, nt_m
+      integer nr_p, nt_p
       double precision ke
-      double precision erg1(1:*)                ! [input], unused when m=0
-      double precision erg2(nr2*nt2)
-      double precision erg3(nr3*nt3) 
-      double precision cf1(1:*)                 ! [input], m-1, unused when m=0
-      double precision cf2(nr2*nt2, nr2*nt2)    ! [input], m
-      double precision cf3(nr3*nt3, nr3*nt3)    ! [input], m+1
+      double precision cf(nr*nt)
+      double precision cfx(1:*)
+      double precision cfy(1:*)
+      double precision cfz(nr*nt)
       logical numt
       double precision polb(3)  ! [output],
 
-      integer l_dr1, l_dt1, l_dr3, l_dt3, l_dr, l_dt
-      integer k_dr1, k_dt1, k_dr3, k_dt3, k_dr, k_dt
-      integer io, io0, io_, sphi_
-      double precision dpo
+      integer l_drm, l_dtm, l_drp, l_dtp, l_dr, l_dt
+      integer k_drm, k_dtm, k_drp, k_dtp, k_dr, k_dt
+      integer io, io_, sphi_, n_m, n_p
+      double precision pb0
 
 
-      io0 = orbid
-
-      
 c     ==== m-1,m ====
       if (m >= 1) then
-         if (.not. ma_alloc_get(MT_DBL, nr1*nr2, 'dr_dvr1', l_dr1, 
-     &        k_dr1))
+         n_m = nr_m * nt_m
+         if (.not. ma_alloc_get(MT_DBL, nr_m*nr, 'dr_dvr1', l_drm, 
+     &        k_drm))
      &        call errquit('WFAT: Cannot allocate dr_dvr1', 1, MA_ERR)
-         call wfat_dipole_dvrr(m-1, nr1, m, nr2, ke, dbl_mb(k_dr1))
+         call wfat_dipole_dvrr(m, nr, m-1, nr_m, ke, dbl_mb(k_drm))
    
-         if (.not. ma_alloc_get(MT_DBL, nt1*nt2, 'dt_dvr1', l_dt1,
-     &        k_dt1))
+         if (.not. ma_alloc_get(MT_DBL, nt_m*nt, 'dt_dvr1', l_dtm,
+     &        k_dtm))
      &        call errquit('WFAT: Cannot allocate dt_dvr1', 1, MA_ERR)
          if (.not. numt) then
-            call wfat_dipole_dvrt(m, -1, nt1, nt2, dbl_mb(k_dt1))
+            call wfat_dipole_dvrt(m-1, 1, nt, nt_m, dbl_mb(k_dtm))
          else
-            call wfat_dipole_dvrt_num(m, -1, nt1, nt2, dbl_mb(k_dt1))
+            call wfat_dipole_dvrt_num(m-1, 1, nt, nt_m, dbl_mb(k_dtm))
          endif
       endif
 
       
 c     ==== m+1,m ====
-      if (.not. ma_alloc_get(MT_DBL, nr3*nr2, 'dr_dvr3', l_dr3, k_dr3))
+      n_p = nr_p * nt_p
+      if (.not. ma_alloc_get(MT_DBL, nr_p*nr, 'dr_dvr3', l_drp, k_drp))
      &     call errquit('WFAT: Cannot allocate dr_dvr3', 1, MA_ERR)
-      call wfat_dipole_dvrr(m+1, nr3, m, nr2, ke, dbl_mb(k_dr3))
+      call wfat_dipole_dvrr(m, nr, m+1, nr_p, ke, dbl_mb(k_drp))
 
-      if (.not. ma_alloc_get(MT_DBL, nt3*nt2, 'dt_dvr3', l_dt3, k_dt3))
+      if (.not. ma_alloc_get(MT_DBL, nt_p*nt, 'dt_dvr3', l_dtp, k_dtp))
      &     call errquit('WFAT: Cannot allocate dt_dvr3', 1, MA_ERR)
       if (.not. numt) then
-         call wfat_dipole_dvrt(m, 1, nt3, nt2, dbl_mb(k_dt3))
+         call wfat_dipole_dvrt(m+1, -1, nt, nt_p, dbl_mb(k_dtp))
       else
-         call wfat_dipole_dvrt_num(m, 1, nt3, nt2, dbl_mb(k_dt3))
+         call wfat_dipole_dvrt_num(m+1, -1, nt, nt_p, dbl_mb(k_dtp))
+      endif
+
+
+c     ==== m,m ====
+      if (.not. ma_alloc_get(MT_DBL, nr*nr, 'dr_dvr', l_dr, k_dr))
+     &     call errquit('WFAT: Cannot allocate dr_dvr', 1, MA_ERR)
+      call wfat_dipole_dvrr(m, nr, m, nr, ke, dbl_mb(k_dr))
+
+      if (.not. ma_alloc_get(MT_DBL, nt*nt, 'dt_dvr', l_dt, k_dt))
+     &     call errquit('WFAT: Cannot allocate dt_dvr', 1, MA_ERR)
+      if (.not. numt) then
+         call wfat_dipole_dvrt(m, 0, nt, nt, dbl_mb(k_dt))
+      else
+         call wfat_dipole_dvrt_num(m, 0, nt, nt, dbl_mb(k_dt))
       endif
       
 
-c     ==== xx component of the static polarizability ====
-      polb(1) = 0.0d0
+c     ==== xx component of static polarizability ====
       if (m >= 1) then
-         do io = 1, nr1*nt1
-            io_ = 1 + (io-1)*nr1*nt1
-            call wfat_2a1e_dpo('x', m, -1, nr1, nt1, nr2, nt2, sphi, 
-     &           sphi, ke, cf1(io_), cf2(:,io0), .True., 
-     &           dbl_mb(k_dr1), .True., dbl_mb(k_dt1), numt, dpo)
-            polb(1) = polb(1) + dpo**2/(erg2(io0)-erg1(io))
-         enddo
+         call wfat_2a1e_dpo('x', m-1, 1, nr, nt, nr_m, nt_m, sphi, sphi,
+     &        ke, cf, cfx(1:n_m), .true., dbl_mb(k_drm), .true.,
+     &        dbl_mb(k_dtm), numt, pb0)
+      else
+         pb0 = 0.0d0
       endif
-      do io = 1, nr3*nt3
-         call wfat_2a1e_dpo('x', m, 1, nr3, nt3, nr2, nt2, sphi, 
-     &        sphi, ke, cf3(:,io), cf2(:,io0), .True., dbl_mb(k_dr3),
-     &        .True., dbl_mb(k_dt3), numt, dpo)
-         polb(1) = polb(1) + dpo**2/(erg2(io0)-erg3(io))
-      enddo
+      call wfat_2a1e_dpo('x', m+1, -1, nr, nt, nr_p, nt_p, sphi, sphi, 
+     &     ke, cf, cfx(n_m+1:n_m+n_p), .true., dbl_mb(k_drp), .true., 
+     &     dbl_mb(k_dtp), numt, pb0)
+      polb(1) = pb0 + polb(1)
 
 
-c     ==== yy component of the static polarizability ====
-      polb(2) = 0.0d0
+c     ==== yy component of static polarizability ====
       if (sphi==1) sphi_ = 2
       if (sphi==2) sphi_ = 1
       if (m >= 1) then
-         do io = 1, nr1*nt1
-            io_ = 1 + (io-1)*nr1*nt1
-            call wfat_2a1e_dpo('y', m, -1, nr1, nt1, nr2, nt2, sphi_, 
-     &           sphi, ke, cf1(io_), cf2(:,io0), .True., 
-     &           dbl_mb(k_dr1), .True., dbl_mb(k_dt1), numt, dpo)
-            polb(2) = polb(2) + dpo**2/(erg2(io0)-erg1(io))
-         enddo
-      endif
-      do io = 1, nr3*nt3
-         call wfat_2a1e_dpo('y', m, 1, nr3, nt3, nr2, nt2, sphi_, 
-     &        sphi, ke, cf3(:,io), cf2(:,io0), .True., dbl_mb(k_dr3),
-     &        .True., dbl_mb(k_dt3), numt, dpo)
-         polb(2) = polb(2) + dpo**2/(erg2(io0)-erg3(io))
-      enddo      
-      
-
-c     ==== m,m ====
-      if (.not. ma_alloc_get(MT_DBL, nr2*nr2, 'dr_dvr', l_dr, k_dr))
-     &     call errquit('WFAT: Cannot allocate dr_dvr', 1, MA_ERR)
-      call wfat_dipole_dvrr(m, nr2, m, nr2, ke, dbl_mb(k_dr))
-
-      if (.not. ma_alloc_get(MT_DBL, nt2*nt2, 'dt_dvr', l_dt, k_dt))
-     &     call errquit('WFAT: Cannot allocate dt_dvr', 1, MA_ERR)
-      if (.not. numt) then
-         call wfat_dipole_dvrt(m, 0, nt2, nt2, dbl_mb(k_dt))
+         call wfat_2a1e_dpo('y', m-1, 1, nr, nt, nr_m, nt_m, sphi, 
+     &        sphi_, ke, cf, cfy(1:n_m), .true., dbl_mb(k_drm), .true.,
+     &        dbl_mb(k_dtm), numt, pb0)
       else
-         call wfat_dipole_dvrt_num(m, 0, nt2, nt2, dbl_mb(k_dt))
+         pb0 = 0.0d0
       endif
+      call wfat_2a1e_dpo('y', m+1, -1, nr, nt, nr_p, nt_p, sphi, sphi_, 
+     &     ke, cf, cfy(n_m+1:n_m+n_p), .true., dbl_mb(k_drp), .true., 
+     &     dbl_mb(k_dtp), numt, pb0)
+      polb(2) = pb0 + polb(2)
 
       
-c     ==== zz component of the static polarizability ====
-      polb(3) = 0.0d0
-      do io = 1, nr2*nt2
-         if (io /= io0) then
-            call wfat_2a1e_dpo('z', m, 0, nr2, nt2, nr2, nt2, sphi, 
-     &           sphi, ke, cf2(:,io), cf2(:,io0), .True., dbl_mb(k_dr),
-     &           .True., dbl_mb(k_dt), numt, dpo)
-            polb(3) = polb(3) + dpo**2/(erg2(io0)-erg2(io))
-         endif
-      enddo
+c     ==== zz component of static polarizability ====
+      call wfat_2a1e_dpo('z', m, 0, nr, nt, nr, nt, sphi, sphi, ke, cf,
+     &     cfz, .true., dbl_mb(k_dr), .true., dbl_mb(k_dt), numt, 
+     &     polb(3))
+      polb(3) = polb(3)  
 
+      
       polb = -2 * polb
 
       
 c     ==== Deallocations ====
       if (m >= 1) then
-         if (.not. ma_free_heap(l_dr1))
+         if (.not. ma_free_heap(l_drm))
      &        call errquit('WFAT: Cannot deallocate dr_dvr1', 1, MA_ERR)
-         if (.not. ma_free_heap(l_dt1))
+         if (.not. ma_free_heap(l_dtm))
      &        call errquit('WFAT: Cannot deallocate dt_dvr1', 1, MA_ERR)
       endif
-      if (.not. ma_free_heap(l_dr3))
+      if (.not. ma_free_heap(l_drp))
      &     call errquit('WFAT: Cannot deallocate dr_dvr3', 1, MA_ERR)
-      if (.not. ma_free_heap(l_dt3))
+      if (.not. ma_free_heap(l_dtp))
      &     call errquit('WFAT: Cannot deallocate dt_dvr3', 1, MA_ERR)
       if (.not. ma_free_heap(l_dr))
      &     call errquit('WFAT: Cannot deallocate dr_dvr', 1, MA_ERR)
@@ -912,10 +894,11 @@ c     ==== Normalization_factor / \pi ====
 c===============================================================
 c===============================================================
       subroutine wfat_2a1e_dpo_col(c, ke, m1, m2, s1, s2, nr1, nt1, nr2,
-     &     nt2, dr, dt, g_cf1, cf2, dp)
+     &     nt2, dr, dt, g_cf1, cf2, g_dp)
 
       implicit none
 #include "mafdecls.fh"
+#include "global.fh"
 #include "errquit.fh"
       character*1 c                            ! [input]
       double precision ke                      ! [input]
@@ -929,12 +912,24 @@ c===============================================================
       integer nt2                              ! [input]
       double precision dr(nr1, nr2)            ! [input]
       double precision dt(nt1, nt2)            ! [input]
-      integer g_cf1                            ! [input], GA of size nr1*nt1 x nr1*nt1.
+      integer g_cf1                            ! [input], GA of size nr1*nt1 x nr1*nt1. 1)
       double precision cf2(nr2*nt2)            ! [input]
-      double precision dp(nr1*nt1)             ! [output]
+      double precision g_dp                    ! [output], 1D GA of size nr1*nt1.
+c     1) It is recommended that the blocks of g_cf1 consist of columns (i.e. the
+c        number of rows of each block is equal to the number of rows of g_dp), and
+c        that the distribution of columns of g_cf1 is identical to that of g_dp.
 
-      integer p, i, l_cf1, k_cf1
+      logical iscol
+      integer p, i, l_cf1, k_cf1, itype, dim1, dim2, ilo, ihi
+      integer jlo, jhi, klo, khi
+      double precision dp
 
+      call ga_sync()
+      call ga_inquire(g_dp, itype, dim1, dim2)
+      if (dim1 /= 1 .and. dim2 /= 1)
+     &     call errquit('WFAT: Input argument g_dp of '//
+     &     'wfat_2a1e_dpo_col must one be dimensional.', 29, GA_ERR)
+      
       if (c /= 'x' .and. c /= 'y' .and. c /= 'z')
      &     call errquit('WFAT: The argument c of wfat_2a1e_dpo_col '//
      &     'must be equal to either x, y, or z.', 59, UERR)
@@ -947,12 +942,27 @@ c===============================================================
 
       if (.not. ma_push_get(mt_dbl, nr1*nt1, 'cf1', l_cf1, k_cf1))
      &     call errquit('WFAT: Could not allocate cf1.', 56, MA_ERR)
-      
-      do i = 1, nr1*nt1
+
+      call ga_distribution(g_dp, ga_nodeid(), ilo, ihi, jlo, jhi)
+      if (jlo == jhi) then
+         klo = ilo
+         khi = ihi
+         iscol = .true.
+      else
+         klo = jlo
+         khi = jhi
+         iscol = .false.
+      endif
+cOLD      do i = 1, nr1*nt1
+      do i = klo, khi
          call ga_get(g_cf1, 1, nr1*nt1, i, i, dbl_mb(k_cf1), nr1*nt1)
          call wfat_2a1e_dpo(c, m2, p, nr1, nt1, nr2, nt2, s1, s2, ke,
-     &        dbl_mb(k_cf1), cf2, .true., dr, .true., dt, .false.,
-     &        dp(i))
+     &        dbl_mb(k_cf1), cf2, .true., dr, .true., dt, .false., dp)
+         if (iscol) then
+            call ga_put(g_dp, i, i, 1, 1, dp, 1)
+         else
+            call ga_put(g_dp, 1, 1, i, i, dp, 1)
+         endif
       enddo
 
       if (.not. ma_pop_stack(l_cf1))

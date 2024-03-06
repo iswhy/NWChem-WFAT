@@ -25,7 +25,7 @@ c===============================================================
       integer k_cf, k_eg, k_npa, k_mpa, k_in, k_inj, k_ink1
       integer k_ink2, k_pb, k_cfx, k_cfy, k_cfz, k_ndvr, k_fen, k_xquad
       integer k_wquad
-      integer mch, sphi, spinid, orbid, nr, nt, maxiter, i_eg
+      integer mch, sphi, spinid, orbid, nr, nt, maxiter, i_eg, g_cf
       integer lmax, gqual, nqn, nsh, nintg, g_il, ndid, nlgl, nel_2a
       integer nintj, nintk, g_j, g_k(2), npb, nr_m, nt_m, nr_p, nt_p
       integer ndgsub, max_ndgsub, dgs(1,1), ndgs(1), nfe, maxn, idum
@@ -86,7 +86,6 @@ c     ==== Extract the parameters of the quantum system ====
 
 c     ==== Allocate the coefficients and energies array ====
       call wfat_2a1e_prep_cf(nr, nt, g_cf, l_cf, k_cf, l_eg, k_eg)
-      call ga_get(g_cf, 1, nr*nt, orbid, orbid, dbl_mb(k_cf), nr*nt)
       i_eg = k_eg + (orbid-1)
 
 
@@ -128,6 +127,7 @@ c     ====   eigenstate (the ionized channel)   ====
      &        nel_2a, potparam, nr, nt, init_ke, mult_ke, maxiter, g_cf,
      &        dbl_mb(k_eg), edip, out_ke)
       endif
+      call ga_get(g_cf, 1, nr*nt, orbid, orbid, dbl_mb(k_cf), nr*nt)
       call wfat_2a1e_prep_cf1(wfat1, fedvr, rtdb, mch, nr, nt, nr_m, 
      &     nt_m, nr_p, nt_p, l_cfx, k_cfx, l_cfy, k_cfy, l_cfz, k_cfz)
       if (wfat1) then
@@ -176,9 +176,6 @@ c     ==== Prepare WFAT(1) integrals ====
      &     g_j, nintk, g_k, npb, l_pb, k_pb)
       if (wfat1)
      &     call wfat_2a1e_assign_polb(polb, dbl_mb(k_pb))   ! k_pb is not needed apparently, check if this line can be removed.
-
-
-      
       
 
       call util_get_rtdb_state(rtdb, os, oc, or)

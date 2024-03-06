@@ -141,10 +141,10 @@ c     ==== Calculate the static polarizability ====
       numz = .false.
 cOLD      call wfat_2a1e_polb('c', m, 1, nr, nt, ke, dbl_mb(k_eg),
 cOLD     &     dbl_mb(k_cf), numz, polb)
-      call wfat_2a1e_polb(m, sphi, orbid, nr1_, nt1_, nr2, nt2, nr3, 
-     &     nt3, ke, dbl_mb(k_eg1), dbl_mb(k_eg2), dbl_mb(k_eg3), 
-     &     dbl_mb(k_cf1), dbl_mb(k_cf2), dbl_mb(k_cf3), numz, polb)
-      write(luout, '("MF static polarizability = ", 3es17.8)') polb
+cOLD      call wfat_2a1e_polb(m, sphi, orbid, nr1_, nt1_, nr2, nt2, nr3, 
+cOLD     &     nt3, ke, dbl_mb(k_eg1), dbl_mb(k_eg2), dbl_mb(k_eg3), 
+cOLD     &     dbl_mb(k_cf1), dbl_mb(k_cf2), dbl_mb(k_cf3), numz, polb)
+cOLD      write(luout, '("MF static polarizability = ", 3es17.8)') polb
 
       
 

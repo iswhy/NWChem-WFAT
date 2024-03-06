@@ -95,35 +95,6 @@ c     ==== Some tests ====
       call wfat_sometests(rtdb, zi, nch, erg, lmax_, chmmt)
 
 
-c     ==== Some checks in wfat1 is used ====
-      if (wfat1) then
-cc         ovl1 = sum(vcf*cfz(1:nr*nt))
-cc         nnnr = max(nr*nr, nr_m*nr_m, nr_p*nr_p)
-cc         nnnt = max(nt*nt, nt_m*nt_m, nt_p*nt_p)
-cc         if (.not. ma_alloc_get(MT_DBL, nnnr, 'dr_dvr', l_dr, k_dr))
-cc     &        call errquit('WFAT: Cannot allocate dr_dvr', 22, MA_ERR)
-cc         if (.not. ma_alloc_get(MT_DBL, nnnt, 'dt_dvr', l_dt, k_dt))
-cc     &        call errquit('WFAT: Cannot allocate dt_dvr', 25, MA_ERR)
-cc         call wfat_2a1e_dpo('z', mch, 0, nr, nt, nr, nt, sphi, sphi, ke,
-cc     &        vcf, cfz, .false., dbl_mb(k_dr), .false., dbl_mb(k_dt), 
-cc     &        .false., polb_)
-cc         polb_ = -2 * polb_
-cc         write(luout, '("<wfn0|wfn_z>, pol_zz = ", 2es21.10)')
-cc     &        ovl1, polb_
-cc         call wfat_2a1e_dpo('x', mch+1, -1, nr, nt, nr_p, nt_p, sphi, 
-cc     &        sphi, ke, vcf, cfx, .false., dbl_mb(k_dr), .false., 
-cc     &        dbl_mb(k_dt), .false., polb_)
-cc         polb_ = -2 * polb_
-cc         write(luout, '("<wfn0|wfn_x>, pol_xx = ", 2es21.10)')
-cc     &        ovl1, polb_
-cc         
-cc         if (.not. ma_free_heap(l_dr))
-cc     &        call errquit('WFAT: Cannot deallocate dr_dvr', 1, MA_ERR)
-cc         if (.not. ma_free_heap(l_dt))
-cc     &        call errquit('WFAT: Cannot deallocate dt_dvr', 1, MA_ERR)
-      endif
-
-
 c     ==== Allocate grid-related arrays ====
       call wfat_alloc_quadgrid(gq, max_npt, l_pt, k_pt, l_wt, k_wt)
 
@@ -324,9 +295,13 @@ c           ==== Quadrature summation ====
      &                            wtcelf
             endif
             
-c            jpt = jpt + 1
-c            write(luout, '("check: ", i8, 9es15.6)')
-c     &           jpt, v_m, vc_psi, dcpl_mb(k_i0), dcpl_mb(k_i_), wtcelf
+cdebug            write(luout, '("check: ", i8, 9es15.6)')
+cdebug     &           jpt, v_m, vc_psi,
+cdebug     &           sum(abs(dcpl_mb(k_om1:k_om1+nom1-1))),
+cdebug     &           sum(abs(dcpl_mb(k_ik1_0:k_ik1_0+nik1_0-1))),
+cdebug     &           sum(abs(dcpl_mb(k_ik2_0:k_ik2_0+nik2_0-1))),
+cdebug     &           sum(abs(dcpl_mb(k_i_:k_i_+nik1_0-1))),
+cdebug     &           wtcelf
 
             
 c           ==== Print progress ====
@@ -373,11 +348,13 @@ c         call ga_zero(g_j)
 c         call ga_zero(g_k(1))
          call ga_sync()
          call ga_norm1(g_k(1), normch)
+         write(luout, '("k1 norm = ", es18.8)') normch
 
          call ga_acc(g_k(2), 1, nik2, 1, 1, dcpl_mb(k_ik2), nik2, 1.0d0)
 c         call ga_zero(g_k(2))
          call ga_sync()
          call ga_norm1(g_k(2), normch)
+         write(luout, '("k2 norm = ", es18.8)') normch
       endif
       
 

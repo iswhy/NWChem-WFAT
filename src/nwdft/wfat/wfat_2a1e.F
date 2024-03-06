@@ -234,7 +234,8 @@ c     ==== Nuclear attraction part ====
      &     1, GA_ERR)           ! 1)
 c     1) For some reason, ga_add_diagonal appearing later requires strictly
 c        one dimensional array (vector), and the 1-D array created through
-c        ga_create (instead of nga_create) turns out to be unconforming.
+c        ga_create (instead of nga_create) turns out to be unconforming to
+c        this requirement.
       call ga_zero(g_pot)
       call nga_distribution(g_pot, ga_nodeid(), lo, hi)
       

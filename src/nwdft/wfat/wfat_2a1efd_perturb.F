@@ -5,6 +5,7 @@ c===============================================================
      &     g_cf, erg, cfx, cfy, cfz, polb)
 
       implicit none
+#include "global.fh"
 #include "stdio.fh"      
 #include "mafdecls.fh"
 #include "errquit.fh"
@@ -71,7 +72,7 @@ c     ==== Obtain the polarizability ====
       call ga_get(g_cf, 1, nr*nt, orbid, orbid, dbl_mb(k_cf), nr*nt)
       call wfat_2a1efd_polb(mch, sphi, nr, nt, nt_m, nt_p, dbl_mb(k_x),
      &     dbl_mb(k_cf), cfx, cfy, cfz, polb)
-      write(luout, '("Polarizability : ", 3f15.6)') polb
+      write(luout, '("Polarizability components : ", 3f15.6)') polb
 
 c     ==== Deallocations ====
       if (mch >= 1) then
@@ -98,6 +99,7 @@ c===============================================================
      &     cfx, cfy, cfz)
 
       implicit none
+#include "global.fh"
 #include "stdio.fh"      
 #include "mafdecls.fh"
 #include "errquit.fh"
@@ -120,17 +122,24 @@ c===============================================================
       double precision cfy(1:*)
       double precision cfz(nr*nt)
 
-      integer j0, n, n_m, n_p, i, j, i_, sphi_, ndp
-      integer l_dtm, l_dtp, l_dt, l_dp, l_cf, l_tm
-      integer k_dtm, k_dtp, k_dt, k_dp, k_cf, k_tm
-      double precision dp, dpo
+      integer j0, n, n_m, n_p, i, j, i_, sphi_, nblock(2), g_dp0, g_eg0
+      integer g_t0, g_dpm, g_egm, g_tm, g_dpp, g_egp, g_tp, ndid, nnode
+      integer l_dtm, l_dtp, l_dt, l_cf, l_ilo, l_jlo
+      integer k_dtm, k_dtp, k_dt, k_cf, k_ilo, k_jlo
 
 
+      ndid = ga_nodeid()
+      
       j0 = orbid
       n = nr * nt
       if (.not. ma_alloc_get(MT_DBL, nr*nt, 'coef', l_cf, k_cf))
      &     call errquit('WFAT: Cannot allocate coef.', 42, MA_ERR)
       call ga_get(g_cf, 1, nr*nt, j0, j0, dbl_mb(k_cf), nr*nt)
+      nnode = ga_nnodes()
+      if (.not. ma_alloc_get(MT_INT, nnode, 'ilo', l_ilo, k_ilo))
+     &     call errquit('WFAT: Cannot allocate ilo', 1, MA_ERR)
+      if (.not. ma_alloc_get(MT_INT, nnode, 'jlo', l_jlo, k_jlo))
+     &     call errquit('WFAT: Cannot allocate jlo', 1, MA_ERR)
       
       
 c     ==== m - 1 ====
@@ -140,6 +149,19 @@ c     ==== m - 1 ====
      &        k_dtm))
      &        call errquit('WFAT: Cannot allocate dt_dvr-', 1, MA_ERR)
          call wfat_dipole_dvrt(m, -1, nt_m, nt, dbl_mb(k_dtm))
+
+c        ==== m-1 dipole vectors, 1/delta erg, and tmp ====
+         call ga_nblock(g_cfm, nblock)
+         call wfat_ga_get_lo(g_cfm, int_mb(k_ilo), int_mb(k_jlo))
+         if (.not. ga_create_irreg(mt_dbl, n_m, 1, 'dp-', int_mb(k_jlo),
+     &        nblock(2), 1, 1, g_dpm))
+     &        call errquit('WFAT: Cannot create dp-', 1, GA_ERR)
+         if (.not. ga_duplicate(g_dpm, g_egm, 'eg-'))
+     &        call errquit('WFAT: Cannot create eg-', 65, GA_ERR)
+         if (ndid == 0)
+     &        call ga_put(g_egm, 1, n_m, 1, 1, 1/(erg(j0)-erg_m), n_m)
+         if (.not. ga_duplicate(g_dpm, g_tm, 'tmp-'))
+     &        call errquit('WFAT: Cannot create tmp-', 65, GA_ERR)
       else
          n_m = 0
       endif
@@ -151,46 +173,41 @@ c     ==== m + 1 ====
      &     call errquit('WFAT: Cannot allocate dt_dvr+', 1, MA_ERR)
       call wfat_dipole_dvrt(m, 1, nt_p, nt, dbl_mb(k_dtp))
 
-      
-c     ==== Allocate temp vector to hold dipole column ====
-      ndp = max(n, n_m, n_p)
-      if (.not. ma_alloc_get(MT_DBL, ndp, 'dp', l_dp, k_dp))
-     &     call errquit('WFAT: Cannot allocate dp', 1, MA_ERR)
-      if (.not. ma_alloc_get(MT_DBL, ndp, 'tmp', l_tm, k_tm))
-     &     call errquit('WFAT: Cannot allocate tmp', 1, MA_ERR)
-      
+c     ==== m+1 dipole vectors, 1/delta erg, and tmp ====
+      call ga_nblock(g_cfp, nblock)
+      call wfat_ga_get_lo(g_cfp, int_mb(k_ilo), int_mb(k_jlo))
+      if (.not. ga_create_irreg(mt_dbl, n_p, 1, 'dp+', int_mb(k_jlo), 
+     &     nblock(2), 1, 1, g_dpp))
+     &     call errquit('WFAT: Cannot create dp+', 1, GA_ERR)
+      if (.not. ga_duplicate(g_dpp, g_egp, 'eg+'))
+     &     call errquit('WFAT: Cannot create eg+', 65, GA_ERR)
+      if (ndid == 0)
+     &     call ga_put(g_egp, 1, n_p, 1, 1, 1/(erg(j0)-erg_p), n_p)
+      if (.not. ga_duplicate(g_dpp, g_tp, 'tmp+'))
+     &     call errquit('WFAT: Cannot create tmp+', 65, GA_ERR)
 
+      
 c     ==== x component of the corrected wave function ====
 c     == m-1 sub-component ==
       if (m >= 1) then
          call wfat_2a1efd_dpo_col('x', m-1, m, sphi, sphi, nr, nt_m,
-     &        nt, rq, dbl_mb(k_dtm), g_cfm, dbl_mb(k_cf), dbl_mb(k_dp))
-         use GA operations below
-cOLD         do j = 1, n_m
-cOLD            dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_m(j))
-cOLD         enddo
-cOLD         cfx(1:n_m) = matmul(cf_m, dbl_mb(k_dp:k_dp+n_m-1))
+     &        nt, rq, dbl_mb(k_dtm), g_cfm, dbl_mb(k_cf), g_dpm)
+         call ga_elem_multiply(g_dpm, g_egm, g_dpm)
+         call ga_dgemm('n', 'n', n_m, 1, n_m, 1.0d0, g_cfm, g_dpm,
+     &        0.0d0, g_tm)
          cfx(1:n_m) = 0.0d0
-         do j = 1, n_m
-            call ga_get(g_cfm, 1, n_m, j, j, dbl_mb(k_tm), n_m)
-            dp = dbl_mb(k_dp+j-1) / (erg(j0)-erg_m(j))
-            cfx(1:n_m) = cfx(1:n_m) + dp * dbl_mb(k_tm:k_tm+n_m-1)
-         enddo
+         call ga_get(g_tm, 1, n_m, 1, 1, cfx(1), n_m)
+         call ga_sync()
       endif
 c     == m+1 sub-component ==
       call wfat_2a1efd_dpo_col('x', m+1, m, sphi, sphi, nr, nt_p,
-     &     nt, rq, dbl_mb(k_dtp), g_cfp, dbl_mb(k_cf), dbl_mb(k_dp))
-cOLD      do j = 1, n_p
-cOLD         dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_p(j))
-cOLD      enddo
-cOLD      cfx(n_m+1:n_m+n_p) = matmul(cf_p, dbl_mb(k_dp:k_dp+n_p-1))
+     &     nt, rq, dbl_mb(k_dtp), g_cfp, dbl_mb(k_cf), g_dpp)
+      call ga_elem_multiply(g_dpp, g_egp, g_dpp)
+      call ga_dgemm('n', 'n', n_p, 1, n_p, 1.0d0, g_cfp, g_dpp,
+     &     0.0d0, g_tp)
       cfx(n_m+1:n_m+n_p) = 0.0d0
-      do j = 1, n_p
-         call ga_get(g_cfp, 1, n_p, j, j, dbl_mb(k_tm), n_p)
-         dp = dbl_mb(k_dp+j-1) / (erg(j0)-erg_p(j))
-         cfx(n_m+1:n_m+n_p) = cfx(n_m+1:n_m+n_p) + dp *
-     &                        dbl_mb(k_tm:k_tm+n_p-1)
-      enddo
+      call ga_get(g_tp, 1, n_p, 1, 1, cfx(n_m+1), n_p)
+      call ga_sync()
 
 
 c     ==== y component of the corrected wave function ====
@@ -199,76 +216,94 @@ c     ==== y component of the corrected wave function ====
 c     == m-1 sub-component ==
       if (m >= 1) then
          call wfat_2a1efd_dpo_col('y', m-1, m, sphi_, sphi, nr, nt_m,
-     &        nt, rq, dbl_mb(k_dtm), g_cfm, dbl_mb(k_cf), dbl_mb(k_dp))
-cOLD         do j = 1, n_m
-cOLD            dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_m(j))
-cOLD         enddo
-cOLD         cfy(1:n_m) = matmul(cf_m, dbl_mb(k_dp:k_dp+n_m-1))
+     &        nt, rq, dbl_mb(k_dtm), g_cfm, dbl_mb(k_cf), g_dpm)
+         call ga_elem_multiply(g_dpm, g_egm, g_dpm)
+         call ga_dgemm('n', 'n', n_m, 1, n_m, 1.0d0, g_cfm, g_dpm,
+     &        0.0d0, g_tm)
          cfy(1:n_m) = 0.0d0
-         do j = 1, n_m
-            call ga_get(g_cfm, 1, n_m, j, j, dbl_mb(k_tm), n_m)
-            dp = dbl_mb(k_dp+j-1) / (erg(j0)-erg_m(j))
-            cfy(1:n_m) = cfy(1:n_m) + dp * dbl_mb(k_tm:k_tm+n_m-1)
-         enddo
+         call ga_get(g_tm, 1, n_m, 1, 1, cfy(1), n_m)
+         call ga_sync()
       endif
 c     == m+1 sub-component ==
       call wfat_2a1efd_dpo_col('y', m+1, m, sphi_, sphi, nr, nt_p, nt, 
-     &     rq, dbl_mb(k_dtp), g_cfp, dbl_mb(k_cf), dbl_mb(k_dp))
-cOLD      do j = 1, n_p
-cOLD         dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg_p(j))
-cOLD      enddo
-cOLD      cfy(n_m+1:n_m+n_p) = matmul(cf_p, dbl_mb(k_dp:k_dp+n_p-1))
+     &     rq, dbl_mb(k_dtp), g_cfp, dbl_mb(k_cf), g_dpp)
+      call ga_elem_multiply(g_dpp, g_egp, g_dpp)
+      call ga_dgemm('n', 'n', n_p, 1, n_p, 1.0d0, g_cfp, g_dpp,
+     &     0.0d0, g_tp)
       cfy(n_m+1:n_m+n_p) = 0.0d0
-      do j = 1, n_p
-         call ga_get(g_cfp, 1, n_p, j, j, dbl_mb(k_tm), n_p)
-         dp = dbl_mb(k_dp+j-1) / (erg(j0)-erg_p(j))
-         cfy(n_m+1:n_m+n_p) = cfy(n_m+1:n_m+n_p) + dp *
-     &                        dbl_mb(k_tm:k_tm+n_p-1)
-      enddo
+      call ga_get(g_tp, 1, n_p, 1, 1, cfy(n_m+1), n_p)
+      call ga_sync()
 
 
 c     ==== m,m ====
       if (.not. ma_alloc_get(MT_DBL, nt*nt, 'dt_dvr', l_dt, k_dt))
      &     call errquit('WFAT: Cannot allocate dt_dvr', 1, MA_ERR)
       call wfat_dipole_dvrt(m, 0, nt, nt, dbl_mb(k_dt))
-      
 
-c     ==== zz component of the static polarizability ====
+c     ==== m dipole vectors, 1/delta erg, and tmp ====
+      call ga_nblock(g_cf, nblock)
+      call wfat_ga_get_lo(g_cf, int_mb(k_ilo), int_mb(k_jlo))
+      if (.not. ga_create_irreg(mt_dbl, n, 1, 'dp0', int_mb(k_jlo),
+     &     nblock(2), 1, 1, g_dp0))
+     &     call errquit('WFAT: Cannot create dp0', 1, GA_ERR)
+      if (.not. ga_duplicate(g_dp0, g_eg0, 'eg0'))
+     &     call errquit('WFAT: Cannot create eg0', 65, GA_ERR)
+      if (ndid == 0) then
+         call ga_put(g_eg0, 1, n, 1, 1, erg(j0)-erg, n)
+         call ga_put(g_eg0, j0, j0, 1, 1, 1.0d0, 1)
+      endif
+      call ga_recip(g_eg0)
+      if (ndid == 0) call ga_put(g_eg0, j0, j0, 1, 1, 0.0d0, 1)
+      if (.not. ga_duplicate(g_dp0, g_t0, 'tmp0'))
+     &     call errquit('WFAT: Cannot create tmp0', 65, GA_ERR)
+
+
+c     ==== z component of the corrected wave function ====
       call wfat_2a1efd_dpo_col('z', m, m, sphi, sphi, nr, nt, nt,
-     &     rq, dbl_mb(k_dt), g_cf, dbl_mb(k_cf), dbl_mb(k_dp))
-cOLD      do j = 1, n
-cOLD         if (j /= j0) then
-cOLD            dbl_mb(k_dp+j-1) = dbl_mb(k_dp+j-1) / (erg(j0)-erg(j))
-cOLD         else
-cOLD            dbl_mb(k_dp+j-1) = 0.0d0
-cOLD         endif
-cOLD      enddo
-cOLD      cfz(1:n) = matmul(cf, dbl_mb(k_dp:k_dp+n-1))
+     &     rq, dbl_mb(k_dt), g_cf, dbl_mb(k_cf), g_dp0)
+      call ga_elem_multiply(g_dp0, g_eg0, g_dp0)
+      call ga_dgemm('n', 'n', n, 1, n, 1.0d0, g_cf, g_dp0,
+     &     0.0d0, g_t0)
       cfz(1:n) = 0.0d0
-      do j = 1, n
-         if (j /= j0) then
-            call ga_get(g_cf, 1, n, j, j, dbl_mb(k_tm), n)
-            dp = dbl_mb(k_dp+j-1) / (erg(j0)-erg(j))
-            cfz(1:n) = cfz(1:n) + dp * dbl_mb(k_tm:k_tm+n-1)
-         endif
-      enddo
+      call ga_get(g_t0, 1, n, 1, 1, cfz(1), n)
+      call ga_sync()
       
 
 c     ==== Deallocations ====
+      if (.not. ma_free_heap(l_ilo))
+     &     call errquit('WFAT: Cannot deallocate ilo', 1, MA_ERR)
+      if (.not. ma_free_heap(l_jlo))
+     &     call errquit('WFAT: Cannot deallocate jlo', 1, MA_ERR)
+      
       if (m >= 1) then
          if (.not. ma_free_heap(l_dtm))
      &        call errquit('WFAT: Cannot deallocate dt_dvr-', 1, MA_ERR)
+         if (.not. ga_destroy(g_dpm))
+     &        call errquit('WFAT: Cannot destroy dp-.', 45, GA_ERR)
+         if (.not. ga_destroy(g_egm))
+     &        call errquit('WFAT: Cannot destroy eg-.', 45, GA_ERR)
+         if (.not. ga_destroy(g_tm))
+     &        call errquit('WFAT: Cannot destroy tmp-.', 45, GA_ERR)
       endif
+      if (.not. ga_destroy(g_dpp))
+     &     call errquit('WFAT: Cannot destroy dp+.', 45, GA_ERR)
+      if (.not. ga_destroy(g_egp))
+     &     call errquit('WFAT: Cannot destroy eg+.', 45, GA_ERR)
+      if (.not. ga_destroy(g_tp))
+     &     call errquit('WFAT: Cannot destroy tmp.', 45, GA_ERR)
+      if (.not. ga_destroy(g_dp0))
+     &     call errquit('WFAT: Cannot destroy dp0.', 45, GA_ERR)
+      if (.not. ga_destroy(g_eg0))
+     &     call errquit('WFAT: Cannot destroy eg0.', 45, GA_ERR)
+      if (.not. ga_destroy(g_t0))
+     &     call errquit('WFAT: Cannot destroy tmp0.', 45, GA_ERR)
+         
       if (.not. ma_free_heap(l_cf))
      &     call errquit('WFAT: Cannot deallocate coef', 83, MA_ERR)
       if (.not. ma_free_heap(l_dtp))
      &     call errquit('WFAT: Cannot deallocate dt_dvr+', 1, MA_ERR)
       if (.not. ma_free_heap(l_dt))
      &     call errquit('WFAT: Cannot deallocate dt_dvr', 1, MA_ERR)
-      if (.not. ma_free_heap(l_dp))
-     &     call errquit('WFAT: Cannot deallocate dp', 1, MA_ERR)
-      if (.not. ma_free_heap(l_tm))
-     &     call errquit('WFAT: Cannot deallocate tmp', 1, MA_ERR)
       
       end
 c===============================================================

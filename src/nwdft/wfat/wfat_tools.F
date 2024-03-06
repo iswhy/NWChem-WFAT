@@ -413,6 +413,55 @@ c     o must be a symmetric matrix.
 c=======================================================
 
 
+c=======================================================
+c=======================================================
+      subroutine wfat_ga_get_lo(g_a, vilo, vjlo)
+
+      implicit none
+#include "mafdecls.fh"
+#include "global.fh"
+#include "errquit.fh"
+      integer g_a
+      integer vilo(*)
+      integer vjlo(*)
+
+      integer nbl, nblock(2), ip, ilo, ihi, jlo, jhi, g_tmp, i, j
+
+      ip = ga_nodeid()
+      call ga_nblock(g_a, nblock)
+      call ga_distribution(g_a, ip, ilo, ihi, jlo, jhi)
+
+      nbl = maxval(nblock)
+      if (.not. ga_create(mt_int, 1, nbl, 'tmp', 1, nbl, g_tmp))
+     &     call errquit('WFAT: Cannot create tmp global array.', 
+     &     1, GA_ERR)
+
+      call ga_zero(g_tmp)
+      vilo(1:nblock(1)) = 0
+      do i = 1, nblock(1)
+         if (ip == i - 1) call ga_put(g_tmp, 1, 1, i, i, ilo, 1)
+      enddo
+      call ga_sync()
+      call ga_get(g_tmp, 1, 1, 1, nblock(1), vilo, 1)
+
+      call ga_zero(g_tmp)
+      vjlo(1:nblock(2)) = 0
+      j = 1
+      do i = 1, nblock(1)*nblock(2), nblock(1)
+         if (ip == i - 1) call ga_put(g_tmp, 1, 1, j, j, jlo, 1)
+         j = j + 1
+      enddo
+      call ga_sync()
+      call ga_get(g_tmp, 1, 1, 1, nblock(2), vjlo, 1)
+
+      if (.not. ga_destroy(g_tmp))
+     &     call errquit('WFAT: Cannot destroy tmp.', 21, GA_ERR)
+      call ga_sync()
+
+      end
+c=======================================================
+
+
 c===============================================================
 c===============================================================
       subroutine wfat_ga_mat_element(g_v, g_w, g_a, d)

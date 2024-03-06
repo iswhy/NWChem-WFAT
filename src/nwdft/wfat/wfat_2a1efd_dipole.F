@@ -107,10 +107,11 @@ c     ==== Deallocations ====
 c===============================================================
 c===============================================================
       subroutine wfat_2a1efd_dpo_col(c, m1, m2, s1, s2, nr, nt1, 
-     &     nt2, rq, dt, g_cf1, cf2, dp)
+     &     nt2, rq, dt, g_cf1, cf2, g_dp)
 
       implicit none
 #include "mafdecls.fh"
+#include "global.fh"
 #include "errquit.fh"
       character*1 c                      ! [input]
       integer m1                         ! [input]
@@ -122,12 +123,24 @@ c===============================================================
       integer nt2                        ! [input]
       double precision rq(nr)            ! [input]
       double precision dt(nt1, nt2)      ! [input]
-      integer g_cf1                      ! [input], GA of size nr*nt1 x nr*nt1.
+      integer g_cf1                      ! [input], GA of size nr*nt1 x nr*nt1. 1)
       double precision cf2(nr*nt2)       ! [input]
-      double precision dp(nr*nt1)        ! [output]
+      integer g_dp                       ! [output], 1D GA of size nr*nt1.
+c     1) It is recommended that the blocks of g_cf1 consist of columns (i.e. the
+c        number of rows of each block is equal to the number of rows of g_dp), and
+c        that the distribution of columns of g_cf1 is identical to that of g_dp.
 
-      integer p, i, l_cf1, k_cf1
+      logical iscol
+      integer p, i, l_cf1, k_cf1, itype, dim1, dim2, ilo, ihi
+      integer jlo, jhi, klo, khi
+      double precision dp
 
+      call ga_sync()
+      call ga_inquire(g_dp, itype, dim1, dim2)
+      if (dim1 /= 1 .and. dim2 /= 1)
+     &     call errquit('WFAT: Input argument g_dp of '//
+     &     'wfat_2a1efd_dpo_col must one be dimensional.', 29, GA_ERR)
+      
       if (c /= 'x' .and. c /= 'y' .and. c /= 'z')
      &     call errquit('WFAT: The argument c of wfat_2a1efd_dpo_col '//
      &     'must be equal to either x, y, or z.', 59, UERR)
@@ -141,14 +154,31 @@ c===============================================================
       if (.not. ma_push_get(mt_dbl, nr*nt1, 'cf1', l_cf1, k_cf1))
      &     call errquit('WFAT: Could not allocate cf1.', 56, MA_ERR)
 
-      do i = 1, nr*nt1
+      call ga_distribution(g_dp, ga_nodeid(), ilo, ihi, jlo, jhi)
+      if (jlo == jhi) then
+         klo = ilo
+         khi = ihi
+         iscol = .true.
+      else
+         klo = jlo
+         khi = jhi
+         iscol = .false.
+      endif
+cOLD      do i = 1, nr*nt1
+      do i = klo, khi
          call ga_get(g_cf1, 1, nr*nt1, i, i, dbl_mb(k_cf1), nr*nt1)
          call wfat_2a1efd_dpo(c, m2, p, nr, nt1, nt2, s1, s2,
-     &        dbl_mb(k_cf1), cf2, rq, .true., dt, .false., dp(i))
+     &        dbl_mb(k_cf1), cf2, rq, .true., dt, .false., dp)
+         if (iscol) then
+            call ga_put(g_dp, i, i, 1, 1, dp, 1)
+         else
+            call ga_put(g_dp, 1, 1, i, i, dp, 1)
+         endif
       enddo
 
       if (.not. ma_pop_stack(l_cf1))
      &     call errquit('WFAT: Could not deallocate cf1', 11, MA_ERR)
+      call ga_sync()
       
       end
 c===============================================================
@@ -183,7 +213,7 @@ c===============================================================
 
 c     ==== m - 1 ====
       if (mch >= 1) then
-         n_m = nr * nt_m   
+         n_m = nr * nt_m
          if (.not. ma_alloc_get(MT_DBL, nt_m*nt, 'dt_dvr-', l_dtm,
      &        k_dtm))
      &        call errquit('WFAT: Cannot allocate dt_dvr-', 1, MA_ERR)
