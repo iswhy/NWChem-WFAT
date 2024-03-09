@@ -1336,19 +1336,8 @@ c============================================================
       do j = jlo, jhi
          do i = ilo, ihi
 c           Given (i,j), find ia, ja, ib, and jb so that c(i,j) = a(ia,ja)*b(ib,jb).
-            if (mod(i,mb) == 0) then
-               ia = i/mb
-            else
-               ia = i/mb + 1
-            endif
-            if (mod(j,nb) == 0) then
-               ja = j/nb
-            else
-               ja = j/nb + 1
-            endif
-            ib = mod(i-1,mb) + 1
-            jb = mod(j-1,nb) + 1
-            
+            call wfat_invert_kron_id(i, mb, ia, ib)
+            call wfat_invert_kron_id(j, nb, ja, jb)
             call ga_put(g_c, i, i, j, j, a(ia,ja) * b(ib,jb), 1)
          enddo
       enddo
@@ -1358,6 +1347,32 @@ c           Given (i,j), find ia, ja, ib, and jb so that c(i,j) = a(ia,ja)*b(ib,
       end
 c============================================================
 
+      
+c============================================================
+c============================================================
+      subroutine wfat_invert_kron_id(i, n, ia, ib)
+c     If C = A \otimes B (C is equal to the kronecker product between
+c     A and B), then C(i,j) = A(ia,ja)*B(ib,jb). This subroutine is
+c     used to get ia and ib given i and the number of rows of B. It
+c     can also be used to get ja and jb given j and the number of
+c     columns of B.
+      implicit none
+      integer i      ! [input], index of C in the dimension of interest.
+      integer n      ! [input], size of B in the dimension of interest.
+      integer ia     ! [output], index of A in the dimension of interest.
+      integer ib     ! [output], index of B in the dimension of interest.
+
+      if (mod(i,n) == 0) then
+         ia = i/n
+      else
+         ia = i/n + 1
+      endif
+
+      ib = mod(i-1,n) + 1
+
+      end
+c============================================================
+      
 
 c============================================================
 c============================================================

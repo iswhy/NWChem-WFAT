@@ -76,10 +76,11 @@ cOLD      double precision cfz(nr*nt) ! [input], only used when wfat1=.true.
       double precision v_m(3), vc_psi, wtcelf, dt_prog, dt_all, normch
       double precision vc_cpsi(3), ovl1
       double precision polb_
-      double complex czero
+      double complex czero, cone
       integer nch, nch1, imf
       parameter(nch=1, nch1=3, imf=0)
-      parameter(czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)))
+      parameter(czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)),
+     &          cone = cmplx(1.0d0, 0.0d0, kind=kind(1.0d0)))
 
 
       call ga_sync()
@@ -102,7 +103,6 @@ c     ==== Allocate grid-related arrays ====
 c     ==== Allocate WFAT integral, its integrands, and some other ====
       if (wfat1) then
          if (fedvr) then
-            write(luout, '(" nnn = ", 3i4)') nr, nt_m, nt_p
             nscr = maxn**2 + maxn +
      &           (nr + nt + nr*nt) +
      &           (nt_p + nr*nt_p)
@@ -295,12 +295,13 @@ c           ==== Quadrature summation ====
      &                            wtcelf
             endif
             
-cdebug            write(luout, '("check: ", i8, 9es15.6)')
+cdebug            write(luout, '("check: ", i8, 10es15.6)')
 cdebug     &           jpt, v_m, vc_psi,
 cdebug     &           sum(abs(dcpl_mb(k_om1:k_om1+nom1-1))),
 cdebug     &           sum(abs(dcpl_mb(k_ik1_0:k_ik1_0+nik1_0-1))),
 cdebug     &           sum(abs(dcpl_mb(k_ik2_0:k_ik2_0+nik2_0-1))),
-cdebug     &           sum(abs(dcpl_mb(k_i_:k_i_+nik1_0-1))),
+cdebug     &           sum(abs(dcpl_mb(k_ik1_:k_ik1_+nik1_-1))),
+cdebug     &           sum(abs(dcpl_mb(k_ik2_:k_ik2_+nik2_-1))),
 cdebug     &           wtcelf
 
             
@@ -331,30 +332,25 @@ c     ==== Reorder elements of intgl ====
      &     dcpl_mb(k_ij_), dcpl_mb(k_ij),
      &     dcpl_mb(k_ik1_), dcpl_mb(k_ik1),
      &     dcpl_mb(k_ik2_), dcpl_mb(k_ik2))
-      
+
 
 c     ==== Accumulate to global intgl (g_il) ====
-      call ga_acc(g_il, 1, nil, 1, 1, dcpl_mb(k_il), nil, 1.0d0)
+      call ga_zero(g_il)
+      call ga_acc(g_il, 1, nil, 1, 1, dcpl_mb(k_il), nil, cone)
       call ga_sync()
-      call ga_norm1(g_il, normch)      
 
       if (wfat1) then
-         call ga_acc(g_j, 1, nij, 1, 1, dcpl_mb(k_ij), nij, 1.0d0)
-c         call ga_zero(g_j)
+         call ga_zero(g_j)
+         call ga_acc(g_j, 1, nij, 1, 1, dcpl_mb(k_ij), nij, cone)
          call ga_sync()
-         call ga_norm1(g_j, normch)
-
-         call ga_acc(g_k(1), 1, nik1, 1, 1, dcpl_mb(k_ik1), nik1, 1.0d0)
-c         call ga_zero(g_k(1))
+         
+         call ga_zero(g_k(1))
+         call ga_acc(g_k(1), 1, nik1, 1, 1, dcpl_mb(k_ik1), nik1, cone)
          call ga_sync()
-         call ga_norm1(g_k(1), normch)
-         write(luout, '("k1 norm = ", es18.8)') normch
-
-         call ga_acc(g_k(2), 1, nik2, 1, 1, dcpl_mb(k_ik2), nik2, 1.0d0)
-c         call ga_zero(g_k(2))
+         
+         call ga_zero(g_k(2))
+         call ga_acc(g_k(2), 1, nik2, 1, 1, dcpl_mb(k_ik2), nik2, cone)
          call ga_sync()
-         call ga_norm1(g_k(2), normch)
-         write(luout, '("k2 norm = ", es18.8)') normch
       endif
       
 

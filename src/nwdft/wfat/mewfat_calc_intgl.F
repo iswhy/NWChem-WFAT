@@ -44,6 +44,9 @@ c=================================================
       integer l_icp, l_ipp, l_pt, l_wt, l_om, l_i0, l_i_, l_il
       integer k_icp, k_ipp, k_pt, k_wt, k_om, k_i0, k_i_, k_il
       double precision normch
+      double complex cone
+
+      parameter ( cone = cmplx(1.0d0, 0.0d0, kind=kind(1.0d0)) )
 
 
       call ga_sync()
@@ -76,7 +79,8 @@ c     ==== Perform quadrature summation ====
 
 
 c     ==== Accumulate to global intgl (g_il) ====
-      call ga_acc(g_il, 1, nil, 1, 1, dcpl_mb(k_il), nil, 1.0d0)
+      call ga_zero(g_il)
+      call ga_acc(g_il, 1, nil, 1, 1, dcpl_mb(k_il), nil, cone)
       call ga_sync()
       
       call ga_norm1(g_il, normch)

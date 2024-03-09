@@ -11,13 +11,15 @@ c===============================================================
 #include "wfat.fh"
 #include "errquit.fh"
 #include "msgids.fh"
+#include "geom.fh"
       integer rtdb
 
       character*2 td
       character*3 pottype
       character*7 jobtype
+      character*16 tag
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
-      logical pr_tmd, pr_tmd_atom, os, oc, or, int_nosave
+      logical pr_tmd, pr_tmd_atom, os, oc, or, int_nosave, l1
       logical res_mode, wfat1, rtdb_stat, fedvr, ismask_i, ismask_e
       integer l_cf, l_eg, l_npa, l_mpa, l_in, l_inj, l_ink1
       integer l_ink2, l_pb, l_cfx, l_cfy, l_cfz, l_ndvr, l_fen, l_xquad
@@ -25,12 +27,12 @@ c===============================================================
       integer k_cf, k_eg, k_npa, k_mpa, k_in, k_inj, k_ink1
       integer k_ink2, k_pb, k_cfx, k_cfy, k_cfz, k_ndvr, k_fen, k_xquad
       integer k_wquad
-      integer mch, sphi, spinid, orbid, nr, nt, maxiter, i_eg, g_cf
+      integer i, mch, sphi, spinid, orbid, nr, nt, maxiter, i_eg, g_cf
       integer lmax, gqual, nqn, nsh, nintg, g_il, ndid, nlgl, nel_2a
       integer nintj, nintk, g_j, g_k(2), npb, nr_m, nt_m, nr_p, nt_p
       integer ndgsub, max_ndgsub, dgs(1,1), ndgs(1), nfe, maxn, idum
       double precision init_ke, out_ke, mult_ke, edip(3), chpos(3)
-      double precision chmmt(3), fieldmag, pb(3,3), polb(3)
+      double precision chmmt(3), fieldmag, pb(3,3), polb(3), polb33(3,3)
       double precision dps(1,1,3,1), pbs(1,1,6,1), ddum, potparam(2)
       double precision mask_param(2), ergmask, amsk, bmsk, iondip(3)
 
@@ -61,7 +63,6 @@ c     ==============================
 
       
 c     ==== Task title ====
-      call ga_sync()
       jobtype = 'OE-2a1e'
       call wfat_prep_tasktitle('OE-2a1e')
 
@@ -128,6 +129,7 @@ c     ====   eigenstate (the ionized channel)   ====
      &        dbl_mb(k_eg), edip, out_ke)
       endif
       call ga_get(g_cf, 1, nr*nt, orbid, orbid, dbl_mb(k_cf), nr*nt)
+      
       call wfat_2a1e_prep_cf1(wfat1, fedvr, rtdb, mch, nr, nt, nr_m, 
      &     nt_m, nr_p, nt_p, l_cfx, k_cfx, l_cfy, k_cfy, l_cfz, k_cfz)
       if (wfat1) then
@@ -144,13 +146,21 @@ c     ====   eigenstate (the ionized channel)   ====
      &           dbl_mb(k_cfy), dbl_mb(k_cfz), polb)
          endif
       endif
+      polb33 = 0.0d0
+      do i = 1, 3
+         polb33(i,i) = polb(i)
+      enddo
 
 
 c     ==== Obtain properties of the ionized channel ====
       call wfat_2a1e_orbcent(geom_hd, edip, chpos, chmmt)
       iondip = (/ 0.0d0, 0.0d0, 0.0d0 /)
-      call wfat_print_orb_property(nch, orbid, 1, dbl_mb(k_eg), chpos, 
-     &     chmmt, iondip)
+      if (ndid == 0) then
+         call wfat_print_orb_property(nch, orbid, 1, dbl_mb(k_eg),
+     &        chpos, chmmt, iondip)
+         if (wfat1) call wfat_print_polb_tensors(nch, polb33)
+      endif
+      call ga_sync()
 c     edip = Unshifted dipole moment.
 c     chmmt = Shifted dipole moment.
 

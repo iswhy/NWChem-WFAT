@@ -69,10 +69,11 @@ c==== Imam ====
       double precision atp(3), znuc, v_c(3), v_m(3), normch, celf
       double precision wtcelf, t_now, t_last, t_start, dt_all
       double precision dt_prog, nptx, npt_tot, kp, dum1, dum2, dum3
-      double complex czero
+      double complex czero, cone
       
       parameter (imf = 0)
-      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)),
+     &          cone = cmplx(1.0d0, 0.0d0, kind=kind(1.0d0)) )
 
 
       call ga_sync()
@@ -325,25 +326,22 @@ c     ==== Reorder elements of intgl ====
 
       
 c     ==== Accumulate to global intgl (g_il) ====
-      call ga_acc(g_il, 1, nil, 1, 1, dcpl_mb(k_il), nil, 1.0d0)
+      call ga_zero(g_il)
+      call ga_acc(g_il, 1, nil, 1, 1, dcpl_mb(k_il), nil, cone)
       call ga_sync()
-      call ga_norm1(g_il, normch)
 
       if (wfat1) then
-         call ga_acc(g_j, 1, nij, 1, 1, dcpl_mb(k_ij), nij, 1.0d0)
-c         call ga_zero(g_j)
+         call ga_zero(g_j)
+         call ga_acc(g_j, 1, nij, 1, 1, dcpl_mb(k_ij), nij, cone)
          call ga_sync()
-         call ga_norm1(g_j, normch)
 
-         call ga_acc(g_k(1), 1, nik1, 1, 1, dcpl_mb(k_ik1), nik1, 1.0d0)
-c         call ga_zero(g_k(1))
+         call ga_zero(g_k(1))
+         call ga_acc(g_k(1), 1, nik1, 1, 1, dcpl_mb(k_ik1), nik1, cone)
          call ga_sync()
-         call ga_norm1(g_k(1), normch)
 
-         call ga_acc(g_k(2), 1, nik2, 1, 1, dcpl_mb(k_ik2), nik2, 1.0d0)
-c         call ga_zero(g_k(2))
+         call ga_zero(g_k(2))
+         call ga_acc(g_k(2), 1, nik2, 1, 1, dcpl_mb(k_ik2), nik2, cone)
          call ga_sync()
-         call ga_norm1(g_k(2), normch)
       endif
 
       

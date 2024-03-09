@@ -238,12 +238,12 @@ c        ga_create (instead of nga_create) turns out to be unconforming to
 c        this requirement.
       call ga_zero(g_pot)
       call nga_distribution(g_pot, ga_nodeid(), lo, hi)
-      
+
       do i = lo, hi
-         i_r = i/nt + 1
+         call wfat_invert_kron_id(i, nt, i_r, i_t)
          x = xquad(i_r)
-         i_t = mod(i-1,nt) + 1
          t = tquad(i_t) * deg2rad
+
          vpt = (/ x/ke*sin(t), 0.0d0, x/ke*cos(t) /)
          call wfat_2a1e_potential(geom, vpt, pottype, nel, potparam, 
      &        pot)

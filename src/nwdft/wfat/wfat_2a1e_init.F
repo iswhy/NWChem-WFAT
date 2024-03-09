@@ -18,6 +18,8 @@ c===============================================================
       double precision zn
 
 
+      call ga_sync()
+      
 c     ==== Printing units ====
       WF_SF_PRINT_READY = .false.
       WF_IY_PRINT_READY = .false.
@@ -32,7 +34,6 @@ c     ====     necessities of inputs    ====
          call wfat_process_input(rtdb)
          rtdb_stat = rtdb_parallel(.true.)
       endif
-      call ga_sync()
 
       
       call wfat_2a1e_geom(rtdb, geom_hd)
@@ -51,6 +52,8 @@ c     ==== Determine zion ====
       
 c     ==== Miscellaneous ====
       call wfat_reset_lfqlib()  ! Reset Gauss-Laguerre nodes and weights for the calculations of the various U(a,b,z).
+
+      call ga_sync()
       
       end
 c===============================================================
@@ -61,6 +64,7 @@ c===============================================================
       subroutine wfat_2a1e_geom(rtdb, geom)
 
       implicit none
+#include "global.fh"
 #include "rtdb.fh"
 #include "errquit.fh"
 #include "geom.fh"
@@ -97,9 +101,6 @@ c     ==== Read some quantities from RDB ====
          cd = 0.0d0
          cd(3,1) = ch(2)/sum(ch) * r
          cd(3,2) = -ch(1)/sum(ch) * r
-
-         write(luout, '("Atom1 coordinate = ", 3f8.4)') cd(:,1)
-         write(luout, '("Atom2 coordinate = ", 3f8.4)') cd(:,2)
       else if (nc == 1) then
          cd = 0.0d0
       endif
@@ -113,6 +114,14 @@ c     ====       the above RTDB quantities       ====
      &     call errquit('WFAT: Error in initializing geometry object.',
      &     71, GEOM_ERR)
 
+      
+c     ==== Print geometries ====
+      if (ga_nodeid() == 0) then
+         if (.not. geom_print(geom))
+     &        call errquit('WFAT: Cannot print geometry information '//
+     &        'for 2a1e system', 94, UERR)
+      endif
+      
       end
 c     NOTES:
 c     1) The coordinates of the two nuclei must be assumed to be defined relative

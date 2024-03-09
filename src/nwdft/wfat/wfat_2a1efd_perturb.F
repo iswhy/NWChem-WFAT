@@ -72,7 +72,6 @@ c     ==== Obtain the polarizability ====
       call ga_get(g_cf, 1, nr*nt, orbid, orbid, dbl_mb(k_cf), nr*nt)
       call wfat_2a1efd_polb(mch, sphi, nr, nt, nt_m, nt_p, dbl_mb(k_x),
      &     dbl_mb(k_cf), cfx, cfy, cfz, polb)
-      write(luout, '("Polarizability components : ", 3f15.6)') polb
 
 c     ==== Deallocations ====
       if (mch >= 1) then
