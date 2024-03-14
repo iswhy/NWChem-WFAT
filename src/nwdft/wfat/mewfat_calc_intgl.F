@@ -205,7 +205,7 @@ c     ==== Scratch array ====
       if (ndid == 0) then
          write(luout, '(2/)')
          call util_print_centered(luout, 'Computation the WFAT '//
-     &        'integrals', 30, .true.)
+     &        'integrals', 50, .true.)
          write(luout, '("")')
          write(luout, 901)
          write(luout, '("")')

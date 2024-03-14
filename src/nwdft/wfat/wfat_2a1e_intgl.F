@@ -152,7 +152,7 @@ c               terms associated to the three cartesian components of the dipole
       if (ndid == 0) then
          write(luout, '(2/)')
          call util_print_centered(luout, 'Computation the WFAT '//
-     &        'integrals', 30, .true.)
+     &        'integrals', 48, .true.)
          write(luout, '("")')
          write(luout, 901)
          write(luout, '("")')

@@ -27,6 +27,7 @@ c==========================================================
       double precision erg(nr*nt)
       double precision dipole(3)
 
+      character*5 sm
       integer l_dt, l_x, k_dt, k_x, l_cf, k_cf, ndid
 
       
@@ -55,8 +56,14 @@ c     ==== Electronic dipole moment ====
       
       
 c     ==== Analysis ====
-      if (ndid == 0)
-     &     call wfat_analyze_target(nr, nt, erg, dipole)
+      if (ndid == 0) then
+         write(sm, '(i5)') mch
+         write(luout, '(2/)')
+         call util_print_centered(luout,
+     &        'Eigenvalue spectrum of m = '//trim(adjustl(sm))//
+     &        ' manifold', 60, .true.)
+         call wfat_2a1e_print_eigvals(nr*nt, 20, erg)
+      endif
       
       
 c     ==== Deallocations ====

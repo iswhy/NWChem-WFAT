@@ -26,6 +26,7 @@ c===============================================================
       double precision dipole(3)
       double precision ke
 
+      character*5 sm
       integer l_dr, k_dr, l_dt, k_dt, l_cf, k_cf, ndid
 
       
@@ -53,9 +54,15 @@ c     ==== Electronic dipole moment ====
 
       
 c     ==== Analysis ====
-      if (ndid == 0)
-     &     call wfat_analyze_target(nr, nt, erg, dipole)
-
+      if (ndid == 0) then
+         write(sm, '(i5)') m
+         write(luout, '(2/)')
+         call util_print_centered(luout,
+     &        'Eigenvalue spectrum of m = '//trim(adjustl(sm))//
+     &        ' manifold', 60, .true.)
+         call wfat_2a1e_print_eigvals(nr*nt, 20, erg)
+      endif
+      
       
 c     ==== Deallocations ====
       if (.not. ma_free_heap(l_dr))
@@ -71,26 +78,28 @@ c===============================================================
 
 c===============================================================
 c===============================================================
-      subroutine wfat_analyze_target(nr, nt, erg, dipole)
+      subroutine wfat_2a1e_print_eigvals(nb, nprint, erg)
 
       implicit none
 #include "stdio.fh"
-      integer nr
-      integer nt
-      double precision erg(nr*nt)
-      double precision dipole(3)
+      integer nb
+      integer nprint
+      double precision erg(nb)
 
+      character*10 ss
+      character*19 sf
       integer i
 
-      write(luout, '("A few lowest energies : ")')
-      do i = 1, min(nr*nt, 10)
-         write(luout, '(i4, f16.8)') i, erg(i)
+      write(luout, '("")')
+      write(ss, '(i10)') nprint
+      write(luout, '(4x, a, " lowest energies : ")') trim(adjustl(ss))
+      do i = 1, min(nb, nprint)
+         if (mod(i,5) == 1) write(luout, '(6x)', advance='no')
+         write(sf, '(sp, es19.8)') erg(i)
+         write(luout, '(3x, i4, ") ", a)', advance='no')
+     &        i, trim(adjustl(sf))
+         if (mod(i,5) == 0) write(luout, '("")')
       enddo
-
-      write(luout, '("")')
-      write(luout, '("Dipole moment : ")')
-      write(luout, '(3f12.6)') dipole
-      write(luout, '("")')
 
       end
 c===============================================================

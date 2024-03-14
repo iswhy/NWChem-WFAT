@@ -156,7 +156,7 @@ c     ==== Obtain properties of the ionized channel ====
       call wfat_2a1e_orbcent(geom_hd, edip, chpos, chmmt)
       iondip = (/ 0.0d0, 0.0d0, 0.0d0 /)
       if (ndid == 0) then
-         call wfat_print_orb_property(nch, orbid, 1, dbl_mb(k_eg),
+         call wfat_print_orb_property(nch, orbid, 1, dbl_mb(i_eg),
      &        chpos, chmmt, iondip)
          if (wfat1) call wfat_print_polb_tensors(nch, polb33)
       endif

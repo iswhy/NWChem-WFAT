@@ -32,8 +32,12 @@ c===============================================================
       double precision cfz(nr*nt)          ! [output],
       double precision polb(3)             ! [output],
 
+      character*5 sm
       integer g_cfm, l_egm, k_egm, g_cfp, k_egp, l_egp, l_x, k_x
-      integer l_cf, k_cf, n_m, n_p
+      integer l_cf, k_cf, n_m, n_p, ndid
+
+
+      ndid = ga_nodeid()
       
 c     ==== Solve the m-1 eigenvectors ====
       if (mch >= 1) then
@@ -45,6 +49,15 @@ c     ==== Solve the m-1 eigenvectors ====
      &        call errquit('WFAT: Cannot allocate erg-', 1, MA_ERR)
          call wfat_2a1efd_solve(mch-1, nfe, ndvr, maxn, xq, wq, nt_m, 
      &        geom, pottype, nel, potparam, g_cfm, dbl_mb(k_egm))
+
+         if (ndid == 0) then
+            write(sm, '(i5)') mch-1
+            write(luout, '(2/)')
+            call util_print_centered(luout,
+     &           'Eigenvalue spectrum of m = '//trim(adjustl(sm))//
+     &           ' manifold (needed for WFAT(1))', 60, .true.)
+            call wfat_2a1e_print_eigvals(n_m, 20, dbl_mb(k_egm))
+         endif
       endif
 
 c     ==== Solve the m+1 eigenvectors ====
@@ -56,6 +69,15 @@ c     ==== Solve the m+1 eigenvectors ====
      &     call errquit('WFAT: Cannot allocate erg+', 1, MA_ERR)
       call wfat_2a1efd_solve(mch+1, nfe, ndvr, maxn, xq, wq, nt_p, geom,
      &     pottype, nel, potparam, g_cfp, dbl_mb(k_egp))
+
+      if (ndid == 0) then
+         write(sm, '(i5)') mch+1
+         write(luout, '(2/)')
+         call util_print_centered(luout,
+     &        'Eigenvalue spectrum of m = '//trim(adjustl(sm))//
+     &        ' manifold (needed for WFAT(1))', 60, .true.)
+         call wfat_2a1e_print_eigvals(n_p, 20, dbl_mb(k_egp))
+      endif
 
 c     ==== Obtain the coefficients of the x, y, z ====
 c     ====    corrections to the wavefunction     ====
