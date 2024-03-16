@@ -103,6 +103,7 @@
 	wfat_2a1efd_dipole.o \
 	wfat_2a1efd_potential.o \
 	wfat_2a1efd_perturb.o \
+	wfat_2a1e_print.o \
 	wfat_2a1e_ti_nopw.o \
 	wfat_fedvr.o \
 	wfat_3j.o \

@@ -58,7 +58,7 @@ c     ==== Loop over ket ====
          do m = 1, n(i)
 
 c           == Exclude (1,1) (the 1st basis), (ni,n(ni)) (the last ==
-c           == basis), and (:,1) (have been absorbed into bridges) ==
+c           == basis), and (1,:) (have been absorbed into bridges) ==
             incl = .true.
             if ((i==1 .and. m==1) .or. (i==ni .and. m==n(ni))
      &           .or. m==1) incl = .false.
@@ -73,4 +73,18 @@ c            write(luout, '(i5)') j
       end
 c==========================================================
       
+      
+c=======================================================
+c=======================================================
+      subroutine wfat_get_fedvrnr(nfe, ndvr, nr)
+
+      implicit none
+      integer nfe
+      integer ndvr(nfe)
+      integer nr
+
+      nr = (sum(ndvr) - nfe*2) + (nfe - 1)
+
+      end
+c=======================================================
       

@@ -77,13 +77,7 @@ c     ==== Extract the parameters of the quantum system ====
       call wfat_2a1e_prep_bas(rtdb, fedvr, init_ke, mult_ke, maxiter, 
      &     nr, nt, nfe, maxn, l_ndvr, k_ndvr, l_fen, k_fen, l_xquad, 
      &     k_xquad, l_wquad, k_wquad)
-      if (fedvr .and. ndid == 0) then
-         write(luout, '("r grid:")') 
-         call wfat_dprintmat(maxn, nfe, 'e', dbl_mb(k_xquad))
-         write(luout, '("w grid:")') 
-         call wfat_dprintmat(maxn, nfe, 'e', dbl_mb(k_wquad))
-      endif
-
+            
 
 c     ==== Allocate the coefficients and energies array ====
       call wfat_2a1e_prep_cf(nr, nt, g_cf, l_cf, k_cf, l_eg, k_eg)
@@ -92,7 +86,7 @@ c     ==== Allocate the coefficients and energies array ====
 
 c     ==== Obtain parabolic quantum numbers ====
       call wfat_prep_paraqn(rtdb, nqn, l_npa, k_npa, l_mpa, k_mpa)
-
+      
 
 c     ==== Obtain WFAT(1) information ====
       call wfat_prep_wfat1(rtdb, wfat1, nlgl)
@@ -114,6 +108,19 @@ clater     &        tmax, extf)
       else if (td=='no') then
          fieldmag = 0.0d0
       endif
+
+
+c     ==== Print DVR grids and weights ====
+      if (ndid == 0) then
+         if (fedvr) then
+            call wfat_2a1efd_print_rgrid(nfe, int_mb(k_ndvr), maxn, 
+     &           dbl_mb(k_xquad), dbl_mb(k_wquad))
+         else
+            call wfat_2a1e_print_rgrid(mch, nr)
+         endif
+         call wfat_2a1e_print_tgrid(mch, nt)
+      endif
+c      call errquit('stopping here', 4, UERR)
       
       
 c     ==== Solve the Hamiltonian for the target ====

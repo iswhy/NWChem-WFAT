@@ -72,9 +72,6 @@ c     ==== Get the radial quadrature nodes ====
       enddo
 c     =====================
 
-
-
-
       
 c     ====================
 c     ==== Theta part ====
@@ -107,10 +104,7 @@ c     ==== Get the polar quadrature nodes ====
       dbl_mb(k_t:k_t+nt-1) = acos(dbl_mb(k_t:k_t+nt-1)) / deg2rad
 c     ====================
 
-
-
       
-
 c     ==== Hamiltonian construction ====
       if (adapt_ke) then
          maxiter_ = maxiter
