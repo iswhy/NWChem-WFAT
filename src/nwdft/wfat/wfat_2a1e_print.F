@@ -151,7 +151,7 @@ c==========================================================
 
       
       write(luout, '(2/)')
-      call util_print_centered(luout, 'Angular DVR grids and weights',
+      call util_print_centered(luout, 'Radial DVR grids and weights',
      &     58, .true.)
       write(luout, '("")')
       write(luout, '(4x, "DVR type = Generalized Laguerre")')

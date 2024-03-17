@@ -1431,7 +1431,7 @@ c        == Number of radial Laguerre DVRs ==
 c        == Initial/guess ke ==
          if (.not. kein_exist) kein = DEF_KEIN
 c        == ke multiplier ==
-         if (.not. kemult_exist) kein = DEF_KEMULT
+         if (.not. kemult_exist) kemult = DEF_KEMULT
 c        == Max. iterations ==
          if (.not. maxit_exist) maxit = DEF_2A1E_MAXIT
       endif

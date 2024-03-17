@@ -177,9 +177,9 @@ c     ==== When WFAT1 is active ====
             i_on = k_on + 2*nqn*(1-1) + 2*(iqn-1)
             call wfat_calc_o(nid(iqn), mid(iqn), erg, zi,
      &           dbl_mb(i_on))
-            write(luout, '("o_nu : ", 2i4, 2es21.12)')
-     &           1, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
          enddo
+         if (ndid == 0)
+     &        call wfat_print_o(nch, nqn, nid, mid, dbl_mb(k_on))
       endif
 
 c     ==== Initializing the printings ====
@@ -196,6 +196,23 @@ c     ==== Initializing the printings ====
      &     call wfat_initprint_rate(nch, orbid0, spinid, nqn, nid, mid)
       call ga_sync()
 
+
+      if (ndid == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 'WFAT computation of without'//
+     &        ' partial wave expansion', 50, .true.)
+         write(luout, '("")')
+         write(luout, 901)
+         write(luout, '("")')
+      endif
+ 901  format(
+     &     5x, 'Calculation of some WFAT quantities using explicit ',
+     &     'integral formula (without partial wave expansion) has ', /,
+     &     5x, 'started. Beware that this is often a slow computation,',
+     &     ' so be patient. Use a partial wave expansion algorithm ', /,
+     &     5x, 'if you want fast results by specifying a positive ',
+     &     'value for the input keyword lmax.')
+
       
 c     ==== Scan over the orientation angles ====
       do ig = 1, ngm
@@ -203,8 +220,6 @@ c     ==== Scan over the orientation angles ====
 
          do ib = 1, nbt
             bt = bt_start + dbt*(ib-1)
-
-            write(luout, '("no pw: bt, gm = ", 2f10.6)') bt, gm
 
             if (ib /= nbt) then
                gap = .false.

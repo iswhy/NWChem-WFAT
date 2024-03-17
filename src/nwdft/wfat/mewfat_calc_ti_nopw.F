@@ -152,6 +152,24 @@ c     ==== Initializing the printings ====
      &     call wfat_initprint_rate(nch, chnid0, sx, nqn, nid, mid)
       call ga_sync()
 
+
+      if (ndid == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 'WFAT computation of without'//
+     &        ' partial wave expansion', 50, .true.)
+         write(luout, '("")')
+         write(luout, 901)
+         write(luout, '("")')
+      endif
+ 901  format(
+     &     5x, 'Calculation of some WFAT quantities using explicit ',
+     &     'integral formula (without partial wave expansion) has ', /,
+     &     5x, 'started. Beware that this is often a slow computation,',
+     &     ' so be patient. Use a partial wave expansion algorithm ', /,
+     &     5x, 'if you want fast results by specifying a positive ',
+     &     'value for the input keyword lmax.')
+
+      
 c     ==== Scan over the orientation angles ====
       if (.not. MA_alloc_get(MT_DCPL, natom*nqn*nch, 'acg',
      &     l_acg, k_acg))

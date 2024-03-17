@@ -123,8 +123,6 @@ c     ==== When WFAT1 is active ====
          if (.not. MA_alloc_get(MT_DCPL, n_kn, 'knn', l_knn, k_knn))
      &        call errquit('WFAT: knn allocation failed', 2, MA_ERR)
          
-cOLD         call wfat_detect_degen0(nch, orbid, spinid, int_mb(k_dgi),
-cOLD     &        int_mb(k_dgn))
          if (.not. rtdb_get(rtdb, 'wfat:dthr', mt_dbl, 1, dthr))
      &        call errquit('WFAT: Failed reading dthr from rtdb',
      &        1, RTDB_ERR)
@@ -133,10 +131,9 @@ cOLD     &        int_mb(k_dgn))
                i_on = k_on + 2*nqn*(i-1) + 2*(iqn-1)
                call wfat_calc_o(nid(iqn), mid(iqn), erg(i), zi,
      &              dbl_mb(i_on))
-               write(luout, '("o_nu : ", 2i4, 2es21.12)')
-     &              i, iqn, dbl_mb(i_on), dbl_mb(i_on+1)
             enddo
          enddo
+         call wfat_print_o(nch, nqn, nid, mid, dbl_mb(k_on))
       endif
 
 c     ==== Modified energy for field factors ====

@@ -91,6 +91,9 @@ c     ==== Obtain the polarizability ====
       call wfat_2a1e_polb(m, sphi, nr, nt, nr_m, nt_m, nr_p, nt_p, ke,
      &     dbl_mb(k_cf), cfx, cfy, cfz, .false., polb)
       write(luout, '("Polarizability : ", 3f15.6)') polb
+      call errquit('The subroutine wfat_2a1e_polb above gives a '//
+     &     'diverging result, this bug has not yet been resolved.',
+     &     7, UERR)
 
 c     ==== Deallocations ====
       if (m >= 1) then

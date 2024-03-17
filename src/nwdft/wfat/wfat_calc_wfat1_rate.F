@@ -5,7 +5,8 @@ c============================================================
 
       implicit none
 #include "stdio.fh"
-      double precision bt       ! [input],
+#include "global.fh"
+      double precision bt                    ! [input],
       double precision gm                    ! [input],
       integer nat                            ! [input],
       integer nqn                            ! [input],
@@ -66,13 +67,16 @@ cfordebug            write(luout, '("B_nu - 2 Re(a_nu) = ", f15.7)') bb_
      &           2*ef*real(conjg(gn_)*an_))
 
 
-c           ==== These quantities below are only for debugging ====
+c           ==== These lines below are only for debugging ====
             an2 = on_ + an_/gn_
             bb2 = bb_ + 2 * real(an2)
-            write(luout, '("A_nu = ", 6f15.7)')
-     &           bt, gm, aa, lpbz, pb(3,3,1), mu(3)
-c            write(luout, '("   an = ", 2f15.7)') an2
-            write(luout, '("   B_nu = ", 2f15.7)') bb2
+            if (ga_nodeid() == 0) then
+               write(luout, '("A_nu = ", 6f15.7)')
+     &              bt, gm, aa, lpbz, pb(3,3,1), mu(3)
+c               write(luout, '("   an = ", 2f15.7)') an2
+               write(luout, '("   B_nu = ", 2f15.7)') bb2
+            endif
+            
          enddo
       enddo
       

@@ -172,7 +172,7 @@ c     ==== Calculate WFAT(1) Omega ====
          write(luout, '("")')
       endif
  901  format(
-     &     5x, 'The calculation of the WFAT integrals has started. ',
+     &     5x, 'Calculation of the WFAT integrals has started. ',
      &     'If this is a ''start'' type job, this part can take ', /,
      &     5x, 'up to several minutes, depending on the number of ',
      &     'channels, parabolic quantum numbers, maximum angular ', /, 

@@ -53,12 +53,14 @@ c     ==============================
       res_mode = .false.
       if (.not. rtdb_get(rtdb, 'wfat:fedvr', mt_log, 1, fedvr)) then
          fedvr = .false.
-         write(luout, '(/)')
-         write(luout, '("WARNING: Proceeding without using FEDVR '//
-     &        'radial basis. Laguerre DVR radial basis will be used. '//
-     &        'Be warned that Laguerre DVR basis is not thoroughly '//
-     &        'tested and is unstable for the latter WFAT integral '//
-     &        'computations.")')
+         if (ndid == 0) then
+            write(luout, '(/)')
+            write(luout, '("WARNING: Proceeding without using FEDVR '//
+     &           'radial basis. Laguerre DVR radial basis will be '//
+     &           'used. Be warned that Laguerre DVR basis is not '//
+     &           'thoroughly tested and is unstable for the latter '//
+     &           'WFAT integral computations.")')
+         endif
       endif
 
       
@@ -249,13 +251,13 @@ clater     &              dbl_mb(k_cmm), dbl_mb(k_idp))
             
       
       
-c     ==== No partial wave mode ====
-c      if (.not. fedvr)
-c     &     call wfat_2a1e_task_nopw(rtdb, geom_hd, nqn, int_mb(k_npa),
-c     &     int_mb(k_mpa), gqual, zion, wf_msm, sphi, mch, nr, nt, orbid,
-c     &     dbl_mb(k_cf), out_ke, dbl_mb(i_eg), edip, pottype, nel_2a, 
-c     &     potparam, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx),
-c     &     dbl_mb(k_cfy), dbl_mb(k_cfz))
+cOLD     ==== No partial wave mode ====
+cOLD      if (.not. fedvr)
+cOLD     &     call wfat_2a1e_task_nopw(rtdb, geom_hd, nqn, int_mb(k_npa),
+cOLD     &     int_mb(k_mpa), gqual, zion, wf_msm, sphi, mch, nr, nt, orbid,
+cOLD     &     dbl_mb(k_cf), out_ke, dbl_mb(i_eg), edip, pottype, nel_2a, 
+cOLD     &     potparam, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx),
+cOLD     &     dbl_mb(k_cfy), dbl_mb(k_cfz))
       
 
       if (wfat1) then
@@ -356,6 +358,7 @@ c     ==== Deallocations ====
       call wfat_2a1e_erase_cf1(l_cfx, l_cfy, l_cfz)
       if (.not. ga_destroy(g_il))
      &     call errquit('WFAT: Cannot destroy intgl.', 45, GA_ERR)
+      call wfat_erase_wfat1_intgl(g_j, g_k, l_pb)
 
 
       task_wfat_2a1e = .true.

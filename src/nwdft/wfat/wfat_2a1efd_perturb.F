@@ -108,6 +108,8 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: Cannot deallocate erg+', 41, MA_ERR)
       if (.not. ma_free_heap(l_cf))
      &     call errquit('WFAT: Cannot deallocate coef', 41, MA_ERR)
+      if (.not. ma_free_heap(l_x))
+     &     call errquit('WFAT: Cannot deallocate xquad_', 41, MA_ERR)
 
       end
 c===============================================================
