@@ -424,7 +424,6 @@ c=======================================================
             intd_j(:,:,j,i) = conjg(omg(:,:,i)) * vxi(j,i)
          enddo
       enddo
-
       
 cfordebug      write(luout, '(4x, "intgls : ", 5es15.7)')
 cfordebug     &     abs(intd_j(2,1,1,1)),

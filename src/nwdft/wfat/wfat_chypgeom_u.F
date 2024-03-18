@@ -39,7 +39,8 @@ cc      else                   ! 2)
             aa = l + a_
             bb = 2*l + b_
 cDEPRCTED            call wfat_chgubi(aa, bb, z, chgu(l), id)
-            call wfat_chgu(aa, bb, z, chgu(l), id)           ! 1)
+
+            call wfat_chgu(aa, bb, z, chgu(l), id) ! 1)
          enddo
 cc      endif
       

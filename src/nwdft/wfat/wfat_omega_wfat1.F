@@ -103,8 +103,8 @@ c           ==== Calculate Q_{(l,m)}^\nu at all points above ====
      &           dbl_mb(k_q1), dbl_mb(k_q2))
 
 
-c           ==== Calculate WFAT(1) Omega for all (l,m) ====
-c           ====        and all points above           ====
+c           ==== Calculate WFAT(1) Omega for all  ====
+c           ====    (l,m) and all points above    ====
             call wfat_omega_wfat1_nm(nptp, lmax, m, dbl_mb(k_q1), 
      &           dbl_mb(k_q2), dcpl_mb(k_sp), omg1(:,j,i,:),
      &           omg2(:,j,i,:))
@@ -153,6 +153,7 @@ c=======================================================
 c     Calculate omg1 and omg2 for all (l,m) and all points at a particular channel 
 c     and parabolic quantum number.
       implicit none
+#include "stdio.fh"
       integer nptp
       integer lmax
       integer m
@@ -174,6 +175,9 @@ c     and parabolic quantum number.
                i_sh = l**2 + l + m_ + 1
                omg1(i_sh, ii) = q_1(l, ii) * sphm(i_sh, ii)
                omg2(i_sh, ii) = q_2(l, ii) * sphm(i_sh, ii)
+
+               if ( isnan(abs( omg1(i_sh,ii) )) ) omg1(i_sh,ii) = czero
+               if ( isnan(abs( omg2(i_sh,ii) )) ) omg2(i_sh,ii) = czero
             enddo
          enddo
       enddo
