@@ -23,8 +23,8 @@ c     ==== The m (magnetic) quantum number ====
      &     1, RTDB_ERR)
 
 c     ==== The k quantum number (the xz-plane reflection symmetry) ====
-      if (.not. rtdb_get(rtdb, 'wfat:2a1e_k', mt_int, 1, sphi))
-     &     call errquit('WFAT: Failed reading 2a1e_k from rtdb',
+      if (.not. rtdb_get(rtdb, 'wfat:2a1e_xz', mt_int, 1, sphi))
+     &     call errquit('WFAT: Failed reading 2a1e_xz from rtdb',
      &     1, RTDB_ERR)
       
 c     ==== The eigenstate ID within the above (m,k) ====

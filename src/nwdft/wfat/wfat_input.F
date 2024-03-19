@@ -362,7 +362,7 @@ c           ==== OPTIONAL INPUTS ====
             else if (inp_compare(.false., 'system_2a1e', field)) then
                s2a1e_exist = .true.
                s2a1e_stat = wfat_inp_s2a1e(wfat2a_nc, wfat2a_q, 
-     &              wfat2a_inter, wfat2a_mag, wfat2a_pot, 
+     &              wfat2a_inter, wfat2a_mag, wfat2a_xzr, wfat2a_pot, 
      &              wfat2a_potparam, wfat2a_nel, wfat2a_fedvr, 
      &              wfat2a_nfe, wfat2a_fenodes, wfat2a_ndvr, wfat2a_nr, 
      &              wfat2a_kein, wfat2a_kemult, wfat2a_maxit, wfat2a_nt)
@@ -387,7 +387,6 @@ c           ==== End ====
 c     ==== Obtain the theory of previous task ====
       if (s2a1e) then
          wfat_theory = '2a1e'
-         write(luout, '("The 2a1e system is requested.")')
       else
          if (rtdb_cget(rtdb,'scf:scftype', 1, wfat_theory)) then
             call wfat_info_banner(luout, .true.)
@@ -1077,7 +1076,8 @@ c=======================================================
 c=======================================================
 c=======================================================
       logical function wfat_inp_ffc(ftp, ergf)
-
+c     Input syntax:
+c       field_factor <float energy> | unit | orb
       implicit none
 #include "wfat_input.fh"
 #include "inp.fh"
@@ -1168,8 +1168,8 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      logical function wfat_inp_s2a1e(nq, q, d, mag, p, pparam, nel, 
-     &     fedvr, nfe, fen, ndvr, nr, kein, kemult, maxit, nt)
+      logical function wfat_inp_s2a1e(nq, q, d, mag, xzr, p, pparam, 
+     &     nel, fedvr, nfe, fen, ndvr, nr, kein, kemult, maxit, nt)
 
       implicit none
 #include "stdio.fh"
@@ -1180,6 +1180,7 @@ c=======================================================
       double precision q(2)
       double precision d
       integer mag
+      integer xzr
       character*3 p   ! 'cou' or 'eff'
       double precision pparam(2)
       integer nel
@@ -1194,14 +1195,14 @@ c=======================================================
       integer nt(3)
 
       character*50 field
-      character*1 adum
+      character*1 adum, xzr0
       logical sys_exist, sys_stat, mag_exist, mag_stat, p_exist, p_stat
       logical pparam_exist(2), pparam_stat(2), fedvr_exist, fedvr_stat
       logical fen_exist, fen_stat, ndvr_exist, ndvr_stat, lagdvr_exist
       logical lagdvr_stat, nr_exist(3), nr_stat(3), kein_exist
       logical kein_stat, kemult_exist, kemult_stat, maxit_exist
       logical maxit_stat, nt_exist(3), nt_stat(3), nel_exist, nel_stat
-      logical using_fedvr, using_lagdvr
+      logical xzr_exist, xzr_stat, using_fedvr, using_lagdvr
       integer i, n_fen, n_ndvr
 
       wfat_inp_s2a1e = .false.
@@ -1256,6 +1257,10 @@ c           ==== Magnetic quantum number ====
             else if (inp_compare(.false., 'magnetic', field)) then
                mag_exist = .true.
                mag_stat = inp_i(mag)
+c           ==== xz-plane reflection symmetry ====
+            else if (inp_compare(.false., 'xzreflect', field)) then
+               xzr_exist = .true.
+               xzr_stat = inp_a(xzr0)
 c           ==== Potential type ====
             else if (inp_compare(.false., 'potential', field)) then
                p_exist = .true.
@@ -1390,8 +1395,25 @@ c     ==== Mandatory inputs' existence checks ====
      &     call errquit('INPUT ERROR: Cannot find input directive '//
      &     '''magnetic'' needed for WFAT-2a1e calculation.',
      &     0, INPUT_ERR)
+      if (.not. xzr_exist)
+     &     call errquit('INPUT ERROR: Cannot find input directive '//
+     &     '''xzreflect'' needed for WFAT-2a1e calculation.',
+     &     0, INPUT_ERR)
 
-c     ==== Optional inputs' existence checks ====
+c     ==== Inputs values checks ====
+c     ==== xz-plane reflection symmetry ====
+      if (xzr0 == 's') then
+         xzr = 1
+      else if (xzr0 == 'a') then
+         xzr = 2
+         if (mag == 0) call errquit('WFAT: States with a magnetic '//
+     &        'quantum number of 0 can only be symmetric under '//
+     &        'reflection onto xz-plane.', 14, INPUT_ERR)
+      else
+         call errquit('WFAT: Possible values for the input directive '//
+     &        '''xzreflect'' are ''s'' (symmetric) or ''a'' (anti '//
+     &        'symmetric).', 15, INPUT_ERR)
+      endif
 c     ==== Basis ====
       if (.not. using_fedvr .and. .not. using_lagdvr)       ! 1)
      &     using_fedvr = .true.

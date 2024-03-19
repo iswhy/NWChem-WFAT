@@ -54,11 +54,11 @@ c===============================================================
       character*2 prtb_type
       integer ndid, gqual, i, lmax, nlgl, is, npb, ndpo, ncf, nch1, nrd
       integer l_nd, l_or0, l_sp, l_or, l_npa, l_mpa, l_eg, l_cf, l_rd
-      integer l_ps, l_cmm, l_idp, l_in, l_ftl, l_al, l_wl, l_pl, l_tl
+      integer l_ps, l_cmm, l_idp, l_in, l_al, l_wl, l_pl, l_tl
       integer l_dl, l_pb, l_dpo, l_dps, l_pbs, l_inj, l_ink1, l_ink2
       integer l_dgs, l_dgss, l_ndgs
       integer k_nd, k_or0, k_sp, k_or, k_npa, k_mpa, k_eg, k_cf, k_rd
-      integer k_ps, k_cmm, k_idp, k_in, k_ftl, k_al, k_wl, k_pl, k_tl
+      integer k_ps, k_cmm, k_idp, k_in, k_al, k_wl, k_pl, k_tl
       integer k_dl, k_pb, k_dpo, k_dps, k_pbs, k_inj, k_ink1, k_ink2
       integer k_dgs, k_dgss, k_ndgs
       integer g_il, g_j, g_k(2), nlas, ntime

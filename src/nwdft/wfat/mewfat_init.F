@@ -616,7 +616,7 @@ c     ==== Deallocations ====
       if (.not. ma_free_heap(l_iv))
      &     call errquit('MEWFAT: Cannot deallocate ipvt', 81, MA_ERR)
       if (.not. ma_free_heap(l_sc))
-     &     call errquit('MEWFAT: Cannot deallocate mod_ovl', 81, MA_ERR)
+     &     call errquit('MEWFAT: Cannot deallocate scratch', 81, MA_ERR)
       if (.not. ma_free_heap(l_pc))
      &     call errquit('MEWFAT: Cannot deallocate pcf', 81, MA_ERR)
       if (.not. ma_free_heap(l_j))

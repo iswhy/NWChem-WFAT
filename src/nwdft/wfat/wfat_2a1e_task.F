@@ -11,30 +11,34 @@ c===============================================================
 #include "wfat.fh"
 #include "errquit.fh"
 #include "msgids.fh"
+#include "wfat_field_param.fh"
 #include "geom.fh"
       integer rtdb
 
+      character(len=FLD_TP_LEN) las_env(max_nfield)
       character*2 td
       character*3 pottype
       character*7 jobtype
       character*16 tag
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
-      logical pr_tmd, pr_tmd_atom, os, oc, or, int_nosave, l1
+      logical pr_tmd, pr_tmd_atom, os, oc, or, int_nosave, l1, extf
       logical res_mode, wfat1, rtdb_stat, fedvr, ismask_i, ismask_e
       integer l_cf, l_eg, l_npa, l_mpa, l_in, l_inj, l_ink1
       integer l_ink2, l_pb, l_cfx, l_cfy, l_cfz, l_ndvr, l_fen, l_xquad
-      integer l_wquad
+      integer l_wquad, l_al, l_wl, l_pl, l_tl, l_dl
       integer k_cf, k_eg, k_npa, k_mpa, k_in, k_inj, k_ink1
       integer k_ink2, k_pb, k_cfx, k_cfy, k_cfz, k_ndvr, k_fen, k_xquad
-      integer k_wquad
+      integer k_wquad, k_al, k_wl, k_pl, k_tl, k_dl
       integer i, mch, sphi, spinid, orbid, nr, nt, maxiter, i_eg, g_cf
       integer lmax, gqual, nqn, nsh, nintg, g_il, ndid, nlgl, nel_2a
       integer nintj, nintk, g_j, g_k(2), npb, nr_m, nt_m, nr_p, nt_p
       integer ndgsub, max_ndgsub, dgs(1,1), ndgs(1), nfe, maxn, idum
+      integer nlas, ntime
       double precision init_ke, out_ke, mult_ke, edip(3), chpos(3)
       double precision chmmt(3), fieldmag, pb(3,3), polb(3), polb33(3,3)
       double precision dps(1,1,3,1), pbs(1,1,6,1), ddum, potparam(2)
       double precision mask_param(2), ergmask, amsk, bmsk, iondip(3)
+      double precision tmax
 
       integer nch
       parameter(nch=1)
@@ -76,6 +80,7 @@ c     ==== Extract the general parameters ====
 c     ==== Extract the parameters of the quantum system ====
       call wfat_2a1e_prep_system(rtdb, mch, sphi, spinid, orbid,
      &     pottype, nel_2a, potparam)
+      if (ndid == 0) call wfat_2a1e_stateinfo(mch, sphi, spinid, orbid)
       call wfat_2a1e_prep_bas(rtdb, fedvr, init_ke, mult_ke, maxiter, 
      &     nr, nt, nfe, maxn, l_ndvr, k_ndvr, l_fen, k_fen, l_xquad, 
      &     k_xquad, l_wquad, k_wquad)
@@ -102,9 +107,9 @@ c     ==== Obtain print switches ====
 c     ==== Whether using TD field or no ====
       if (.not. rtdb_cget(rtdb, 'wfat:tdfield', 1, td)) td = 'no'
       if (td=='td') then
-clater         call wfat_prep_tdfield(rtdb, nlas, l_al, k_al, las_env,
-clater     &        l_wl, k_wl, l_pl, k_pl, l_tl, k_tl, l_dl, k_dl, ntime,
-clater     &        tmax, extf)
+         call wfat_prep_tdfield(rtdb, nlas, l_al, k_al, las_env,
+     &        l_wl, k_wl, l_pl, k_pl, l_tl, k_tl, l_dl, k_dl, ntime,
+     &        tmax, extf)
       else if (td=='ti') then
          call wfat_prep_field(rtdb, fieldmag)
       else if (td=='no') then
@@ -307,16 +312,15 @@ c        ==================================================
 c        ==== Calculate and print important quantities ====
 c        ==================================================
          if (td == 'td') then
-clater            if (pr_srfc .or. pr_yild .or. pr_avbeta .or. pr_avgamma)
-clater     &           call wfat_calc_td(rtdb, geom_hd, pr_srfc, pr_yild, 
-clater     &           pr_avbeta, pr_avgamma, nlas, las_env, dbl_mb(k_al), 
-clater     &           dbl_mb(k_wl), dbl_mb(k_pl), dbl_mb(k_tl), dbl_mb(k_dl),
-clater     &           ntime, tmax, extf, nch, int_mb(k_or0), int_mb(k_sp),
-clater     &           dbl_mb(i_eg), dbl_mb(k_cmm), nqn, int_mb(k_npa), 
-clater     &           int_mb(k_mpa), lmax, zion, dcpl_mb(k_in), wfat1, 
-clater     &           ndgsub, max_ndgsub, int_mb(k_dgs), int_mb(k_ndgs),
-clater     &           dbl_mb(k_dps), dbl_mb(k_pbs), dcpl_mb(k_inj), 
-clater     &           dcpl_mb(k_ink1), dcpl_mb(k_ink2))
+            if (pr_srfc .or. pr_yild .or. pr_avbeta .or. pr_avgamma)
+     &           call wfat_calc_td(rtdb, geom_hd, pr_srfc, pr_yild, 
+     &           pr_avbeta, pr_avgamma, nlas, las_env, dbl_mb(k_al), 
+     &           dbl_mb(k_wl), dbl_mb(k_pl), dbl_mb(k_tl), dbl_mb(k_dl),
+     &           ntime, tmax, extf, nch, orbid, spinid, dbl_mb(i_eg), 
+     &           chmmt, nqn, int_mb(k_npa), int_mb(k_mpa), lmax, zion, 
+     &           dcpl_mb(k_in), wfat1, ndgsub, max_ndgsub, dgs, ndgs,
+     &           dps, pbs, dcpl_mb(k_inj), dcpl_mb(k_ink1), 
+     &           dcpl_mb(k_ink2))
          else
             if (pr_srfc .or. pr_rate)
      &           call wfat_calc_ti(rtdb, geom_hd, pr_srfc, pr_rate,
@@ -359,6 +363,8 @@ c     ==== Deallocations ====
       if (.not. ga_destroy(g_il))
      &     call errquit('WFAT: Cannot destroy intgl.', 45, GA_ERR)
       call wfat_erase_wfat1_intgl(g_j, g_k, l_pb)
+      if (td=='td') 
+     &     call wfat_erase_tdfield(l_al, l_wl, l_pl, l_tl, l_dl)
 
 
       task_wfat_2a1e = .true.

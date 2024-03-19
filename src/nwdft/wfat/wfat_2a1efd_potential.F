@@ -330,7 +330,7 @@ c===============================================================
       enddo
 
       if (.not. MA_free_heap(l_sc))
-     &     call errquit('WFAT: scratch deallocation failed', 61, MA_ERR)
+     &     call errquit('WFAT: vscr deallocation failed', 61, MA_ERR)
       
       end
 c===============================================================
@@ -390,7 +390,7 @@ c===============================================================
       enddo
 
       if (.not. MA_free_heap(l_sc))
-     &     call errquit('WFAT: scratch deallocation failed', 61, MA_ERR)
+     &     call errquit('WFAT: vscr deallocation failed', 61, MA_ERR)
 
       end
 c===============================================================

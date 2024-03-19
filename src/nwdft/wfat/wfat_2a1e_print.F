@@ -1,5 +1,49 @@
 c==========================================================
 c==========================================================
+      subroutine wfat_2a1e_stateinfo(m, sphi, spin, orbid)
+
+      implicit none
+#include "stdio.fh"
+      integer m, sphi, spin, orbid
+
+      character*8, sm, so
+      character*255 ss, xzr
+
+
+      write(luout, '(2/)')
+      call util_print_centered(luout, '2a1e State Information',
+     &     23, .true.)
+      write(luout, '("")')
+
+      write(sm, '(i8)') m
+      if (sphi == 1) then
+         xzr = 'symmetric'
+      else if (sphi == 2) then
+         xzr = 'antisymmetric'
+      endif
+      if (spin == 1) then
+         ss = 'alpha'
+      else if (spin == 2) then
+         ss = 'beta'
+      endif
+      write(so, '(i8)') orbid
+      
+      write(luout, '(4x, "Magnetic quantum number = ", a)')
+     &     trim(adjustl(sm))
+      write(luout, '(4x, "xz-plane reflection symmetry = ", a)')
+     &     trim(adjustl(xzr))
+      write(luout, '(4x, "Spin = ", a)') trim(adjustl(ss))
+      write(luout, '(4x, "Energy eigenstate ID = ", a)')
+     &     trim(adjustl(so))
+
+      write(luout, '("")')
+      
+      end
+c==========================================================
+
+      
+c==========================================================
+c==========================================================
       subroutine wfat_2a1efd_print_rgrid(ni, n, maxn, xq, wq)
 
       implicit none

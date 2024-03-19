@@ -115,7 +115,7 @@ cOLD     &     def_beta_tmd, def_gamma_tmd
      &     DEF_PRTB_ORD_RS, DEF_PRTB_MAXITR, DEF_PRTB_MAXORD, DEF_NLGL,
      &     ffc_type0(MAX_N_ORBID), DEF_NFENODES, DEF_LAGDVR_NR,
      &     DEF_2A1E_MAXIT, DEF_LEGDVR_NT, wfat2a_nc, wfat2a_mag,
-     &     wfat2a_nel, wfat2a_nfe, wfat2a_ndvr(MAX_FEN),
+     &     wfat2a_xzr, wfat2a_nel, wfat2a_nfe, wfat2a_ndvr(MAX_FEN),
      &     wfat2a_nr(3), wfat2a_maxit, wfat2a_nt(3)
 
       double precision
@@ -201,8 +201,8 @@ c     == Integers ==
      &     wfat_orbid, n_orbid, wfat_spinid, npara, n_npara, mpara,
      &     nktmd, wfat_lmax, wfat_gqual, prtb_ord, prtb_maxitr,
      &     prtb_maxord, wfat_nlgl, ffc_type0, wfat2a_nc, wfat2a_mag, 
-     &     wfat2a_nel, wfat2a_nfe, wfat2a_ndvr, wfat2a_nr, wfat2a_maxit,
-     &     wfat2a_nt,
+     &     wfat2a_xzr, wfat2a_nel, wfat2a_nfe, wfat2a_ndvr, wfat2a_nr, 
+     &     wfat2a_maxit, wfat2a_nt,
 c     == Doubles ==
      &     wfat_beta_start, wfat_beta_last, 
      &     wfat_gamma_start,  wfat_gamma_last, 

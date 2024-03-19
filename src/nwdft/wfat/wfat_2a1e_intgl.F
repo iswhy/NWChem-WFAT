@@ -355,6 +355,8 @@ c     ==== Accumulate to global intgl (g_il) ====
       
 
 c     ==== Deallocations ====
+      if (.not. ma_free_heap(l_sc))
+     &     call errquit('WFAT: Cannot deallocate scratch', 18, MA_ERR)
       call wfat_dealloc_quadgrid(l_pt, l_wt)
       call wfat_dealloc_gridrange(l_icp, l_ipp)
       call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il)

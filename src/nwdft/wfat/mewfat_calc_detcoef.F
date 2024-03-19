@@ -149,7 +149,7 @@ c     ==== Deallocations ====
       if (.not. ma_free_heap(l_iv))
      &     call errquit('WFAT: Cannot deallocate ipvt', 64, MA_ERR)
       if (.not. ma_free_heap(l_sc))
-     &     call errquit('WFAT: Cannot deallocate mod_ovl', 64, MA_ERR)
+     &     call errquit('WFAT: Cannot deallocate scratch', 64, MA_ERR)
             
       end
 c=================================================

@@ -1826,6 +1826,10 @@ cOLD      if (prtb_ord_need .and. os) then
          if (.not. rtdb_put(rtdb, 'wfat:2a1e_m', mt_int, 1, wfat2a_mag))
      &        call errquit('WFAT: Failed writing 2a1e_m to RTDB', 1,
      &        RTDB_ERR)
+         if (.not. rtdb_put(rtdb, 'wfat:2a1e_xz', mt_int, 1,
+     &        wfat2a_xzr))
+     &        call errquit('WFAT: Failed writing 2a1e_xz to RTDB', 1,
+     &        RTDB_ERR)
          if (.not. rtdb_cput(rtdb, 'wfat:2a1e_pot', 1, wfat2a_pot))
      &        call errquit('WFAT: Failed writing 2a1e_pot to RTDB', 1,
      &        RTDB_ERR)
