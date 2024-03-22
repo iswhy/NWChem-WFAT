@@ -53,6 +53,10 @@ c     ==== Determine zion ====
 c     ==== Miscellaneous ====
       call wfat_reset_lfqlib()  ! Reset Gauss-Laguerre nodes and weights for the calculations of the various U(a,b,z).
 
+      
+c     ==== Printing important information ====
+      call wfat_print_info(rtdb)
+      
       call ga_sync()
       
       end

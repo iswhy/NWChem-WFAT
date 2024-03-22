@@ -266,7 +266,7 @@ cOLD      call wfat_set_fockreplicate(1)
       call wfat_reset_lfqlib()        ! Reset Gauss-Laguerre nodes and weights for the calculations of the various U(a,b,z).
       
 
-c     ==== Store the common integrals ====
+c     ==== Store common integrals ====
       gwf_ovl = ga_create_atom_blocked(geom_hd, bas_hd, 'overlap')
       call ga_zero(gwf_ovl)
       call int_1e_ga(bas_hd, bas_hd, gwf_ovl, 'overlap', oskel)
