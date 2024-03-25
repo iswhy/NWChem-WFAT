@@ -1,7 +1,8 @@
 c=======================================================
 c=======================================================
       subroutine wfat_omega_wfat1(geom, nch, nqn, erg, chpos, nid, mid,
-     &     lmax, nat, nptp, centid, ptlim, gq, nlgl, zq, omg1, omg2)
+     &     lmax, nat, nptp, centid, ptlim, gq, nlgl, zq, wfat0, omg1,
+     &     omg2)
 
       implicit none
 #include "util.fh"
@@ -24,6 +25,7 @@ c=======================================================
       integer gq                                           ! [input],
       integer nlgl                                         ! [input],
       double precision zq                                  ! [input],
+      logical wfat0(nqn,nch)                               ! [input],
       double complex omg1((1+lmax)**2, nqn, nch, nptp)     ! [output],
       double complex omg2((1+lmax)**2, nqn, nch, nptp)     ! [output],
 
@@ -32,6 +34,9 @@ c=======================================================
       integer k_r, k_t, k_p, k_sp, k_id, k_q1, k_q2
       integer ndid, nsh, i, ii, j, n, m, nl, i_sp, k
       double precision t_now, t_last, t_start, dt_all, dt_prog
+      double complex czero
+
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
 
 
       ndid = ga_nodeid()
@@ -87,33 +92,40 @@ c        ====   where l=[0,lmax] and m=[-l,l] at each point   ====
 
 
          do j = 1, nqn
-            n = nid(j)
-            m = mid(j)
-            nl = lmax - abs(m) + 1
-            if (.not. MA_alloc_get(MT_DBL, nl*nptp, 'q1', l_q1, k_q1))
-     &           call errquit('WFAT: q1 allocation failed', 94, MA_ERR)
-            if (.not. MA_alloc_get(MT_DBL, nl*nptp, 'q2', l_q2, k_q2))
-     &           call errquit('WFAT: q2 allocation failed', 94, MA_ERR)
-
-            
-c           ==== Calculate Q_{(l,m)}^\nu at all points above ====
-            call wfat_calc_q(nptp, dbl_mb(k_r), n, m, lmax, nlgl, 
-     &           erg(i), zq, dbl_mb(k_q1), dbl_mb(k_q2))
-            call wfat_reorder_q(lmax, m, nptp, int_mb(k_id),
-     &           dbl_mb(k_q1), dbl_mb(k_q2))
-
-
-c           ==== Calculate WFAT(1) Omega for all  ====
-c           ====    (l,m) and all points above    ====
-            call wfat_omega_wfat1_nm(nptp, lmax, m, dbl_mb(k_q1), 
-     &           dbl_mb(k_q2), dcpl_mb(k_sp), omg1(:,j,i,:),
-     &           omg2(:,j,i,:))
-
-            
-            if (.not. MA_free_heap(l_q1)) call errquit('WFAT: q1 '//
-     &           'deallocation failed', 32, MA_ERR)
-            if (.not. MA_free_heap(l_q2)) call errquit('WFAT: q2 '//
-     &           'deallocation failed', 32, MA_ERR)
+            if (wfat0(j,i)) then
+               omg1(:,j,i,:) = czero
+               omg2(:,j,i,:) = czero
+            else
+               n = nid(j)
+               m = mid(j)
+               nl = lmax - abs(m) + 1
+               if (.not. MA_alloc_get(MT_DBL, nl*nptp, 'q1',
+     &              l_q1, k_q1)) call errquit('WFAT: q1 allocation '//
+     &              'failed', 94, MA_ERR)
+               if (.not. MA_alloc_get(MT_DBL, nl*nptp, 'q2',
+     &              l_q2, k_q2)) call errquit('WFAT: q2 allocation '//
+     &              'failed', 94, MA_ERR)
+               
+               
+c              ==== Calculate Q_{(l,m)}^\nu at all points above ====
+               call wfat_calc_q(nptp, dbl_mb(k_r), n, m, lmax, nlgl, 
+     &              erg(i), zq, dbl_mb(k_q1), dbl_mb(k_q2))
+               call wfat_reorder_q(lmax, m, nptp, int_mb(k_id),
+     &              dbl_mb(k_q1), dbl_mb(k_q2))
+               
+               
+c              ==== Calculate WFAT(1) Omega for all  ====
+c              ====    (l,m) and all points above    ====
+               call wfat_omega_wfat1_nm(nptp, lmax, m, dbl_mb(k_q1), 
+     &              dbl_mb(k_q2), dcpl_mb(k_sp), omg1(:,j,i,:),
+     &              omg2(:,j,i,:))
+               
+               
+               if (.not. MA_free_heap(l_q1)) call errquit('WFAT: q1 '//
+     &              'deallocation failed', 32, MA_ERR)
+               if (.not. MA_free_heap(l_q2)) call errquit('WFAT: q2 '//
+     &              'deallocation failed', 32, MA_ERR)
+            endif
 
 c           ==== Print timing ====
             t_now = util_cpusec()

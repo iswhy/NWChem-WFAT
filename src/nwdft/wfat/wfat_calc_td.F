@@ -72,7 +72,7 @@ cOLD      character*5 ftlas(nlas)       ! Function type of envelope, 'gauss' or 
       double complex intgl_k1(1:*)    ! [input]
       double complex intgl_k2(1:*)    ! [input]
       
-      logical gap, sumbtgm
+      logical gap, sumbtgm, wfat1_exc(nqn,nch)
       integer nsf, nbt, ngm, nat, ndid, nsc, nsx, npbd
       integer n_jn, n_kn, n_on
       integer ib, ig, i, iqn, i_on
@@ -134,6 +134,9 @@ c     ==== When WFAT1 is active ====
             enddo
          enddo
          call wfat_print_o(nch, nqn, nid, mid, dbl_mb(k_on))
+         if (.not. rtdb_get(rtdb, 'wfat:wfat1_exclude', mt_log, nqn*nch,
+     &        wfat1_exc)) call errquit('WFAT: Failed reading dthr '//
+     &        'from rtdb', 13, RTDB_ERR)
       endif
 
 c     ==== Modified energy for field factors ====
@@ -223,8 +226,8 @@ c              ==== Calculate ion yield ====
      &                 nch, erg, dbl_mb(k_egf), nqn, nid, mid, nat, 
      &                 dcpl_mb(k_gn), dcpl_mb(k_jn), dcpl_mb(k_kn), 
      &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn), 
-     &                 dbl_mb(k_on), chmmt, dbl_mb(k_pbd), yield)
-                  
+     &                 dbl_mb(k_on), chmmt, dbl_mb(k_pbd), wfat1_exc,
+     &                 yield)
                else
                   call wfat_calc_yield(nat, zi, nlas, ftlas, alas, wlas,
      &                 plas, tlas, dlas, nt, tmax, extf, nch, 
@@ -323,7 +326,8 @@ c              ==== Calculate ion yield ====
      &                 nch, erg, dbl_mb(k_egf), nqn, nid, mid, nat, 
      &                 dcpl_mb(k_gn), dcpl_mb(k_jn), dcpl_mb(k_kn), 
      &                 dcpl_mb(k_gnn), dcpl_mb(k_jnn), dcpl_mb(k_knn), 
-     &                 dbl_mb(k_on), chmmt, dbl_mb(k_pbd), yield)
+     &                 dbl_mb(k_on), chmmt, dbl_mb(k_pbd), wfat1_exc,
+     &                 yield)
                else
                   call wfat_calc_yield(nat, zi, nlas, ftlas, alas, wlas,
      &                 plas, tlas, dlas, nt, tmax, extf, nch, 

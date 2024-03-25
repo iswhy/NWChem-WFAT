@@ -2,10 +2,9 @@ c=======================================================
 c=======================================================
 c==== Imam ====
       subroutine wfat_calc_intgl(rtdb, geom, bas, nch, spinid, nqn, nid,
-     &                           mid, lmax_, gqual, zi, celm, smh, 
-     &                           res_mode, wfat1, nlgl, nb, ns, rdm, 
-     &                           vch, erg, chpos, chmmt, iondip, ismask,
-     &                           mask_param, g_il, g_j, g_k)
+     &     mid, lmax_, gqual, zi, celm, smh, res_mode, wfat1, nlgl, 
+     &     wfat1_exc, nb, ns, rdm, vch, erg, chpos, chmmt, iondip, 
+     &     ismask, mask_param, g_il, g_j, g_k)
       
       implicit none
 #include "util.fh"
@@ -32,6 +31,7 @@ c==== Imam ====
       logical res_mode                ! [input]
       logical wfat1                   ! [input]
       integer nlgl                    ! [input], only used when wfat1=.true.
+      logical wfat1_exc(1:*)          ! [input], only used when wfat1=.true., min. size is nqn*nch.
       integer nb                      ! [input]
       integer ns                      ! [input]
       double precision rdm(nb,nb,ns)  ! 
@@ -159,7 +159,8 @@ c     ==== Calculate WFAT(1) Omega ====
      &        l_ik2_, k_ik2_, l_ik2, k_ik2)
          call wfat_omega_wfat1(geom, nch, nqn, erg, chpos, nid,
      &        mid, lmax_, natomp, nptp, int_mb(k_icp), int_mb(k_ipp),
-     &        gqual, nlgl, zi, dcpl_mb(k_om1), dcpl_mb(k_om2))
+     &        gqual, nlgl, zi, wfat1_exc, dcpl_mb(k_om1),
+     &        dcpl_mb(k_om2))
       endif
       
 

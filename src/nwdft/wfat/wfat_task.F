@@ -56,14 +56,14 @@ c===============================================================
       integer l_nd, l_or0, l_sp, l_or, l_npa, l_mpa, l_eg, l_cf, l_rd
       integer l_ps, l_cmm, l_idp, l_in, l_al, l_wl, l_pl, l_tl
       integer l_dl, l_pb, l_dpo, l_dps, l_pbs, l_inj, l_ink1, l_ink2
-      integer l_dgs, l_dgss, l_ndgs
+      integer l_dgs, l_dgss, l_ndgs, l_w1x
       integer k_nd, k_or0, k_sp, k_or, k_npa, k_mpa, k_eg, k_cf, k_rd
       integer k_ps, k_cmm, k_idp, k_in, k_al, k_wl, k_pl, k_tl
       integer k_dl, k_pb, k_dpo, k_dps, k_pbs, k_inj, k_ink1, k_ink2
-      integer k_dgs, k_dgss, k_ndgs
+      integer k_dgs, k_dgss, k_ndgs, k_w1x
       integer g_il, g_j, g_k(2), nlas, ntime
       integer nch, nqn, nerg, ncpos, ncmm, niond, nsh, nintg, nintj
-      integer nintk, prtb_ord, ndgsub, max_ndgsub
+      integer nintk, prtb_ord, ndgsub, max_ndgsub, nw1x
       double precision fieldmag, smh, prtb_bt, prtb_gm, ctr(3)
       double precision mask_param(2), ergmask, amsk, bmsk, tmax
 
@@ -127,7 +127,8 @@ c     ==== Obtaining parabolic quantum numbers ====
       
 
 c     ==== Obtaining WFAT(1) information ====
-      call wfat_prep_wfat1(rtdb, wfat1, nlgl)
+      call wfat_prep_wfat1(rtdb, nch, nqn, wfat1, nlgl, nw1x, l_w1x,
+     &     k_w1x)
 
       
 c     ==== Check if research mode is enabled ====
@@ -227,10 +228,11 @@ c     ==== Calculate or store OEWFAT integrals ====
 c           ==== Calculate OE-WFAT integrals on 'start' startup mode ====
             call wfat_calc_intgl(rtdb, geom_hd, bas_hd, nch, 
      &           int_mb(k_sp), nqn, int_mb(k_npa), int_mb(k_mpa), lmax, 
-     &           gqual, zion, wf_msm, smh, res_mode, wfat1, nlgl, nbas0,
-     &           nspin0, dbl_mb(k_rd), dbl_mb(k_cf), dbl_mb(k_eg), 
-     &           dbl_mb(k_ps), dbl_mb(k_cmm), dbl_mb(k_idp), ismask_i, 
-     &           mask_param, g_il, g_j, g_k)
+     &           gqual, zion, wf_msm, smh, res_mode, wfat1, nlgl, 
+     &           log_mb(k_w1x), nbas0, nspin0, dbl_mb(k_rd), 
+     &           dbl_mb(k_cf), dbl_mb(k_eg), dbl_mb(k_ps), 
+     &           dbl_mb(k_cmm), dbl_mb(k_idp), ismask_i, mask_param,
+     &           g_il, g_j, g_k)
             
 c           ==== Store the OE-WFAT integrals freshly calculated ====
             if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,
@@ -404,6 +406,7 @@ c     ==== Deallocations ====
       call wfat_erase_channelprop(l_eg, l_ps, l_cmm, l_idp)
       if (.not. ga_destroy(g_il))
      &     call errquit('WFAT: Cannot destroy intgl.', 1, GA_ERR)
+      call wfat_erase_wfat1(l_w1x)
       call wfat_erase_wfat1_intgl(g_j, g_k, l_pb)
       if (wfat1) then
          if (.not. MA_free_heap(l_dpo))

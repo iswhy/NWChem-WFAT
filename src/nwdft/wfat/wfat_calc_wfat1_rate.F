@@ -1,6 +1,62 @@
 c============================================================
 c============================================================
       subroutine wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
+     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, wfat0, p_rt, rt)
+
+      implicit none
+#include "stdio.fh"
+      double precision bt                    ! [input],
+      double precision gm                    ! [input],
+      integer nat                            ! [input],
+      integer nqn                            ! [input],
+      integer nch                            ! [input],
+      integer nid(nqn)                       ! [input],
+      integer mid(nqn)                       ! [input],
+      double precision ef                    ! [input],
+      double precision erg(nch)              ! [input],
+      double precision zi                    ! [input],
+      double complex gn(nat, nqn, nch)       ! [input],
+      double complex jn(nat, nqn, nch)       ! [input],
+      double complex kn(nat, nqn, nch)       ! [input],
+      double precision on(2, nqn, nch)       ! [input],
+      double precision chmmt(3,nch)          ! [input],
+      double precision pb(3,3,nch)           ! [input],
+      double precision ffc(nqn, nch)         ! [input],
+      logical wfat0(nqn,nch)                 ! [input],
+      double precision prate(nqn,nch)        ! [output],
+      double precision rate                  ! [output],
+
+      integer i, iqn, n, m
+      double precision dummy
+
+      
+      do i = 1, nch
+         do iqn = 1, nqn
+            n = nid(iqn)
+            m = mid(iqn)
+
+            if (wfat0(iqn,i)) then
+               call wfat_calc_rate(nat, 1, 1, gn(:,iqn,i), 
+     &              ffc(iqn,i), prate(iqn,i), dummy)
+            else
+               call wfat_wfat1_rate(bt, gm, nat, 1, 1, n, m, ef, erg(i),
+     &              zi, gn(:,iqn,i), jn(:,iqn,i), kn(:,iqn,i), 
+     &              on(:,iqn,i), chmmt(:,i), pb(:,:,i), ffc(iqn,i), 
+     &              prate(iqn,i), dummy)
+            endif
+
+         enddo
+      enddo
+
+      rate = sum(prate)
+      
+      end
+c============================================================
+
+      
+c============================================================
+c============================================================
+      subroutine wfat_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
      &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, p_rt, rt)
 
       implicit none
@@ -91,7 +147,7 @@ c=======================================================
       subroutine wfat_calc_wfat1_yield(bt, gm, zi, nlas, ftlas, alas, 
      &                 wlas, plas, tlas, dlas, nt, tmax, extf, nch, erg,
      &                 ergf, nqn, nid, mid, nat, gn, jn, kn, gnn, jnn, 
-     &                 knn, on, chmmt, pb, yield)
+     &                 knn, on, chmmt, pb, wfat0, yield)
 
       implicit none
 #include "errquit.fh"
@@ -127,7 +183,8 @@ c=======================================================
       double precision on(2, nqn, nch)       ! [input],
       double precision chmmt(3,nch)          ! [input],
       double precision pb(3,3,nch)           ! [input],
-      double precision yield
+      logical wfat0(nqn,nch)                 ! [input],
+      double precision yield                 ! [output],
       
       integer i, j, k, npi, l_pi, k_pi, nfc, l_fc, k_fc, i_fc, ich, iqn
       double precision t0, dt, t, las, rate
@@ -175,13 +232,13 @@ c        ==== Calculate field factors ====
 c        ==== Calculate rates ====
          dbl_mb(k_pi:k_pi+npi-1) = 0.0d0
          if (las >= 1.0d-13) then
-            call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid,
-     &           mid, las, erg, zi, gn, jn, kn, on, chmmt, pb,
-     &           dbl_mb(k_fc), dbl_mb(k_pi), rate)
+            call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
+     &           las, erg, zi, gn, jn, kn, on, chmmt, pb, dbl_mb(k_fc),
+     &           wfat0, dbl_mb(k_pi), rate)
          else if (las <= -1.0d-13) then
             call wfat_calc_wfat1_rate(180.0d0-bt, 180.0d0+gm, nat, nqn,
      &           nch, nid, mid, abs(las), erg, zi, gnn, jnn, knn, on, 
-     &           chmmt, pb, dbl_mb(k_fc), dbl_mb(k_pi), rate)
+     &           chmmt, pb, dbl_mb(k_fc), wfat0, dbl_mb(k_pi), rate)
          else
             dbl_mb(k_pi : k_pi+npi-1) = 0.0d0
             rate = 0.0d0

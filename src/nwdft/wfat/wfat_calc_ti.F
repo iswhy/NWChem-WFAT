@@ -61,7 +61,7 @@ c           maxn*maxn*6*nsub.
       double complex intgl_k1(1:*)    ! [input]. Only used when wfat1=.true..
       double complex intgl_k2(1:*)    ! [input]. Only used when wfat1=.true..
       
-      logical gap
+      logical gap, wfat1_exc(nqn,nch)
       integer n_gn, nfc, nrt, nbt, ngm, nat, nsc, nsx
       integer npbd, n_jn, n_kn, n_on, ib, ig, ndid, i, iqn, i_on
       integer l_gn, l_fc, l_rt, l_sc, l_sx, l_pbd
@@ -119,6 +119,9 @@ c     ==== When WFAT1 is active ====
             enddo
          enddo
          call wfat_print_o(nch, nqn, nid, mid, dbl_mb(k_on))
+         if (.not. rtdb_get(rtdb, 'wfat:wfat1_exclude', mt_log, nqn*nch,
+     &        wfat1_exc)) call errquit('WFAT: Failed reading dthr '//
+     &        'from rtdb', 1, RTDB_ERR)
       endif
 
       
@@ -178,8 +181,8 @@ c              ==== Calculate ionization rate ====
                   call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid,
      &                 mid, fieldm, erg, zi, dcpl_mb(k_gn),
      &                 dcpl_mb(k_jn), dcpl_mb(k_kn), dbl_mb(k_on), 
-     &                 chmmt, dbl_mb(k_pbd), dbl_mb(k_fc), dbl_mb(k_rt),
-     &                 rate)
+     &                 chmmt, dbl_mb(k_pbd), dbl_mb(k_fc), wfat1_exc, 
+     &                 dbl_mb(k_rt), rate)
                else
                   call wfat_calc_rate(nat, nch, nqn, dcpl_mb(k_gn), 
      &                 dbl_mb(k_fc), dbl_mb(k_rt), rate)

@@ -56,7 +56,7 @@ c=======================================================
       logical ismask                  ! [input],
       double precision mask_param(2)  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
 
-      logical gap
+      logical gap, wfat1_exc(nqn,nch)
       integer l_sg, l_fc, l_rt, l_icp, l_ipp, l_pt, l_wt, l_vc, l_cl
       integer l_ma, l_tu0, l_tu1, l_acg, l_acj, l_ack, l_dum, l_sc, l_sx
       integer l_pbd, l_sj, l_sk, l_on
@@ -180,6 +180,9 @@ c     ==== When WFAT1 is active ====
          enddo
          if (ndid == 0)
      &        call wfat_print_o(nch, nqn, nid, mid, dbl_mb(k_on))
+         if (.not. rtdb_get(rtdb, 'wfat:wfat1_exclude', mt_log, nqn*nch,
+     &        wfat1_exc)) call errquit('WFAT: Failed reading dthr '//
+     &        'from rtdb', 14, RTDB_ERR)
       endif
 
 c     ==== Initializing the printings ====
@@ -288,8 +291,8 @@ c              ==== Calculate ionization rate ====
                   call wfat_calc_wfat1_rate(bt, gm, natom, nqn, nch, 
      &                 nid, mid, fieldm, erg, zi, dcpl_mb(k_sg), 
      &                 dcpl_mb(k_sj), dcpl_mb(k_sk), dbl_mb(k_on), 
-     &                 chmmt, dbl_mb(k_pbd), dbl_mb(k_fc), dbl_mb(k_rt),
-     &                 rate)
+     &                 chmmt, dbl_mb(k_pbd), dbl_mb(k_fc), wfat1_exc, 
+     &                 dbl_mb(k_rt), rate)
                else
                   call wfat_calc_rate(natom, nch, nqn, dcpl_mb(k_sg), 
      &                 dbl_mb(k_fc), dbl_mb(k_rt), rate)

@@ -3,8 +3,8 @@ c===============================================================
       subroutine wfat_2a1e_intgl(rtdb, geom, nqn, nid, mid, lmax_,
      &     gq, zi, celm, sphi, mch, nr, nt, ke, vcf, erg, chmmt, chpos,
      &     pottype, nel, potparam, wfat1, nlgl, nr_m, nt_m, nr_p, nt_p, 
-     &     cfx, cfy, cfz, fedvr, nfe, ndvr, maxn, xq, wq, ismask, 
-     &     mask_param, g_il, g_j, g_k)
+     &     cfx, cfy, cfz, wfat1_exc, fedvr, nfe, ndvr, maxn, xq, wq, 
+     &     ismask, mask_param, g_il, g_j, g_k)
 
       implicit none
 #include "util.fh"
@@ -45,6 +45,7 @@ c===============================================================
       double precision cfy(1:*)       ! [input], only used when wfat1=.true.
 cOLD      double precision cfz(nr*nt) ! [input], only used when wfat1=.true.
       double precision cfz(1:*)       ! [input], only used when wfat1=.true.
+      logical wfat1_exc(1:*)          ! [input], only used when wfat1=.true., min. size is nqn.
       logical fedvr                   ! [input],
       integer nfe                     ! [input], only used when fedvr=.true.
       integer ndvr(*)                 ! [input], only used when fedvr=.true., size is nfe
@@ -146,7 +147,7 @@ c               terms associated to the three cartesian components of the dipole
      &        l_ik2_, k_ik2_, l_ik2, k_ik2)
          call wfat_omega_wfat1(geom, nch, nqn, erg, chpos, nid,
      &        mid, lmax_, natomp, nptp, int_mb(k_icp), int_mb(k_ipp),
-     &        gq, nlgl, zi, dcpl_mb(k_om1), dcpl_mb(k_om2))
+     &        gq, nlgl, zi, wfat1_exc, dcpl_mb(k_om1), dcpl_mb(k_om2))
       endif
       
       if (ndid == 0) then

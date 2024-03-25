@@ -254,15 +254,19 @@ c=================================================
 
 c=================================================
 c=================================================
-      subroutine wfat_prep_wfat1(rtdb, wfat1, nlgl)
+      subroutine wfat_prep_wfat1(rtdb, nch, nqn, wfat1, nlgl, nw1x,
+     &     l_w1x, k_w1x)
 
       implicit none
 #include "errquit.fh"
 #include "rtdb.fh"
 #include "mafdecls.fh"
-      integer rtdb
-      integer wfat1
-      integer nlgl
+      integer rtdb                  ! [input],
+      integer nch                   ! [input],
+      integer nqn                   ! [input],
+      integer wfat1                 ! [output],
+      integer nlgl                  ! [output],
+      integer nw1x, l_w1x, k_w1x    ! [output],
 
       if (.not. rtdb_get(rtdb, 'wfat:wfat1', mt_log, 1, wfat1))
      &     call errquit('WFAT: Cannot read wfat1 from RTDB', 27,
@@ -271,13 +275,40 @@ c=================================================
          if (.not. rtdb_get(rtdb, 'wfat:nlgl', mt_int, 1, nlgl))
      &        call errquit('WFAT: Cannot read nlgl from RTDB', 27,
      &        RTDB_ERR)
+         nw1x = nqn * nch
       else
          nlgl = 0
+         nw1x = 1
+      endif
+
+      if (.not. MA_alloc_get(MT_LOG, nw1x, 'wfat1_exc', l_w1x, k_w1x))
+     &     call errquit('WFAT: wfat1_exc allocation failed', 59, MA_ERR)
+      if (wfat1) then
+         if (.not. rtdb_get(rtdb, 'wfat:wfat1_exclude', mt_log, nw1x,
+     &        log_mb(k_w1x))) call errquit('WFAT: Failed reading '//
+     &        'dthr from rtdb', 22, RTDB_ERR)
       endif
       
       end
 c=================================================
 
+
+c=================================================
+c=================================================
+      subroutine wfat_erase_wfat1(l_w1x)
+
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer l_w1x
+
+      if (.not. MA_free_heap(l_w1x))
+     &     call errquit('WFAT: wfat_exc deallocation failed', 3, MA_ERR)
+
+      end
+c=================================================
+
+      
 c=================================================
 c=================================================
       subroutine wfat_prep_cf(nch, nb, wfat1, ncf, nch1, l_cf, k_cf)
