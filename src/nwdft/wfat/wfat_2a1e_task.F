@@ -320,16 +320,16 @@ c        ==================================================
      &           ntime, tmax, extf, nch, orbid, spinid, dbl_mb(i_eg), 
      &           chmmt, nqn, int_mb(k_npa), int_mb(k_mpa), lmax, zion, 
      &           dcpl_mb(k_in), wfat1, ndgsub, max_ndgsub, dgs, ndgs,
-     &           dps, pbs, dcpl_mb(k_inj), dcpl_mb(k_ink1), 
-     &           dcpl_mb(k_ink2))
+     &           dps, pbs, log_mb(k_w1x), dcpl_mb(k_inj), 
+     &           dcpl_mb(k_ink1), dcpl_mb(k_ink2))
          else
             if (pr_srfc .or. pr_rate)
      &           call wfat_calc_ti(rtdb, geom_hd, pr_srfc, pr_rate,
      &           fieldmag, nch, orbid, spinid, dbl_mb(i_eg), chmmt, 
      &           nqn, int_mb(k_npa), int_mb(k_mpa), lmax, zion, 
      &           dcpl_mb(k_in), wfat1, ndgsub, max_ndgsub, dgs, ndgs,
-     &           dps, pbs, dcpl_mb(k_inj), dcpl_mb(k_ink1),
-     &           dcpl_mb(k_ink2))
+     &           dps, pbs, log_mb(k_w1x), dcpl_mb(k_inj), 
+     &           dcpl_mb(k_ink1), dcpl_mb(k_ink2))
 
 clater            if (pr_tmd .or. pr_tmd_atom) 
 clater     &           call wfat_calcprint_tmd(rtdb, geom_hd, pr_tmd, 
@@ -349,9 +349,9 @@ clater     &           res_mode)
      &        out_ke, dbl_mb(k_cf), dbl_mb(i_eg), chmmt, chpos, orbid,
      &        spinid, pottype, nel_2a, potparam, pr_srfc, pr_rate, 
      &        fieldmag, wfat1, nr_m, nt_m, nr_p, nt_p, dbl_mb(k_cfx), 
-     &        dbl_mb(k_cfy), dbl_mb(k_cfz), pbs, fedvr, nfe,
-     &        int_mb(k_ndvr), maxn, dbl_mb(k_xquad), dbl_mb(k_wquad),
-     &        ismask_i, mask_param)
+     &        dbl_mb(k_cfy), dbl_mb(k_cfz), pbs, log_mb(k_w1x), fedvr, 
+     &        nfe, int_mb(k_ndvr), maxn, dbl_mb(k_xquad), 
+     &        dbl_mb(k_wquad), ismask_i, mask_param)
       endif
       call ga_sync()
       

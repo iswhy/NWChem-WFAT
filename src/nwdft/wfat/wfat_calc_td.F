@@ -4,7 +4,7 @@ c===============================================================
      &     pr_avgamma, nlas, ftlas, alas, wlas, plas, tlas, dlas, nt,
      &     tmax, extf, nch, orbid0, spinid, erg, chmmt, nqn, nid, mid,
      &     lmax, zi, intgl, wfat1, nsub, maxn, dgs, ndgs, dps, pbs,
-     &     intgl_j, intgl_k1, intgl_k2)
+     &     wfat1_exc, intgl_j, intgl_k1, intgl_k2)
 
 c     DESCRIPTION:
 c     nsub = It is only used when wfat1=.true.. The number of degenerate subspaces,
@@ -68,11 +68,12 @@ cOLD      character*5 ftlas(nlas)       ! Function type of envelope, 'gauss' or 
       integer ndgs(1:*)               ! [input]
       double precision dps(1:*)       ! [input]
       double precision pbs(1:*)       ! [input]
+      logical wfat1_exc(1:*)          ! [input]
       double complex intgl_j(1:*)     ! [input]
       double complex intgl_k1(1:*)    ! [input]
       double complex intgl_k2(1:*)    ! [input]
       
-      logical gap, sumbtgm, wfat1_exc(nqn,nch)
+      logical gap, sumbtgm
       integer nsf, nbt, ngm, nat, ndid, nsc, nsx, npbd
       integer n_jn, n_kn, n_on
       integer ib, ig, i, iqn, i_on
@@ -134,9 +135,6 @@ c     ==== When WFAT1 is active ====
             enddo
          enddo
          call wfat_print_o(nch, nqn, nid, mid, dbl_mb(k_on))
-         if (.not. rtdb_get(rtdb, 'wfat:wfat1_exclude', mt_log, nqn*nch,
-     &        wfat1_exc)) call errquit('WFAT: Failed reading dthr '//
-     &        'from rtdb', 13, RTDB_ERR)
       endif
 
 c     ==== Modified energy for field factors ====

@@ -3,8 +3,8 @@ c=======================================================
       subroutine wfat_2a1e_ti_nopw(rtdb, geom, nqn, nid, mid, gq, zi,
      &     celm, sphi, mch, nr, nt, ke, vcf, erg, chmmt, chpos, orbid0,
      &     spinid, pottype, nel, potparam, pr_srfc, pr_rate, fieldm, 
-     &     wfat1, nr_m, nt_m, nr_p, nt_p, cfx, cfy, cfz, pbs, fedvr, 
-     &     nfe, ndvr, maxn, xq, wq, ismask, mask_param)
+     &     wfat1, nr_m, nt_m, nr_p, nt_p, cfx, cfy, cfz, pbs, wfat1_exc,
+     &     fedvr, nfe, ndvr, maxn, xq, wq, ismask, mask_param)
 
       implicit none
 #include "global.fh"      
@@ -47,6 +47,7 @@ c=======================================================
       double precision cfy(1:*)       ! [input], only used when wfat1=.true.
       double precision cfz(1:*)       ! [input], only used when wfat1=.true.
       double precision pbs(3)         ! [input]. Only used when wfat1=.true.. The diagonal elements of polarizability tensor (matrix), i.e. the xx, yy, zz components.
+      logical wfat1_exc(1:*)          ! [input], only used when wfat1=.true.
       logical fedvr                   ! [input],
       integer nfe                     ! [input], only used when fedvr=.true.
       integer ndvr(*)                 ! [input], only used when fedvr=.true., size is nfe
@@ -56,7 +57,7 @@ c=======================================================
       logical ismask                  ! [input],
       double precision mask_param(2)  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
 
-      logical gap, wfat1_exc(nqn,nch)
+      logical gap
       integer l_sg, l_fc, l_rt, l_icp, l_ipp, l_pt, l_wt, l_vc, l_cl
       integer l_ma, l_tu0, l_tu1, l_acg, l_acj, l_ack, l_dum, l_sc, l_sx
       integer l_pbd, l_sj, l_sk, l_on
@@ -180,9 +181,6 @@ c     ==== When WFAT1 is active ====
          enddo
          if (ndid == 0)
      &        call wfat_print_o(nch, nqn, nid, mid, dbl_mb(k_on))
-         if (.not. rtdb_get(rtdb, 'wfat:wfat1_exclude', mt_log, nqn*nch,
-     &        wfat1_exc)) call errquit('WFAT: Failed reading dthr '//
-     &        'from rtdb', 14, RTDB_ERR)
       endif
 
 c     ==== Initializing the printings ====

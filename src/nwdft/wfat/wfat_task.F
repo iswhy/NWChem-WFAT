@@ -350,8 +350,8 @@ c        =============================================
      &           dbl_mb(k_eg), dbl_mb(k_cmm), nqn, int_mb(k_npa), 
      &           int_mb(k_mpa), lmax, zion, dcpl_mb(k_in), wfat1, 
      &           ndgsub, max_ndgsub, int_mb(k_dgs), int_mb(k_ndgs),
-     &           dbl_mb(k_dps), dbl_mb(k_pbs), dcpl_mb(k_inj), 
-     &           dcpl_mb(k_ink1), dcpl_mb(k_ink2))
+     &           dbl_mb(k_dps), dbl_mb(k_pbs), log_mb(k_w1x), 
+     &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
          else
             if (pr_srfc .or. pr_rate)
      &           call wfat_calc_ti(rtdb, geom_hd, pr_srfc, pr_rate, 
@@ -359,8 +359,8 @@ c        =============================================
      &           dbl_mb(k_eg), dbl_mb(k_cmm), nqn, int_mb(k_npa),
      &           int_mb(k_mpa), lmax, zion, dcpl_mb(k_in), wfat1, 
      &           ndgsub, max_ndgsub, int_mb(k_dgs), int_mb(k_ndgs),
-     &           dbl_mb(k_dps), dbl_mb(k_pbs), dcpl_mb(k_inj), 
-     &           dcpl_mb(k_ink1), dcpl_mb(k_ink2))
+     &           dbl_mb(k_dps), dbl_mb(k_pbs), log_mb(k_w1x), 
+     &           dcpl_mb(k_inj), dcpl_mb(k_ink1), dcpl_mb(k_ink2))
 
             if (pr_tmd .or. pr_tmd_atom) 
      &           call wfat_calcprint_tmd(rtdb, geom_hd, pr_tmd, 
@@ -384,7 +384,7 @@ c        =============================================
      &        gqual, wf_msm, smh, ismask_e, ergmask, amsk, bmsk,
      &        ismask_i, mask_param, wfat1, ndgsub, max_ndgsub,
      &        int_mb(k_dgs), int_mb(k_ndgs), dbl_mb(k_dps),
-     &        dbl_mb(k_pbs))
+     &        dbl_mb(k_pbs), log_mb(k_w1x))
       endif
       if (wfat1)
      &     call wfat_erase_wfat1_dgn(l_dgs, l_dgss, l_ndgs, l_dps,

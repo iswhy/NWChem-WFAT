@@ -3,7 +3,7 @@ c===============================================================
       subroutine wfat_calc_ti(rtdb, geom, pr_srfc, pr_rate, fieldm,
      &           nch, orbid0, spinid, erg, chmmt, nqn, nid, mid, lmax, 
      &           zi, intgl, wfat1, nsub, maxn, dgs, ndgs, dps, pbs,
-     &           intgl_j, intgl_k1, intgl_k2)
+     &           wfat1_exc, intgl_j, intgl_k1, intgl_k2)
 
 c     DESCRIPTION:
 c     nsub = It is only used when wfat1=.true.. The number of degenerate subspaces,
@@ -57,11 +57,12 @@ c           maxn*maxn*6*nsub.
       integer ndgs(1:*)               ! [input]. Only used when wfat1=.true..
       double precision dps(1:*)       ! [input]. Only used when wfat1=.true..
       double precision pbs(1:*)       ! [input]. Only used when wfat1=.true..
+      logical wfat1_exc(1:*)          ! [input]. Only used when wfat1=.true..
       double complex intgl_j(1:*)     ! [input]. Only used when wfat1=.true..
       double complex intgl_k1(1:*)    ! [input]. Only used when wfat1=.true..
       double complex intgl_k2(1:*)    ! [input]. Only used when wfat1=.true..
       
-      logical gap, wfat1_exc(nqn,nch)
+      logical gap
       integer n_gn, nfc, nrt, nbt, ngm, nat, nsc, nsx
       integer npbd, n_jn, n_kn, n_on, ib, ig, ndid, i, iqn, i_on
       integer l_gn, l_fc, l_rt, l_sc, l_sx, l_pbd
@@ -119,9 +120,6 @@ c     ==== When WFAT1 is active ====
             enddo
          enddo
          call wfat_print_o(nch, nqn, nid, mid, dbl_mb(k_on))
-         if (.not. rtdb_get(rtdb, 'wfat:wfat1_exclude', mt_log, nqn*nch,
-     &        wfat1_exc)) call errquit('WFAT: Failed reading dthr '//
-     &        'from rtdb', 1, RTDB_ERR)
       endif
 
       

@@ -1,7 +1,8 @@
 c============================================================
 c============================================================
       subroutine wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
-     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, wfat0, p_rt, rt)
+     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, wfat0, prate,
+     &     rate)
 
       implicit none
 #include "stdio.fh"

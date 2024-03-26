@@ -4,7 +4,7 @@ c=======================================================
      &     fieldm, nb, ns, rdm, nch, orbid0, vch, spinid, erg, chmmt, 
      &     chpos, nqn, nid, mid, zi, gq, celm, smh, ismask_e, ergmask,
      &     amsk, bmsk, ismask, mask_param, wfat1, nsub, maxn, dgs, ndgs,
-     &     dps, pbs)
+     &     dps, pbs, wfat1_exc)
 
       implicit none
 #include "global.fh"      
@@ -49,8 +49,9 @@ c=======================================================
       integer ndgs(1:*)               ! [input]. Only used when wfat1=.true..
       double precision dps(1:*)       ! [input]. Only used when wfat1=.true..
       double precision pbs(1:*)       ! [input]. Only used when wfat1=.true..
-
-      logical gap, wfat1_exc(nqn,nch)
+      logical wfat1_exc(1:*)          ! [input]. Only used when wfat1=.true..
+      
+      logical gap
       integer l_sg, l_fc, l_rt, l_icp, l_ipp, l_pt, l_wt, l_vc, l_cl
       integer l_ma, l_tu0, l_tu1, l_acg, l_acj, l_ack, l_dum, l_sc, l_sx
       integer l_pbd, l_sj, l_sk, l_on, l_si, l_pos
@@ -165,9 +166,6 @@ c     ==== When WFAT1 is active ====
          enddo
          if (ndid == 0)
      &        call wfat_print_o(nch, nqn, nid, mid, dbl_mb(k_on))
-         if (.not. rtdb_get(rtdb, 'wfat:wfat1_exclude', mt_log, nqn*nch,
-     &        wfat1_exc)) call errquit('WFAT: Failed reading dthr '//
-     &        'from rtdb', 16, RTDB_ERR)
       endif
 
       

@@ -333,7 +333,7 @@ c     DESCRIPTION:
       integer nsh, nintg, dummy_int, l_in, k_in
       double precision nall
 
-      logical wfat1
+      logical wfat1, wfat1_exc
       integer ndgsub, max_ndgsub, dgs, ndgs
       double precision dps, pbs
       double complex intgl_j, intgl_k1, intgl_k2, czero
@@ -373,6 +373,7 @@ c     ====      later when WFAT(1) is implemented for ME-WFAT       ====
       ndgs = 1
       dps = 0.0d0
       pbs = 0.0d0
+      wfat1_exc = .false.
       intgl_j = czero
       intgl_k1 = czero
       intgl_k2 = czero
@@ -388,8 +389,8 @@ cOLD     &     intgl_k2)
      &     pr_avbeta, pr_avgamma, nlas, ftlas, alas, wlas, 
      &     plas, tlas, dlas, nt, tmax, extf, nch, dummy_int, spinid, 
      &     erg, chmmt, nqn, nid, mid, lmax, zi, dcpl_mb(k_in), 
-     &     wfat1, ndgsub, max_ndgsub, dgs, ndgs, dps, pbs, intgl_j, 
-     &     intgl_k1, intgl_k2)
+     &     wfat1, ndgsub, max_ndgsub, dgs, ndgs, dps, pbs, wfat1_exc, 
+     &     intgl_j, intgl_k1, intgl_k2)
       
 
       if (.not. ma_free_heap(l_in))
@@ -432,7 +433,7 @@ c     DESCRIPTION:
       integer nsh, nintg, dummy_int, l_in, k_in
       double precision nall
 
-      logical wfat1
+      logical wfat1, wfat1_exc
       integer ndgsub, max_ndgsub, dgs, ndgs
       double precision dps, pbs
       double complex intgl_j, intgl_k1, intgl_k2, czero
@@ -468,6 +469,7 @@ c     ====      later when WFAT(1) is implemented for ME-WFAT       ====
       ndgs = 1
       dps = 0.0d0
       pbs = 0.0d0
+      wfat1_exc = .false.
       intgl_j = czero
       intgl_k1 = czero
       intgl_k2 = czero
@@ -480,7 +482,7 @@ cOLD     &     intgl_j, intgl_k1, intgl_k2)
       call wfat_calc_ti(rtdb, geom, pr_srfc, pr_rate, fieldm, 
      &     1, dummy_int, spinid, erg, chmmt, nqn, nid, mid, lmax,
      &     zi, dcpl_mb(k_in), wfat1, ndgsub, max_ndgsub, dgs, ndgs, dps,
-     &     pbs, intgl_j, intgl_k1, intgl_k2)
+     &     pbs, wfat1_exc, intgl_j, intgl_k1, intgl_k2)
 
       
       if (.not. ma_free_heap(l_in))
