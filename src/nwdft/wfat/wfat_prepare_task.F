@@ -284,7 +284,7 @@ c=================================================
       if (.not. MA_alloc_get(MT_LOG, nw1x, 'wfat1_exc', l_w1x, k_w1x))
      &     call errquit('WFAT: wfat1_exc allocation failed', 59, MA_ERR)
       if (wfat1) then
-         if (.not. rtdb_get(rtdb, 'wfat:wfat1_exclude', mt_log, nw1x,
+         if (.not. rtdb_get(rtdb, 'wfat:wfat1_exclude', mt_log, nw1x, 
      &        log_mb(k_w1x))) call errquit('WFAT: Failed reading '//
      &        'dthr from rtdb', 22, RTDB_ERR)
       endif

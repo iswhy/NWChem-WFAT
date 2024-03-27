@@ -92,12 +92,13 @@ c        ====   where l=[0,lmax] and m=[-l,l] at each point   ====
 
 
          do j = 1, nqn
+            n = nid(j)
+            m = mid(j)
+            
             if (wfat0(j,i)) then
                omg1(:,j,i,:) = czero
                omg2(:,j,i,:) = czero
             else
-               n = nid(j)
-               m = mid(j)
                nl = lmax - abs(m) + 1
                if (.not. MA_alloc_get(MT_DBL, nl*nptp, 'q1',
      &              l_q1, k_q1)) call errquit('WFAT: q1 allocation '//

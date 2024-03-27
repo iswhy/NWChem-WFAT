@@ -40,10 +40,10 @@ c=======================================================
       
       logical wfat_inp_paraqn, wfat_inp_movec, wfat_inp_omgpos
       logical wfat_inp_field, wfat_inp_perturb, wfat_inp_dt
-      logical wfat_inp_tmax, wfat_inp_ffc, wfat_inp_s2a1e
+      logical wfat_inp_tmax, wfat_inp_ffc, wfat_inp_w1x, wfat_inp_s2a1e
       external wfat_inp_paraqn, wfat_inp_movec, wfat_inp_omgpos
       external wfat_inp_field, wfat_inp_perturb, wfat_inp_dt
-      external wfat_inp_tmax, wfat_inp_ffc, wfat_inp_s2a1e
+      external wfat_inp_tmax, wfat_inp_ffc, wfat_inp_w1x, wfat_inp_s2a1e
 
       
       WFAT_PRINT_OPTIONS = (/ 'srfc', 'rate', 'yield', 'avbeta', 
@@ -112,6 +112,9 @@ c     ==== Initial status of WFAT inputs ====
       wfat1_exist = .false.
       wfat1_stat = .false.
 
+      w1x_exist = .false.
+      w1x_stat = .false.
+      
       nlgl_exist = .false.
       nlgl_stat = .false.
 
@@ -319,6 +322,10 @@ c           ==== OPTIONAL INPUTS ====
                wfat1_exist = .true.
                wfat1_stat = .true.
                wfat1 = .true.
+            else if (inp_compare(.false., 'wfat1_exclude', field)) then
+               w1x_exist = .true.
+               w1x_stat = wfat_inp_w1x(W1X_CHARLEN,
+     &              MAX_N_NPARA*MAX_N_ORBID, wfat1_exclude, w1x_len)
             else if (inp_compare(.false., 'nlgl', field)) then
                nlgl_exist = .true.
                nlgl_stat = inp_i(wfat_nlgl)
@@ -1121,6 +1128,77 @@ c=======================================================
 
 c=======================================================
 c=======================================================
+      logical function wfat_inp_w1x(nc, maxn, w1x, n)
+
+      implicit none
+#include "inp.fh"
+#include "errquit.fh"
+      integer nc
+      integer maxn
+      character(len=nc) w1x(maxn)
+      integer n
+
+      integer m, i
+      
+      wfat_inp_w1x = .false.
+      w1x = ''
+      n = 0
+      do i = 1, maxn
+         if (inp_a(w1x(i))) n = n + 1
+      enddo
+
+      if (n == 0) call errquit('WFAT: Input directive '//
+     &     '''wfat1_exclude'' is given without entries.', 8, INPUT_ERR)
+
+      wfat_inp_w1x = .true.
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_extract_w1x(nc, maxn, w1x, nch, orbid, 
+     &     spinid, nqn, nid, mid, w1x_l)
+
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"
+      integer nc                    ! [input],
+      integer maxn                  ! [input],
+      character(len=nc) w1x(maxn)   ! [input],
+      integer nch                   ! [input],
+      integer orbid(nch)            ! [input],
+      integer spinid(nch)           ! [input],
+      integer nqn                   ! [input],
+      integer nid(nqn)              ! [input],
+      integer mid(nqn)              ! [input],
+      logical w1x_l(nqn, nch)       ! [output],
+
+      integer i, ir, ic, info
+      
+
+      w1x_l = .false.
+      do i = 1, maxn
+         if (len_trim(w1x(i)) > 0) then            
+            call wfat_get_channel_id(nch, orbid, spinid, nqn, nid, mid, 
+     &           w1x(i), ir, ic, info)
+            if (info /= 0) then
+               write(luout, '(4x, "info = ", i3)') info
+               call errquit('WFAT: A format non-conforming entry of '//
+     &              'the input directive wfat1_exclude is found.',
+     &              8, INPUT_ERR)
+            endif
+            w1x_l(ir,ic) = .true.
+         endif
+      enddo
+
+      end
+c=======================================================
+      
+      
+c=======================================================
+c=======================================================
       logical function wfat_inp_omgpos(au, omgpos)
 
       implicit none
@@ -1164,7 +1242,7 @@ c=======================================================
 
       end
 c=======================================================
-
+      
 
 c=======================================================
 c=======================================================

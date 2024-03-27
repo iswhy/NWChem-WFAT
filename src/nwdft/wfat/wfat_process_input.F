@@ -239,6 +239,20 @@ c     ==== Checking existence of OPTIONAL INPUTS ====
       else if (wfat1_exist .and. or) then
          write(luout, 202) 'wfat1', 'wfat1'
       endif
+      if (.not. w1x_exist) then
+         wfat1_exclude = DEF_W1X
+         w1x_stat = .true.
+      else if (w1x_exist) then
+         if (or) then
+            write(luout, 202) 'wfat1_exclude', 'wfat1_exclude'
+         else
+            call wfat_extract_w1x(W1X_CHARLEN,
+     &           MAX_N_NPARA*MAX_N_ORBID, wfat1_exclude, n_orbid,
+     &           wfat_orbid0, wfat_spinid, n_npara, npara, mpara,
+     &           wfat1_exclude_l)
+            w1x_stat = .true.
+         endif
+      endif
       if (.not. nlgl_exist) then
          wfat_nlgl = DEF_NLGL
          nlgl_stat = .true.
@@ -510,6 +524,14 @@ c     ==== Checking format of OPTIONAL INPUTS ====
      &        'the format ''wfat1''.',
      &        0, INPUT_ERR)
       endif
+      if (.not. w1x_stat) then
+         call errquit('WFAT: Error reading optional input parameter '//
+     &        '''wfat1_exclude''. Please check if it is specified '//
+     &        'following the format ''wfat1_exclude '//
+     &        '<spin,oid,n,m> ...'' where spin is ''a'' or ''b'', '//
+     &        'oid is movec_id, and n and m are the parabolic '//
+     &        'quantum number.', 0, INPUT_ERR)
+      endif
       if (.not. nlgl_stat) then
          call errquit('WFAT: Error reading optional input parameter '//
      &        '''nlgl''. Please check if it is specified following '//
@@ -750,9 +772,10 @@ c=======================================================
       movec1_need = .false.         ! needed when ME
       sitype_need = .false.         ! needed when ME
       wfat1_need = .false.          ! needed when OE or ME
+      w1x_need = .false.            ! needed when oe or me
       nlgl_need = .false.           ! needed when oe or me
       dthr_need = .false.           ! needed when oe or me
-      ffc_need = .false.       ! needed when oe or me
+      ffc_need = .false.            ! needed when oe or me
       wfat_mask_need = .false.      ! needed when oe or me
       prtb_type_need = .false.      ! needed when OE
       prtb_ord_need = .false.       ! needed when OE
@@ -814,6 +837,8 @@ c TMD notyet     &     .false., .false., nktmd_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     wfat1_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+     &     w1x_need)
+      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     nlgl_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     dthr_need)
@@ -853,6 +878,7 @@ c=======================================================
       movec_need = .false.              ! needed when oe or me
       movec1_need = .false.             ! needed when me
       wfat1_need = .false.              ! needed when oe or me
+      w1x_need = .false.                ! needed when oe or me
       nlgl_need = .false.               ! needed when oe or me
       dthr_need = .false.               ! needed when oe or me
       ffc_need = .false.                ! needed when oe or me
@@ -914,6 +940,8 @@ c=======================================================
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     wfat1_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+     &     w1x_need)
+      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     nlgl_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     dthr_need)
@@ -945,74 +973,6 @@ c=======================================================
          call wfat_need_input0(rt, tmd, tmda, .false., .false., .false.,
      &        .false., prtb_maxord_need)
       endif
-
-
-cOLD      if (print_iony .or. print_avbeta .or. print_avgamma .or.
-cOLD     &     print_tmd .or. print_tmd_atom) then
-cOLD         prtb_type_need = .true.
-cOLD         prtb_ord_need = .true.
-cOLD         prtb_bt_need = .true.
-cOLD         prtb_gm_need = .true.
-cOLD         prtb_dgnthr_need = .true.
-cOLD         prtb_offthr_need = .true.
-cOLD         if (prtb_type == 'bw') then
-cOLD            prtb_e1thr_need = .true. 
-cOLD            prtb_itrthr_need = .true.
-cOLD            prtb_maxitr_need = .true.
-cOLD            prtb_ordthr_need = .true.
-cOLD            prtb_maxord_need = .true.
-cOLD         endif
-cOLD      endif
-cOLD      
-cOLD      if (print_srfc) then
-cOLD         beta_need = .true.
-cOLD         gamma_need = .true.
-cOLD         orbid_need = .true.
-cOLD         paraqn_need = .true.
-cOLD         gqual_need = .true.
-cOLD         omgpos_need = .true.
-cOLD         lmax_need = .true.
-cOLD         intgl_need = .true.
-cOLD         movec_need = .true.
-cOLD      endif
-cOLD      if (print_iony .or. print_avbeta .or. print_avgamma) then
-cOLD         field_need = .true.
-cOLD         beta_need = .true.
-cOLD         gamma_need = .true.
-cOLD         orbid_need = .true.
-cOLD         paraqn_need = .true.
-cOLD         gqual_need = .true.
-cOLD         omgpos_need = .true.
-cOLD         lmax_need = .true.
-cOLD         intgl_need = .true.
-cOLD         movec_need = .true.
-cOLD      endif
-cOLD      if (print_tmd) then
-cOLD         field_need = .true.
-cOLD         beta_tmd_need = .true.
-cOLD         gamma_tmd_need = .true.
-cOLD         nktmd_need = .true.
-cOLD         orbid_need = .true.
-cOLD         paraqn_need = .true.
-cOLD         gqual_need = .true.
-cOLD         omgpos_need = .true.
-cOLD         lmax_need = .true.
-cOLD         intgl_need = .true.
-cOLD         movec_need = .true.
-cOLD      endif
-cOLD      if (print_tmd_atom) then
-cOLD         field_need = .true.
-cOLD         beta_tmd_need = .true.
-cOLD         gamma_tmd_need = .true.
-cOLD         nktmd_need = .true.
-cOLD         orbid_need = .true.
-cOLD         paraqn_need = .true.
-cOLD         gqual_need = .true.
-cOLD         omgpos_need = .true.
-cOLD         lmax_need = .true.
-cOLD         intgl_need = .true.
-cOLD         movec_need = .true.
-cOLD      endif
       
       end
 c=======================================================
@@ -1395,7 +1355,7 @@ c=======================================================
 
       character*2 td
       logical os, oc, or, nosave
-      integer nt_00, er(2)
+      integer nt_00, er(2), nw1x_
       double precision dt_00, tmax_00
 
 
@@ -1767,6 +1727,14 @@ cOLD      if (prtb_ord_need .and. os) then
          if (.not. rtdb_put(rtdb, 'wfat:wfat1', mt_log, 1, wfat1))
      &        call errquit('WFAT: Failed writing wfat1 to RTDB', 1,
      &        RTDB_ERR)
+      endif
+
+      if (w1x_need .and. os) then
+         nw1x_ = n_npara * n_orbid
+         if (.not. rtdb_put(rtdb, 'wfat:wfat1_exclude', mt_log, nw1x_,
+     &        wfat1_exclude_l(1:nw1x_)))
+     &        call errquit('WFAT: Failed writing wfat1_exclude to RTDB',
+     &        1, RTDB_ERR)
       endif
 
       if (nlgl_need .and. os) then

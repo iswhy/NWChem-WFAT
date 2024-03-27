@@ -1478,6 +1478,132 @@ c           ==== 5-point central ====
 
       end
 c============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_get_channel_id(nch, oid, sid, nqn, nid, mid, s, 
+     &     ir, ic, info)
+
+      implicit none
+#include "inp.fh"
+#include "stdio.fh"
+      integer nch         ! [input],
+      integer oid(nch)    ! [input],
+      integer sid(nch)    ! [input],
+      integer nqn         ! [input],
+      integer nid(nqn)    ! [input],
+      integer mid(nqn)    ! [input],
+      character(len=*) s  ! [input],
+      integer ir          ! [output],
+      integer ic          ! [output],
+      integer info        ! [output],
+
+      logical tt
+      integer i1, i2, sid0, oid0, nid0, mid0, ios
+
       
+      info = 0
+      i1 = 0
+c      tt = inp_strtok(s, ' ,', i1, i2)
+
+
+      if (inp_strtok(s, ' ,', i1, i2)) then
+         write(luout, '("spin ", a)') s(i1:i2)
+         if (s(i1:i2) == 'a') then
+            sid0 = 1
+         else if (s(i1:i2) == 'b') then
+            sid0 = 2
+         else
+            info = 1
+         endif
+      else
+         info = 2
+      endif
+
+      if (inp_strtok(s, ' ,', i1, i2)) then
+         write(luout, '("oid ", a)') s(i1:i2)
+         read(s(i1:i2), '(i256)', iostat=ios) oid0
+         if (ios > 0) info = 3
+      else
+         info = 4
+      endif
+
+      call wfat_get_orb_id(oid0, sid0, nch, oid, sid, ic)
+      if (ic < 0) info = 5
+
+
+      if (inp_strtok(s, ' ,', i1, i2)) then
+         write(luout, '("nid ", a)') s(i1:i2)
+         read(s(i1:i2), '(i256)', iostat=ios) nid0
+         if (ios > 0 .or. nid0 < 0) info = 6
+      else
+         info = 7
+      endif
+
+      if (inp_strtok(s, ' ,', i1, i2)) then
+         write(luout, '("mid ", a)') s(i1:i2)
+         read(s(i1:i2), '(i256)', iostat=ios) mid0
+         if (ios > 0) info = 8
+      else
+         info = 9
+      endif
+
+      write(luout, '("nid0 ", 2i20)') nid0, mid0
+      call wfat_get_paraqn_id(nid0, mid0, nqn, nid, mid, ir)
+      if (ir < 0) info = 10
+
+      end
+c============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_get_orb_id(oid0, sid0, nch, oid, sid, id)
+
+      implicit none
+      integer oid0      ! [input],
+      integer sid0      ! [input],
+      integer nch       ! [input],
+      integer oid(nch)  ! [input],
+      integer sid(nch)  ! [input],
+      integer id        ! [output],
+
+      integer i
       
+      id = -1
+      do i = 1, nch
+         if (oid(i) == oid0 .and. sid(i) == sid0) then
+            id = i
+            exit
+         endif
+      enddo
+
+      end
+c============================================================
       
+            
+c============================================================
+c============================================================
+      subroutine wfat_get_paraqn_id(nid0, mid0, nqn, nid, mid, id)
+
+      implicit none
+      integer nid0       ! [input],
+      integer mid0       ! [input],
+      integer nqn        ! [input],
+      integer nid(nqn)   ! [input],
+      integer mid(nqn)   ! [input],
+      integer id         ! [output],
+
+      integer i
+      
+      id = -1
+      do i = 1, nqn
+         if (nid(i) == nid0 .and. mid(i) == mid0) then
+            id = i
+            exit
+         endif
+      enddo
+
+      end
+c============================================================
