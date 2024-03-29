@@ -197,9 +197,14 @@ c     ==== GTO coefficients of ionized orbitals and their properties ====
       call wfat_orb_property(rtdb, nch, int_mb(k_or), int_mb(k_sp), 
      &     dbl_mb(k_cf), dbl_mb(k_eg), dbl_mb(k_ps), dbl_mb(k_cmm),
      &     dbl_mb(k_idp))
-      if (wfat1)
-     &     call wfat_orb1_property(nch, int_mb(k_sp), int_mb(k_or),
-     &     dbl_mb(k_cf+nbas0*nch), dbl_mb(k_pb))
+      if (wfat1) then
+         call wfat_orb1_property(nch, int_mb(k_sp), int_mb(k_or),
+     &        dbl_mb(k_cf+nbas0*nch), dbl_mb(k_pb))
+         if (ndid == 0)
+     &        call wfat_print_w1x(nch, int_mb(k_or0), int_mb(k_sp), nqn,
+     &        int_mb(k_npa), int_mb(k_mpa), log_mb(k_w1x))
+         call ga_sync()
+      endif
 
       
 c     ==== Get the reduced density matrix ====

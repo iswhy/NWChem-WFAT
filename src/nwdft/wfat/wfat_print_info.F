@@ -605,4 +605,48 @@ c=======================================================
 
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_print_w1x(nch, oid, sid, nqn, nid, mid, w1x)
+
+      implicit none
+#include "stdio.fh"
+      integer nch
+      integer oid(nch)
+      integer sid(nch)
+      integer nqn
+      integer nid(nqn)
+      integer mid(nqn)
+      logical w1x(nqn,nch)
+
+      character*12 i_s, n_s, m_s, dt_s
+      integer i, j
+
+
+      write(luout, '(2/)')
+      call wfat_info_banner(luout, .true.)
+      if (any(w1x))
+     &     write(luout, '(5x, a)') 'Some channels and parabolic '//
+     &     'quantum numbers are treated with WFAT(0), they are:'
+
+      do i = 1, nch
+         do j = 1, nqn
+            if (w1x(j,i)) then
+               write(i_s, '(i12)') i
+               write(n_s, '(i12)') nid(j)
+               write(m_s, '(i12)') mid(j)
+               
+               write(luout, '(7x, "Channel: ", a, ",  n = ", '//
+     &              'a, ",  m = ", a)')
+     &              trim(adjustl(i_s)), trim(adjustl(n_s)),
+     &              trim(adjustl(m_s))
+            endif
+         enddo
+      enddo
+
+      end
+c=======================================================
+      
       

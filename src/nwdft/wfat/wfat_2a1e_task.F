@@ -160,6 +160,9 @@ c     ====   eigenstate (the ionized channel)   ====
      &           nr_p, nt_p, g_cf, dbl_mb(k_eg), dbl_mb(k_cfx), 
      &           dbl_mb(k_cfy), dbl_mb(k_cfz), polb)
          endif
+         if (ndid == 0)
+     &        call wfat_print_w1x(nch, orbid, spinid, nqn,
+     &        int_mb(k_npa), int_mb(k_mpa), log_mb(k_w1x))
       endif
       polb33 = 0.0d0
       do i = 1, 3
