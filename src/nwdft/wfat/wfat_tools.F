@@ -1505,11 +1505,8 @@ c============================================================
       
       info = 0
       i1 = 0
-c      tt = inp_strtok(s, ' ,', i1, i2)
-
 
       if (inp_strtok(s, ' ,', i1, i2)) then
-         write(luout, '("spin ", a)') s(i1:i2)
          if (s(i1:i2) == 'a') then
             sid0 = 1
          else if (s(i1:i2) == 'b') then
@@ -1522,7 +1519,6 @@ c      tt = inp_strtok(s, ' ,', i1, i2)
       endif
 
       if (inp_strtok(s, ' ,', i1, i2)) then
-         write(luout, '("oid ", a)') s(i1:i2)
          read(s(i1:i2), '(i256)', iostat=ios) oid0
          if (ios > 0) info = 3
       else
@@ -1534,7 +1530,6 @@ c      tt = inp_strtok(s, ' ,', i1, i2)
 
 
       if (inp_strtok(s, ' ,', i1, i2)) then
-         write(luout, '("nid ", a)') s(i1:i2)
          read(s(i1:i2), '(i256)', iostat=ios) nid0
          if (ios > 0 .or. nid0 < 0) info = 6
       else
@@ -1542,14 +1537,12 @@ c      tt = inp_strtok(s, ' ,', i1, i2)
       endif
 
       if (inp_strtok(s, ' ,', i1, i2)) then
-         write(luout, '("mid ", a)') s(i1:i2)
          read(s(i1:i2), '(i256)', iostat=ios) mid0
          if (ios > 0) info = 8
       else
          info = 9
       endif
 
-      write(luout, '("nid0 ", 2i20)') nid0, mid0
       call wfat_get_paraqn_id(nid0, mid0, nqn, nid, mid, ir)
       if (ir < 0) info = 10
 

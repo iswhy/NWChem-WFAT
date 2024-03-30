@@ -445,32 +445,36 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_collect_tau1(geom, nch, nqn, chmmt, chpos, erg,
-     &     nid, mid, bt, gm, nptp, zi, v_m, tau1)
+     &     nid, mid, bt, gm, nptp, zi, v_m, wfat0, tau1)
 
       implicit none
 #include "stdio.fh"      
 #include "mafdecls.fh"
 #include "errquit.fh"
-      integer geom
-      integer nch
-      integer nqn
+      integer geom                  ! [input],
+      integer nch                   ! [input],
+      integer nqn                   ! [input],
       double precision chmmt(3,nch) ! [input],
-      double precision chpos(3,nch)
+      double precision chpos(3,nch) ! [input],
       double precision erg(nch)     ! [input],
-      integer nid(nqn)              ! [input], 
-      integer mid(nqn)              ! [input], 
+      integer nid(nqn)              ! [input],
+      integer mid(nqn)              ! [input],
       double precision bt           ! [input], beta orientation angle in degrees.
       double precision gm           ! [input], gamma orientation angle in degrees.
       integer nptp                  ! [input], the number of quadrature points for the current process.
       double precision zi           ! [input],
-      double precision v_m(3,nptp)  ! in molecular frame.
-      double complex tau1(nptp, nqn, nch)
+      double precision v_m(3,nptp)  ! [input], in molecular frame.
+      logical wfat0(nqn,nch)        ! [input],
+      double complex tau1(nptp, nqn, nch)    ! [output],
 
       logical t1
       integer l_r, l_t, l_p
       integer k_r, k_t, k_p
       integer i, j, k, n, m
       double precision v_f(3), v_r(3), protmat(3,3)
+      double complex czero
+
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
 
 
       call wfat_passrot(bt, gm, protmat)
@@ -483,7 +487,6 @@ c     ==== Coordinates in molecular frame ====
       if (.not. MA_alloc_get(MT_DBL, nptp, 'p', l_p, k_p))
      &     call errquit('WFAT: p allocation failed', 59, MA_ERR)
 
-      
       do i = 1, nch
          do k = 1, nptp
 c           v_m = grid point in molecular frame
@@ -500,9 +503,13 @@ c           v_r = grid point in rotated channel-center frame
          do j = 1, nqn
             n = nid(j)
             m = mid(j)
-            call wfat_calc_tau1(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
-     &           dbl_mb(k_p), erg(i), zi, bt, gm, chmmt(:,i),
-     &           tau1(:,j,i))
+            if (wfat0(j,i)) then
+               tau1(:,j,i) = czero
+            else
+               call wfat_calc_tau1(n, m, nptp, dbl_mb(k_r), dbl_mb(k_t),
+     &              dbl_mb(k_p), erg(i), zi, bt, gm, chmmt(:,i),
+     &              tau1(:,j,i))
+            endif
          enddo
       enddo
       

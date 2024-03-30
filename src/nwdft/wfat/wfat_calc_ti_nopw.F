@@ -186,8 +186,8 @@ c     ==== Initializing the printings ====
       
       if (ndid == 0) then
          write(luout, '(2/)')
-         call util_print_centered(luout, 'WFAT computation of without'//
-     &        ' partial wave expansion', 50, .true.)
+         call util_print_centered(luout, 'WFAT computation without '//
+     &        'partial wave expansion', 50, .true.)
          write(luout, '("")')
          write(luout, 901)
          write(luout, '("")')
@@ -221,7 +221,7 @@ c           ==== Calculate tau ====
                if (wfat1) then
                   call wfat_collect_tau1(geom, nch, nqn, chmmt, chpos, 
      &                 erg, nid, mid, bt, gm, nptp, zi, dbl_mb(k_pt),
-     &                 dcpl_mb(k_tu1))
+     &                 wfat1_exc, dcpl_mb(k_tu1))
                endif
                if (ndid == 0) then
 c                  write(luout, '("sum tu1: ", 2es20.10)')

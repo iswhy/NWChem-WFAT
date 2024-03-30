@@ -1185,9 +1185,22 @@ c=======================================================
      &           w1x(i), ir, ic, info)
             if (info /= 0) then
                write(luout, '(4x, "info = ", i3)') info
-               call errquit('WFAT: A format non-conforming entry of '//
-     &              'the input directive wfat1_exclude is found.',
-     &              8, INPUT_ERR)
+               write(luout, '(4x, "Bad entry = ", a)')
+     &              trim(adjustl(w1x(i)))
+               if (info == 5) then
+                  call errquit('WFAT: The above entry of input '//
+     &                 'directive wfat1_exclude contains an '//
+     &                 'unspecified ionized channel.', 8, INPUT_ERR)
+               else if (info == 10) then
+                  call errquit('WFAT: The above entry of input '//
+     &                 'directive wfat1_exclude contains an '//
+     &                 'unspecified parabolic quantum number.',
+     &                 8, INPUT_ERR)
+               else
+                  call errquit('WFAT: The above entry of input '//
+     &                 'wfat1_exclude does not conform to the '//
+     &                 'correct format.', 8, INPUT_ERR)
+               endif
             endif
             w1x_l(ir,ic) = .true.
          endif
