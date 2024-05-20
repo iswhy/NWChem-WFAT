@@ -1,64 +1,8 @@
 c============================================================
 c============================================================
       subroutine wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
-     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, wfat0, prate,
-     &     rate)
-
-      implicit none
-#include "stdio.fh"
-      double precision bt                    ! [input],
-      double precision gm                    ! [input],
-      integer nat                            ! [input],
-      integer nqn                            ! [input],
-      integer nch                            ! [input],
-      integer nid(nqn)                       ! [input],
-      integer mid(nqn)                       ! [input],
-      double precision ef                    ! [input],
-      double precision erg(nch)              ! [input],
-      double precision zi                    ! [input],
-      double complex gn(nat, nqn, nch)       ! [input],
-      double complex jn(nat, nqn, nch)       ! [input],
-      double complex kn(nat, nqn, nch)       ! [input],
-      double precision on(2, nqn, nch)       ! [input],
-      double precision chmmt(3,nch)          ! [input],
-      double precision pb(3,3,nch)           ! [input],
-      double precision ffc(nqn, nch)         ! [input],
-      logical wfat0(nqn,nch)                 ! [input],
-      double precision prate(nqn,nch)        ! [output],
-      double precision rate                  ! [output],
-
-      integer i, iqn, n, m
-      double precision dummy
-
-      
-      do i = 1, nch
-         do iqn = 1, nqn
-            n = nid(iqn)
-            m = mid(iqn)
-
-            if (wfat0(iqn,i)) then
-               call wfat_calc_rate(nat, 1, 1, gn(:,iqn,i), 
-     &              ffc(iqn,i), prate(iqn,i), dummy)
-            else
-               call wfat_wfat1_rate(bt, gm, nat, 1, 1, n, m, ef, erg(i),
-     &              zi, gn(:,iqn,i), jn(:,iqn,i), kn(:,iqn,i), 
-     &              on(:,iqn,i), chmmt(:,i), pb(:,:,i), ffc(iqn,i), 
-     &              prate(iqn,i), dummy)
-            endif
-
-         enddo
-      enddo
-
-      rate = sum(prate)
-      
-      end
-c============================================================
-
-      
-c============================================================
-c============================================================
-      subroutine wfat_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
-     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, p_rt, rt)
+     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, wfat0, interm, 
+     &     prate, rate)
 
       implicit none
 #include "stdio.fh"
@@ -80,6 +24,81 @@ c============================================================
       double precision chmmt(3,nch)          ! [input],
       double precision pb(3,3,nch)           ! [input],
       double precision ffc(nqn, nch)         ! [input],
+      logical wfat0(nqn,nch)                 ! [input],
+      logical interm                         ! [input],
+      double precision prate(nqn,nch)        ! [output],
+      double precision rate                  ! [output],
+
+      integer i, iqn, n, m
+      double precision dummy
+
+
+      if (ga_nodeid() == 0 .and. interm) then
+         write(luout, '("")')
+         write(luout, '("ATTENTION: Printing intermediate '//
+     &        'quantities. A_nu, B_nu, and some other intermediate '//
+     &        'quantities will be printed below.")')
+      endif
+       
+      
+      do i = 1, nch
+         do iqn = 1, nqn
+            n = nid(iqn)
+            m = mid(iqn)
+
+            if (wfat0(iqn,i)) then
+               call wfat_calc_rate(nat, 1, 1, gn(:,iqn,i), 
+     &              ffc(iqn,i), prate(iqn,i), dummy)
+            else
+               if (ga_nodeid() == 0 .and. interm) then
+                  write(luout, '("Channel = ", i3)') i
+                  write(luout, '("para. quantum no. (n,m) = ", 2i3)')
+     &                 n, m
+               endif
+               call wfat_wfat1_rate(bt, gm, nat, 1, 1, n, m, ef, erg(i),
+     &              zi, gn(:,iqn,i), jn(:,iqn,i), kn(:,iqn,i), 
+     &              on(:,iqn,i), chmmt(:,i), pb(:,:,i), ffc(iqn,i), 
+     &              interm, prate(iqn,i), dummy)
+            endif
+
+         enddo
+      enddo
+
+      rate = sum(prate)
+
+      if (ga_nodeid() == 0 .and. interm) write(luout, '("")')
+       
+      end
+c============================================================
+
+      
+c============================================================
+c============================================================
+      subroutine wfat_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
+     &     ef, erg, zi, gn, jn, kn, on, chmmt, pb, ffc, interm, p_rt,
+     &     rt)
+
+      implicit none
+#include "stdio.fh"
+#include "global.fh"
+      double precision bt                    ! [input],
+      double precision gm                    ! [input],
+      integer nat                            ! [input],
+      integer nqn                            ! [input],
+      integer nch                            ! [input],
+      integer nid(nqn)                       ! [input],
+      integer mid(nqn)                       ! [input],
+      double precision ef                    ! [input],
+      double precision erg(nch)              ! [input],
+      double precision zi                    ! [input],
+      double complex gn(nat, nqn, nch)       ! [input],
+      double complex jn(nat, nqn, nch)       ! [input],
+      double complex kn(nat, nqn, nch)       ! [input],
+      double precision on(2, nqn, nch)       ! [input],
+      double precision chmmt(3,nch)          ! [input],
+      double precision pb(3,3,nch)           ! [input],
+      double precision ffc(nqn, nch)         ! [input],
+      logical interm                         ! [input],
       double precision p_rt(nqn,nch)         ! [output],
       double precision rt                    ! [output],
       
@@ -127,11 +146,12 @@ cfordebug            write(luout, '("B_nu - 2 Re(a_nu) = ", f15.7)') bb_
 c           ==== These lines below are only for debugging ====
             an2 = on_ + an_/gn_
             bb2 = bb_ + 2 * real(an2)
-            if (ga_nodeid() == 0) then
-c               write(luout, '("A_nu = ", 6f15.7)')
-c     &              bt, gm, aa, lpbz, pb(3,3,1), mu(3)
-c               write(luout, '("   an = ", 2f15.7)') an2
-c               write(luout, '("   B_nu = ", 2f15.7)') bb2
+            if (ga_nodeid() == 0 .and. interm) then
+               write(luout, '("(beta, gamma) = ", 2f15.6)') bt, gm
+               write(luout, '("   a_nu = ", 2es15.7)') an2
+               write(luout, '("   A_nu = ", es15.7)') aa
+               write(luout, '("   B_nu = ", es15.7)') bb2
+               write(luout, '("   alpha_zz = ", es15.7)') lpbz
             endif
             
          enddo
@@ -235,11 +255,12 @@ c        ==== Calculate rates ====
          if (las >= 1.0d-13) then
             call wfat_calc_wfat1_rate(bt, gm, nat, nqn, nch, nid, mid,
      &           las, erg, zi, gn, jn, kn, on, chmmt, pb, dbl_mb(k_fc),
-     &           wfat0, dbl_mb(k_pi), rate)
+     &           wfat0, .false., dbl_mb(k_pi), rate)
          else if (las <= -1.0d-13) then
             call wfat_calc_wfat1_rate(180.0d0-bt, 180.0d0+gm, nat, nqn,
      &           nch, nid, mid, abs(las), erg, zi, gnn, jnn, knn, on, 
-     &           chmmt, pb, dbl_mb(k_fc), wfat0, dbl_mb(k_pi), rate)
+     &           chmmt, pb, dbl_mb(k_fc), wfat0, .false., dbl_mb(k_pi),
+     &           rate)
          else
             dbl_mb(k_pi : k_pi+npi-1) = 0.0d0
             rate = 0.0d0

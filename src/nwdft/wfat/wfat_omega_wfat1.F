@@ -55,14 +55,14 @@ c=======================================================
 
       if (ndid == 0) then
          write(luout, '(2/)')
-         call util_print_centered(luout, 'Computation of the Q '//
+         call util_print_centered(luout, 'Computation of Q '//
      &        'functions', 50, .true.)
          write(luout, '("")')
          write(luout, 901)
          write(luout, '("")')
       endif
  901  format(
-     &     5x, 'The computation of the Q functions needed by WFAT(1) ',
+     &     5x, 'The computation of Q functions needed by WFAT(1) ',
      &     'has started. This part can take up to several minutes, ', /,
      &     5x, 'depending on the number of channels, parabolic ',
      &     'quantum numbers, maximum angular momentum, and integration',
@@ -138,7 +138,7 @@ c           ==== Print timing ====
       enddo
       dt_all = t_now - t_start
       write(dt_s, '(f12.2)') dt_all
-      if (ndid == 0) write(luout, '(5x, "The computation of the Q '//
+      if (ndid == 0) write(luout, '(5x, "The computation of Q '//
      &     'functions for WFAT(1) takes ", a, " s.")')
      &     trim(adjustl(dt_s))
 

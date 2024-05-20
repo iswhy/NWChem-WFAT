@@ -19,7 +19,7 @@ c============================================================
 
       
       write(luout, '(2/)')
-      call util_print_centered(luout, 'The spherical harmonics '//
+      call util_print_centered(luout, 'Spherical harmonics '//
      &     'components of WFAT integrals', 53, .true.)
       write(luout, '("")')
 
