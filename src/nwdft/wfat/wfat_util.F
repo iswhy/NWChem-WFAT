@@ -1346,7 +1346,8 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_unique_count_i(nl, list, n)
-
+c     DESCRIPTION:
+c     Counts the number of different integers in a list.
       implicit none
       integer nl
       integer list(nl)

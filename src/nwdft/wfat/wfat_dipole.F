@@ -86,6 +86,7 @@ c           maxn*maxn*6*nsub.
 
       implicit none
 #include "errquit.fh"
+#include "stdio.fh"
       integer nch                              ! [input]
       integer orbid(nch)                       ! [input]
       integer nsub                             ! [input]
@@ -100,8 +101,12 @@ c           maxn*maxn*6*nsub.
 
       integer i, is, nn, j, jj, idv(maxn)
 
-      if (maxn < maxval(ndgs)) call errquit('WFAT: Incompatibility '//
-     &     'between maxn and ndgs detected.', 28, UERR)
+      if (maxn < maxval(ndgs)) then
+         write(luout, '("maxn = ", i4)') maxn
+         write(luout, '("max. ndgs = ", i4)') maxval(ndgs)
+         call errquit('WFAT: Incompatibility '//
+     &        'between maxn and ndgs detected.', 28, UERR)
+      endif
       
       dps = 0.0d0
       do i = 1, nsub

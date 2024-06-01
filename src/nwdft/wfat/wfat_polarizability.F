@@ -123,6 +123,7 @@ c           yz. Its minimum size is maxn*maxn*6*nsub.
 
       implicit none
 #include "errquit.fh"
+#include "stdio.fh"
       integer nch                             ! [input]
       integer orbid(nch)                      ! [input]
       integer nsub                            ! [input]
@@ -140,8 +141,12 @@ c           yz. Its minimum size is maxn*maxn*6*nsub.
       integer cartid(2,6)
 
 
-      if (maxn < maxval(ndgs)) call errquit('WFAT: Incompatibility '//
-     &     'between maxn and ndgs detected.', 55, UERR)
+      if (maxn < maxval(ndgs)) then
+         write(luout, '("maxn = ", i4)') maxn
+         write(luout, '("max. ndgs = ", i4)') maxval(ndgs)
+         call errquit('WFAT: Incompatibility '//
+     &        'between maxn and ndgs detected.', 55, UERR)
+      endif
 
 c     ==== Cartesian ID translation ====
       cartid(:,1) = (/ 1, 1 /)

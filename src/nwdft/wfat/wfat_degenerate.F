@@ -223,6 +223,7 @@ c     channels of different spins are considered as belonging to a different deg
 c     subspace. It also returns the dimension of the largest subspace.
 
       implicit none
+#include "stdio.fh"
       integer ns           ! [input]
       integer nch          ! [input]
       integer orbid(nch)   ! [input]
@@ -238,8 +239,8 @@ c     subspace. It also returns the dimension of the largest subspace.
       call wfat_detect_degen0(nch, orbid, spinid, dgid0, dgn0)
       maxn = maxval(dgn0)
       
-      id = -9999
       do is = 1, ns
+         id = -9999
          do ich = 1, nch
 c           ==== Collect degenerate IDs belonging to spin channel is ====
             if (spinid(ich) == is) id(ich) = dgid0(ich)
@@ -264,6 +265,7 @@ c============================================================
      &     ndgs)
 
       implicit none
+#include "stdio.fh"
       integer nch
       integer orbid(nch)
       integer spinid(nch)
@@ -305,8 +307,6 @@ c        ==== Size of this degenerate subspace ====
          ndgs(i) = dgn0(dgs(1,i))
       enddo
 
-cOLD      maxn = maxval(ndgs)
-      
       end
 c     NOTES:
 c     1) Exit otherwise the next set of unused channels ID will overwrite what's been
