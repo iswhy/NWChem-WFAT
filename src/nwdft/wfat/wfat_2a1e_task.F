@@ -143,6 +143,7 @@ c     ====   eigenstate (the ionized channel)   ====
      &        nel_2a, potparam, nr, nt, init_ke, mult_ke, maxiter, g_cf,
      &        dbl_mb(k_eg), edip, out_ke)
       endif
+      call wfat_2a1e_mandip(rtdb, edip)
       call ga_get(g_cf, 1, nr*nt, orbid, orbid, dbl_mb(k_cf), nr*nt)
       
       call wfat_2a1e_prep_cf1(wfat1, fedvr, rtdb, mch, nr, nt, nr_m, 

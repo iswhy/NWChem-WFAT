@@ -70,8 +70,9 @@ c     ==== Center, 1st moment, and cation dipole ====
      &        call ga_get(g_mo1(is), 1, nb, 1, n1(is), dbl_mb(i_mo1),
      &        nb)
       enddo
-      call mewfat_channel_moment(geom, bas, nb, n0, n1, dbl_mb(k_mo0),
-     &     dbl_mb(k_mo1), edipm0, edipm1, chcent, chmmt, dipm1)
+      call mewfat_channel_moment(rtdb, geom, bas, nb, n0, n1, 
+     &     dbl_mb(k_mo0), dbl_mb(k_mo1), edipm0, edipm1, chcent, chmmt,
+     &     dipm1)
 
 
 c     ==== Print Channel properties ====
@@ -386,11 +387,70 @@ c     ==== Calculate the total energy ====
       end
 c=================================================
 
+
+c=================================================
+c=================================================
+      subroutine mewfat_channel_moment(rtdb, geom, bas, nb, n0, n1, 
+     &     ocmo0, ocmo1, edipm0, edipm1, chcent, chmmt, dipm1)
+
+      implicit none
+#include "stdio.fh"
+#include "errquit.fh"
+#include "rtdb.fh"
+#include "mafdecls.fh"
+      integer rtdb
+      integer geom                               ! [input],
+      integer bas                                ! [input],
+      integer nb                                 ! [input],
+      integer n0(2)                              ! [input],
+      integer n1(2)                              ! [input],
+      double precision ocmo0(nb, n0(1)+n0(2))    ! [input], occupied neutral MO coeffs. The first n0(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision ocmo1(nb, n1(1)+n1(2))    ! [input], occupied cation MO coeffs. The first n1(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision edipm0(3)                 ! [output], unshifted neutral e. dipole moment.
+      double precision edipm1(3)                 ! [output], unshifted cation e. dipole moment.
+      double precision chcent(3)                 ! [output], channel center.
+      double precision chmmt(3)                  ! [output], shifted channel moment.
+      double precision dipm1(3)                  ! [output], shifted cation dipole moment.
+
+      logical umandip(1)
+      double precision mdip(3)
+
+      
+      call mewfat_get_orbcent(geom, bas, nb, n0, n1, ocmo0, ocmo1,
+     &     edipm0, edipm1, chcent, dipm1)
+
+
+c     ==== When using manual dipole ====
+      if (rtdb_get(rtdb, 'wfat:use_mandip', mt_log, 1, umandip)) then
+         if (umandip(1)) then
+            if (rtdb_get(rtdb, 'wfat:mandip', mt_dbl, 3*1, mdip)) then
+c              mdip contains alternatives to
+c                 -(<Psi|\vec{r}|Psi> - <Psi^+|\vec{r}|Psi^+>)
+               exit
+            else
+               call errquit('MEWFAT: Manual dipole is used but '//
+     &              'cannot find it in RTDB.', 1, RTDB_ERR)
+            endif
+         endif
+      else
+         umandip(1) = .false.
+      endif
+
+      
+      if (umandip(1)) then
+         chmmt = mdip - chcent               ! Shifted channel first moment
+      else
+         chmmt = -(edipm0 - edipm1) - chcent ! Shifted channel first moment
+      endif
+      
+      end
+c=================================================
+      
       
 c=================================================
 c=================================================
-      subroutine mewfat_channel_moment(geom, bas, nb, n0, n1, ocmo0,
-     &     ocmo1, edipm0, edipm1, chcent, chmmt, dipm1)
+      subroutine mewfat_get_orbcent(geom, bas, nb, n0, n1, ocmo0,
+     &     ocmo1, edipm0, edipm1, chcent, dipm1)
 
       implicit none
 #include "errquit.fh"
@@ -407,7 +467,7 @@ c=================================================
       double precision edipm0(3)                 ! [output], unshifted neutral e. dipole moment.
       double precision edipm1(3)                 ! [output], unshifted cation e. dipole moment.
       double precision chcent(3)                 ! [output], channel center.
-      double precision chmmt(3)                  ! [output], shifted channel moment.
+cOLD      double precision chmmt(3)                  ! [output], shifted channel moment.
       double precision dipm1(3)                  ! [output], shifted cation dipole moment.
 
       character*8 dipname(3)
@@ -470,7 +530,7 @@ c        ==== Cation dipole ====
      &     nucmmt, NMMT)
       ndipm1 = nucmmt(2:4)
       chcent = (ndipm1 + edipm1) / (zt-sum(n1))      ! Channel center
-      chmmt = -(edipm0 - edipm1) - chcent            ! Shifted channel first moment
+cOLD      chmmt = -(edipm0 - edipm1) - chcent            ! Shifted channel first moment
       dipm1 = ndipm1 + edipm1 - (zt-sum(n1))*chcent  ! Shifted cation dipole moment, should be zero.
 
 

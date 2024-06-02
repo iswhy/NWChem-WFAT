@@ -389,7 +389,12 @@ c===============================================================
 
       if (.not. geom_ncent(geom, nc))
      &     call errquit('WFAT: Cannot get ncenters.', 40, GEOM_ERR)
-      
+
+c     Orbital center (orbcent) is given by D_{ion}/(tot. charge)
+c     where D_{ion} and tot. charge are the total dipole and total
+c     charge of cation. For a system (one electron initially), the
+c     cation is a bare molecule. Thus the above two quantities
+c     corresponds to the total dipole and charge of the nuclei.
       orbcent = 0.0d0
       do i = 1, nc
          if (.not. geom_cent_get(geom, i, t, r, q))

@@ -24,18 +24,8 @@ c=======================================================
       
             
       call wfat_get_coef(nch, orbid, spinid, vcf, erg)
-c      if (.not. rtdb_get(rtdb, 'wfat:man_dip', mt_log, 1, ismandip))
-c     &     ismandip = .false.
-
-      if (ismandip) then
-cOLD      call wfat_get_man_orbcent(rtdb, nch, orbcent, orbmmt, iondip)
-         call wfat_man_channel_moment()
-      else
-COLD         call wfat_get_orbcent(rtdb, nch, orbid, spinid, 
-COLD     &        orbcent, orbmmt, iondip)
-         call wfat_channel_moment()
-      endif
-
+      call wfat_channel_moment(rtdb, nch, orbid, spinid, orbcent, 
+     &     orbmmt, iondip)
       
       if (ga_nodeid() == 0) then
          call wfat_print_orb_property(nch, orbid, spinid, erg,
@@ -183,6 +173,82 @@ c     #include "cscf.fh"
 
       end
 c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_channel_moment(rtdb, nch, orbid, spinid, 
+     &           orbcent, orbmmt, iondip)
+
+      implicit none
+#include "stdio.fh"
+#include "errquit.fh"
+#include "mafdecls.fh"
+#include "rtdb.fh"
+      integer rtdb
+      integer nch
+      integer orbid(nch)
+      integer spinid(nch)
+      double precision orbcent(3, nch)   ! [output], channel center (shifting amount).
+      double precision orbmmt(3, nch)    ! [output], shifted channel dipole moment.
+      double precision iondip(3, nch)    ! [output], shifted total dipole of cation.
+
+      logical umandip(nch)
+      integer l_om0, k_om0, l_omm, k_omm, iom0, iomm
+      integer i, id
+
+
+      if (.not. MA_alloc_get(MT_DBL, 3*nch, 'chmmt0', l_om0, k_om0))
+     &     call errquit('WFAT: chmmt0 allocation failed', 1, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, 3*nch, 'chmmt0', l_omm, k_omm))
+     &     call errquit('WFAT: chmmt_man allocation failed', 1, MA_ERR)
+      call wfat_get_orbcent(rtdb, nch, orbid, spinid, orbcent,
+     &     dbl_mb(k_om0), iondip)
+
+      
+c     ==== When using manual dipole ====
+      if (rtdb_get(rtdb, 'wfat:use_mandip', mt_log, nch, umandip)) then
+         do i = 1, nch
+            if (umandip(i)) then
+               if (rtdb_get(rtdb, 'wfat:mandip', mt_dbl, 3*nch,
+     &              dbl_mb(k_omm))) then
+c                 dbl_mb(k_omm) contains alternatives to <psi|\vec{r}|psi>,
+c                 note that there is no negative sign.
+                  exit
+               else
+                  call errquit('WFAT: Manual dipole is used but '//
+     &                 'cannot find it in RTDB.', 1, RTDB_ERR)
+               endif
+            endif
+         enddo
+      else
+         umandip(:) = .false.
+      endif
+
+      
+c     ==== Compute orb. moments relative to the orb. center ====
+      do i = 1, nch
+         do id = 1, 3
+            if (umandip(i)) then
+               iomm = k_omm + 3*(i-1) + (id-1)
+               orbmmt(id,i) = dbl_mb(iomm) - orbcent(id,i)
+            else
+               iom0 = k_om0 + 3*(i-1) + (id-1)
+               orbmmt(id,i) = dbl_mb(iom0) - orbcent(id,i)
+            endif
+         enddo
+      enddo
+
+      
+c     ==== Deallocations ====
+      if (.not. MA_free_heap(l_om0))
+     &     call errquit('WFAT: chmmt0 deallocation failed', 1, MA_ERR)
+      if (.not. MA_free_heap(l_omm))
+     &     call errquit('WFAT: chmmt_man deallocation failed', 1,
+     &     MA_ERR)
+      
+      end
+c=======================================================
       
 
 c=======================================================
@@ -204,7 +270,7 @@ c=======================================================
       integer orbid(nch)
       integer spinid(nch)
       double precision orbcent(3, nch)   ! [output], channel center (shifting amount).
-      double precision orbmmt0(3, nch)   ! [output], unshifted channel dipole moment.
+      double precision orbmmt0(3, nch)   ! [output], unshifted channel dipole moment, <psi|\vec{r}|psi>. Note that there is no negative sign.
       double precision iondip(3, nch)    ! [output], shifted total dipole of cation.
 
       logical autopos
@@ -306,8 +372,8 @@ c     Notes:
 c       1) orbmmt0 is conceptually a 3D array of size [nbas0, nspin0, 3].
 c       2) mpmat is conceptually a 3D array of size [nbas0, nbas0, NMMT].
 c=======================================================
-
-
+      
+      
 c=======================================================
 c=======================================================
       subroutine wfat_get_man_orbcent_OLD(rtdb, nch, orbcent, orbmmt,
@@ -340,79 +406,3 @@ c=======================================================
 
       end
 c=======================================================
-
-
-c=======================================================
-c=======================================================
-      subroutine wfat_channel_moment(rtdb, nch, orbid, spinid, 
-     &           orbcent, orbmmt, iondip)
-
-      implicit none
-#include "stdio.fh"
-#include "errquit.fh"
-#include "mafdecls.fh"
-#include "rtdb.fh"
-      integer rtdb
-      integer nch
-      integer orbid(nch)
-      integer spinid(nch)
-      double precision orbcent(3, nch)   ! [output], channel center (shifting amount).
-      double precision orbmmt(3, nch)    ! [output], shifted channel dipole moment.
-      double precision iondip(3, nch)    ! [output], shifted total dipole of cation.
-
-      logical umandip(nch)
-      integer l_om0, k_om0, l_omm, k_omm, iom0, iomm
-      integer i, id
-
-
-      if (.not. MA_alloc_get(MT_DBL, 3*nch, 'chmmt0', l_om0, k_om0))
-     &     call errquit('WFAT: chmmt0 allocation failed', 1, MA_ERR)
-      if (.not. MA_alloc_get(MT_DBL, 3*nch, 'chmmt0', l_omm, k_omm))
-     &     call errquit('WFAT: chmmt_man allocation failed', 1, MA_ERR)
-      call wfat_get_orbcent(rtdb, nch, orbid, spinid, orbcent,
-     &     dbl_mb(k_om0), iondip)
-
-      
-c     ==== When using manual dipole ====
-      if (rtdb_get(rtdb, 'wfat:use_mandip', mt_log, nch, umandip)) then
-         do i = 1, nch
-            if (umandip(i)) then
-               if (rtdb_get(rtdb, 'wfat:mandip', mt_dbl, 3*nch,
-     &              dbl_mb(k_omm))) then
-                  exit
-               else
-                  call errquit('WFAT: Manual dipole is used but '//
-     &                 'cannot find it in RTDB.', 1, RTDB_ERR)
-               endif
-            endif
-         enddo
-      else
-         umandip(:) = .false.
-      endif
-
-      
-c     ==== Compute orb. moments relative to the orb. center ====
-      do i = 1, nch
-         do id = 1, 3
-            if (umandip(i)) then
-               iomm = k_omm + 3*(i-1) + (id-1)
-               orbmmt(id,i) = dbl_mb(iomm) - orbcent(id,i)
-            else
-               iom0 = k_om0 + 3*(i-1) + (id-1)
-               orbmmt(id,i) = dbl_mb(iom0) - orbcent(id,i)
-            endif
-         enddo
-      enddo
-
-      
-c     ==== Deallocations ====
-      if (.not. MA_free_heap(l_om0))
-     &     call errquit('WFAT: chmmt0 deallocation failed', 1, MA_ERR)
-      if (.not. MA_free_heap(l_omm))
-     &     call errquit('WFAT: chmmt_man deallocation failed', 1,
-     &     MA_ERR)
-      
-      end
-c=======================================================
-      
-      
