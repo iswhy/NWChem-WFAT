@@ -114,6 +114,9 @@ c     ==== Initial status of WFAT inputs ====
 
       w1x_exist = .false.
       w1x_stat = .false.
+
+      mdip_exist = .false.
+      mdip_stat = .false.
       
       nlgl_exist = .false.
       nlgl_stat = .false.
@@ -326,6 +329,10 @@ c           ==== OPTIONAL INPUTS ====
                w1x_exist = .true.
                w1x_stat = wfat_inp_w1x(W1X_CHARLEN,
      &              MAX_N_NPARA*MAX_N_ORBID, wfat1_exclude, w1x_len)
+            else if (inp_compare(.false., 'mydipole', field)) then
+               mdip_exist= .true.
+               mdip_stat = wfat_inp_mydip(MDIP_CHARLEN,
+     &              MAX_N_ORBID, wfat_mdip_s, wfat_mdip, mdip_len)
             else if (inp_compare(.false., 'nlgl', field)) then
                nlgl_exist = .true.
                nlgl_stat = inp_i(wfat_nlgl)
@@ -1138,7 +1145,7 @@ c=======================================================
       character(len=nc) w1x(maxn)
       integer n
 
-      integer m, i
+      integer i
       
       wfat_inp_w1x = .false.
       w1x = ''
@@ -1181,7 +1188,7 @@ c=======================================================
       w1x_l = .false.
       do i = 1, maxn
          if (len_trim(w1x(i)) > 0) then            
-            call wfat_get_channel_id(nch, orbid, spinid, nqn, nid, mid, 
+            call wfat_read_channel_id(nch, orbid, spinid, nqn, nid, mid,
      &           w1x(i), ir, ic, info)
             if (info /= 0) then
                write(luout, '(4x, "info = ", i3)') info
@@ -1205,6 +1212,65 @@ c=======================================================
             w1x_l(ir,ic) = .true.
          endif
       enddo
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      logical function wfat_inp_mydip(nc, maxn, dip_s, dip, n)
+
+      implicit none
+#include "inp.fh"
+#include "errquit.fh"
+      integer nc
+      integer maxn
+      character(len=nc) dip_s(maxn)
+      double precision dip(3,maxn)
+      integer n
+
+      integer i
+      double precision tmp(3)
+      
+
+      wfat_inp_mydip = .false.
+
+      if (inp_f(tmp(1))) then
+c        mydipole  dipx dipy dipz
+         n = maxn
+         if (.not. inp_f(tmp(2))) call errquit('WFAT: Cannot read '//
+     &        'the y component of manual dipole.', 8, INPUT_ERR)
+         if (.not. inp_f(tmp(3))) call errquit('WFAT: Cannot read '//
+     &        'the z component of manual dipole.', 8, INPUT_ERR)
+         do i = 1, maxn
+            dip_s(i) = 'all'
+            dip(:,i) = tmp
+         enddo
+      else
+c        mydipole \
+c          "sid1 oid1"  dipx1 dipy1 dipz1 \
+c          "sid2 oid2"  dipx2 dipy2 dipz2 \
+c          ...
+         dip_s = ''
+         n = 0
+         do i = 1, maxn            
+            if (inp_a(dip_s(i))) then
+               if (.not. inp_f(tmp(1))) call errquit('WFAT: Cannot '//
+     &        'read the x component of manual dipole.', 18, INPUT_ERR)
+               if (.not. inp_f(tmp(2))) call errquit('WFAT: Cannot '//
+     &        'read the y component of manual dipole.', 18, INPUT_ERR)
+               if (.not. inp_f(tmp(3))) call errquit('WFAT: Cannot '//
+     &        'read the z component of manual dipole.', 18, INPUT_ERR)
+               n = n + 1
+               dip(:,i) = tmp
+            endif
+         enddo
+         if (n == 0) call errquit('WFAT: Input directive ''mydipole'''//
+     &        'is given without entries.', 8, INPUT_ERR)
+      endif
+
+      wfat_inp_mydip = .true.
 
       end
 c=======================================================

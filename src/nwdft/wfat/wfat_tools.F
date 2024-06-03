@@ -1482,9 +1482,17 @@ c============================================================
 
 c============================================================
 c============================================================
-      subroutine wfat_get_channel_id(nch, oid, sid, nqn, nid, mid, s, 
+      subroutine wfat_read_channel_id(nch, oid, sid, nqn, nid, mid, s, 
      &     ir, ic, info)
-
+c     DESCSRIPTION:
+c     Reads off the element address of a channel (consisting of
+c     a spin-orbital and parabolic quantum numbers) from a given
+c     list of spin-orbitals and quantum numbers.
+c     
+c     Acceptable format for s is "A<delim>B<delim>C<delim>D" where A,
+c     B, C, and D are spin ID, orbital ID, n parabolic quantum number,
+c     and m parabolic quantum number, respectively. <delim> is the
+c     delimiter, which must be either a blank space character or a comma.
       implicit none
 #include "inp.fh"
 #include "stdio.fh"
@@ -1552,8 +1560,64 @@ c============================================================
 
 c============================================================
 c============================================================
-      subroutine wfat_get_orb_id(oid0, sid0, nch, oid, sid, id)
+      subroutine wfat_read_orb_id(nch, oid, sid, s, ic, info)
+c     DESCSRIPTION:
+c     Reads off the element address of a spin-orbital from a given
+c     list of spin-orbitals.
+c     
+c     Acceptable format for s is "A<delim>B<delim>C<delim>D" where A,
+c     B, C, and D are spin ID, orbital ID, n parabolic quantum number,
+c     and m parabolic quantum number, respectively. <delim> is the
+c     delimiter, which must be either a blank space character or a comma.
+      implicit none
+#include "inp.fh"
+#include "stdio.fh"
+      integer nch         ! [input],
+      integer oid(nch)    ! [input],
+      integer sid(nch)    ! [input],
+      character(len=*) s  ! [input],
+      integer ic          ! [output],
+      integer info        ! [output],
 
+      logical tt
+      integer i1, i2, sid0, oid0, ios
+
+      
+      info = 0
+      i1 = 0
+
+      if (inp_strtok(s, ' ,', i1, i2)) then
+         if (s(i1:i2) == 'a') then
+            sid0 = 1
+         else if (s(i1:i2) == 'b') then
+            sid0 = 2
+         else
+            info = 1
+         endif
+      else
+         info = 2
+      endif
+
+      if (inp_strtok(s, ' ,', i1, i2)) then
+         read(s(i1:i2), '(i256)', iostat=ios) oid0
+         if (ios > 0) info = 3
+      else
+         info = 4
+      endif
+
+      call wfat_get_orb_id(oid0, sid0, nch, oid, sid, ic)
+      if (ic < 0) info = 5
+
+      end
+c============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_get_orb_id(oid0, sid0, nch, oid, sid, id)
+c     DESCRIPTION:
+c     Returns the element address of an orbital with orbital ID oid0 and
+c     spin ID sid0.
       implicit none
       integer oid0      ! [input],
       integer sid0      ! [input],
@@ -1579,7 +1643,9 @@ c============================================================
 c============================================================
 c============================================================
       subroutine wfat_get_paraqn_id(nid0, mid0, nqn, nid, mid, id)
-
+c     DESCRIPTION:
+c     Returns the element address of a parabolic channel with n quantum
+c     number nid0 and m quantum number mid0.
       implicit none
       integer nid0       ! [input],
       integer mid0       ! [input],
