@@ -31,7 +31,8 @@ General steps to add new inputs for the WFAT module:
      
   6) Inside the wfat_sanity_input subroutine, add a checking mechanism to determine
      if the supplied value for newinp make sense, e.g. if it has to be positive,
-     integer, etc. Some subroutines exists for this purpose, see examples there.
+     integer, etc. Some utility subroutines exists for this purpose, see examples
+     there.
      
   7) Inside the wfat_putrtdb_input subroutine, determine whether to put newinp into
      the RTDB or not based on its necessity determined at step 3) above. In doing

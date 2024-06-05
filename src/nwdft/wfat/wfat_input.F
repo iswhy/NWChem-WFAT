@@ -327,11 +327,11 @@ c           ==== OPTIONAL INPUTS ====
                wfat1 = .true.
             else if (inp_compare(.false., 'wfat1_exclude', field)) then
                w1x_exist = .true.
-               w1x_stat = wfat_inp_w1x(W1X_CHARLEN,
+               w1x_stat = wfat_inp_w1x(CHID_CHARLEN,
      &              MAX_N_NPARA*MAX_N_ORBID, wfat1_exclude, w1x_len)
             else if (inp_compare(.false., 'mydipole', field)) then
                mdip_exist= .true.
-               mdip_stat = wfat_inp_mydip(MDIP_CHARLEN,
+               mdip_stat = wfat_inp_mydip(ORBID_CHARLEN,
      &              MAX_N_ORBID, wfat_mdip_s, wfat_mdip, mdip_len)
             else if (inp_compare(.false., 'nlgl', field)) then
                nlgl_exist = .true.
@@ -1187,7 +1187,7 @@ c=======================================================
 
       w1x_l = .false.
       do i = 1, maxn
-         if (len_trim(w1x(i)) > 0) then            
+         if (len_trim(w1x(i)) > 0) then
             call wfat_read_channel_id(nch, orbid, spinid, nqn, nid, mid,
      &           w1x(i), ir, ic, info)
             if (info /= 0) then
@@ -1224,6 +1224,7 @@ c=======================================================
       implicit none
 #include "inp.fh"
 #include "errquit.fh"
+#include "wfat_const.fh"
       integer nc
       integer maxn
       character(len=nc) dip_s(maxn)
@@ -1253,6 +1254,7 @@ c          "sid1 oid1"  dipx1 dipy1 dipz1 \
 c          "sid2 oid2"  dipx2 dipy2 dipz2 \
 c          ...
          dip_s = ''
+         dip = DEF_MDIP
          n = 0
          do i = 1, maxn            
             if (inp_a(dip_s(i))) then
@@ -1272,6 +1274,64 @@ c          ...
 
       wfat_inp_mydip = .true.
 
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_process_mydip(nchar, dip_s, nch, orbid, spinid,
+     &     dip, dip_l)
+
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"
+#include "wfat_constant.fh"
+      integer nchar                  ! [input],
+      character(len=nchar) dip_s(*)  ! [input],
+      integer nch                    ! [input],
+      integer orbid(nch)             ! [input],
+      integer spinid(nch)            ! [input],
+      double precision dip(3,*)      ! [in/output],
+      logical dip_l(*)               ! [output],
+
+      integer i, ic, info
+      double precision tmp(3,nch)
+
+
+      tmp = DEF_MDIP
+      dip_l = .false.
+      do i = 1, nch
+         if (len_trim(dip_s(i)) > 0) then
+            if (trim(adjustl(dip_s(i))) == 'all') then
+               dip_l(1:nch) = .true.
+               tmp(1:nch) = dip(1:nch)
+               exit
+            else
+               call wfat_read_orb_id(nch, orbid, spinid, dip_s(i), ic,
+     &              info)
+               if (info /= 0) then
+                  write(luout, '(4x, "info = ", i3)') info
+                  write(luout, '(4x, "Bad entry = ", a)')
+     &                 trim(adjustl(dip_s(i)))
+                  if (info == 5) then
+                     call errquit('WFAT: The above entry of input '//
+     &                    'directive mydipole contains an '//
+     &                    'unspecified ionized channel.', 8, INPUT_ERR)
+                  else
+                     call errquit('WFAT: The above entry of input '//
+     &                    'mydipole does not conform to the '//
+     &                    'correct format.', 8, INPUT_ERR)
+                  endif
+               endif
+               dip_l(ic) = .true.
+               tmp(ic) = dip(i)
+            endif
+         endif
+      enddo
+
+      dip(1:nch) = tmp(1:nch)
+      
       end
 c=======================================================
       

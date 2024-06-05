@@ -246,11 +246,23 @@ c     ==== Checking existence of OPTIONAL INPUTS ====
          if (or) then
             write(luout, 202) 'wfat1_exclude', 'wfat1_exclude'
          else
-            call wfat_extract_w1x(W1X_CHARLEN,
+            call wfat_extract_w1x(CHID_CHARLEN,
      &           MAX_N_NPARA*MAX_N_ORBID, wfat1_exclude, n_orbid,
      &           wfat_orbid0, wfat_spinid, n_npara, npara, mpara,
      &           wfat1_exclude_l)
             w1x_stat = .true.
+         endif
+      endif
+      if (.not. mdip_exist) then
+         wfat_mdip(:,:) = DEF_MDIP
+         mdip_stat = .true.
+      else
+         if (or) then
+            write(luout, 202) 'mydipole', 'mydipole'
+         else
+            call wfat_process_mydip(ORBID_CHARLEN, wfat_mdip_s, n_orbid,
+     &           wfat_orbid0, wfat_spinid, wfat_mdip, wfat_mdip_l)
+            mdip_stat = .true.
          endif
       endif
       if (.not. nlgl_exist) then
@@ -528,10 +540,20 @@ c     ==== Checking format of OPTIONAL INPUTS ====
          call errquit('WFAT: Error reading optional input parameter '//
      &        '''wfat1_exclude''. Please check if it is specified '//
      &        'following the format ''wfat1_exclude '//
-     &        '<spin,oid,n,m> ...'' where spin is ''a'' or ''b'', '//
+     &        '"spin, oid" ...'' where spin is ''a'' or ''b'', '//
      &        'oid is movec_id, and n and m are the parabolic '//
      &        'quantum number.', 0, INPUT_ERR)
       endif
+
+      if (.not. mdip_stat) then
+         call errquit('WFAT: Error reading optional input parameter '//
+     &        '''mydipole''. Please check if it is specified '//
+     &        'following the format ''mydipole '//
+     &        '"spin, oid" dipx dipy dipz ...'' where spin is ''a'' '//
+     &        'or ''b'', oid is movec_id, and dipx dipy dipz are the '//
+     &        'three Cartesian components of dipole.', 0, INPUT_ERR)
+      endif
+      
       if (.not. nlgl_stat) then
          call errquit('WFAT: Error reading optional input parameter '//
      &        '''nlgl''. Please check if it is specified following '//
@@ -773,6 +795,7 @@ c=======================================================
       sitype_need = .false.         ! needed when ME
       wfat1_need = .false.          ! needed when OE or ME
       w1x_need = .false.            ! needed when oe or me
+      mdip_need = .false.           ! needed when oe or me
       nlgl_need = .false.           ! needed when oe or me
       dthr_need = .false.           ! needed when oe or me
       ffc_need = .false.            ! needed when oe or me
@@ -839,6 +862,8 @@ c TMD notyet     &     .false., .false., nktmd_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     w1x_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+     &     mdip_need)
+      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     nlgl_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     dthr_need)
@@ -879,6 +904,7 @@ c=======================================================
       movec1_need = .false.             ! needed when me
       wfat1_need = .false.              ! needed when oe or me
       w1x_need = .false.                ! needed when oe or me
+      mdip_need = .false.               ! needed when oe or me
       nlgl_need = .false.               ! needed when oe or me
       dthr_need = .false.               ! needed when oe or me
       ffc_need = .false.                ! needed when oe or me
@@ -941,6 +967,8 @@ c=======================================================
      &     wfat1_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     w1x_need)
+      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+     &     mdip_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     nlgl_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
@@ -1734,6 +1762,17 @@ cOLD      if (prtb_ord_need .and. os) then
          if (.not. rtdb_put(rtdb, 'wfat:wfat1_exclude', mt_log, nw1x_,
      &        wfat1_exclude_l(1:nw1x_)))
      &        call errquit('WFAT: Failed writing wfat1_exclude to RTDB',
+     &        1, RTDB_ERR)
+      endif
+
+      if (mdip_need .and. os) then
+         if (.not. rtdb_put(rtdb, 'wfat:use_mandip', mt_log, n_orbid,
+     &        wfat_mdip_l(1:n_orbid)))
+     &        call errquit('WFAT: Failed writing use_mandip to RTDB',
+     &        1, RTDB_ERR)
+         if (.not. rtdb_put(rtdb, 'wfat:mandip', mt_dbl, 3*n_orbid,
+     &        wfat_mdip(1:3, 1:n_orbid)))
+     &        call errquit('WFAT: Failed writing mandip to RTDB',
      &        1, RTDB_ERR)
       endif
 
