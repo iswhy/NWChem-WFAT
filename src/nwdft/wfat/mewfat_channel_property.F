@@ -423,14 +423,11 @@ c=================================================
 c     ==== When using manual dipole ====
       if (rtdb_get(rtdb, 'wfat:use_mandip', mt_log, 1, umandip)) then
          if (umandip(1)) then
-            if (rtdb_get(rtdb, 'wfat:mandip', mt_dbl, 3*1, mdip)) then
-c              mdip contains alternatives to
-c                 -(<Psi|\vec{r}|Psi> - <Psi^+|\vec{r}|Psi^+>)
-               exit
-            else
-               call errquit('MEWFAT: Manual dipole is used but '//
-     &              'cannot find it in RTDB.', 1, RTDB_ERR)
-            endif
+            if (.not. rtdb_get(rtdb, 'wfat:mandip', mt_dbl, 3*1, mdip))
+     &           call errquit('MEWFAT: Manual dipole is used but '//
+     &           'cannot find it in RTDB.', 1, RTDB_ERR)
+c           mdip contains alternatives to
+c              -(<Psi|\vec{r}|Psi> - <Psi^+|\vec{r}|Psi^+>)
          endif
       else
          umandip(1) = .false.

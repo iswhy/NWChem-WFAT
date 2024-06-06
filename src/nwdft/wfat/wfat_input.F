@@ -41,9 +41,11 @@ c=======================================================
       logical wfat_inp_paraqn, wfat_inp_movec, wfat_inp_omgpos
       logical wfat_inp_field, wfat_inp_perturb, wfat_inp_dt
       logical wfat_inp_tmax, wfat_inp_ffc, wfat_inp_w1x, wfat_inp_s2a1e
+      logical wfat_inp_mydip
       external wfat_inp_paraqn, wfat_inp_movec, wfat_inp_omgpos
       external wfat_inp_field, wfat_inp_perturb, wfat_inp_dt
       external wfat_inp_tmax, wfat_inp_ffc, wfat_inp_w1x, wfat_inp_s2a1e
+      external wfat_inp_mydip
 
       
       WFAT_PRINT_OPTIONS = (/ 'srfc', 'rate', 'yield', 'avbeta', 
@@ -330,7 +332,7 @@ c           ==== OPTIONAL INPUTS ====
                w1x_stat = wfat_inp_w1x(CHID_CHARLEN,
      &              MAX_N_NPARA*MAX_N_ORBID, wfat1_exclude, w1x_len)
             else if (inp_compare(.false., 'mydipole', field)) then
-               mdip_exist= .true.
+               mdip_exist = .true.
                mdip_stat = wfat_inp_mydip(ORBID_CHARLEN,
      &              MAX_N_ORBID, wfat_mdip_s, wfat_mdip, mdip_len)
             else if (inp_compare(.false., 'nlgl', field)) then
@@ -1286,7 +1288,7 @@ c=======================================================
       implicit none
 #include "errquit.fh"
 #include "stdio.fh"
-#include "wfat_constant.fh"
+#include "wfat_const.fh"
       integer nchar                  ! [input],
       character(len=nchar) dip_s(*)  ! [input],
       integer nch                    ! [input],
@@ -1300,12 +1302,12 @@ c=======================================================
 
 
       tmp = DEF_MDIP
-      dip_l = .false.
+      dip_l(1:nch) = .false.
       do i = 1, nch
          if (len_trim(dip_s(i)) > 0) then
             if (trim(adjustl(dip_s(i))) == 'all') then
                dip_l(1:nch) = .true.
-               tmp(1:nch) = dip(1:nch)
+               tmp(:,1:nch) = dip(:,1:nch)
                exit
             else
                call wfat_read_orb_id(nch, orbid, spinid, dip_s(i), ic,
@@ -1325,12 +1327,12 @@ c=======================================================
                   endif
                endif
                dip_l(ic) = .true.
-               tmp(ic) = dip(i)
+               tmp(:,ic) = dip(:,i)
             endif
          endif
       enddo
 
-      dip(1:nch) = tmp(1:nch)
+      dip(:,1:nch) = tmp(:,1:nch)
       
       end
 c=======================================================

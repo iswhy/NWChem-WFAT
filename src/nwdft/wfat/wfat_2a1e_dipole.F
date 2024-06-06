@@ -1010,14 +1010,11 @@ C     edip may be overwritten by this subroutine.
 c     ==== When using manual dipole ====
       if (rtdb_get(rtdb, 'wfat:use_mandip', mt_log, 1, umandip)) then
          if (umandip(1)) then
-            if (rtdb_get(rtdb, 'wfat:mandip', mt_dbl, 3*1, edip)) then
-c              edip contains alternatives to <psi|\vec{r}|psi>,
-c              note that there is no negative sign.
-               exit
-            else
-               call errquit('WFAT: Manual dipole is used with 2a1e '//
-     &              'but cannot find it in RTDB.', 1, RTDB_ERR)
-            endif
+            if (.not. rtdb_get(rtdb, 'wfat:mandip', mt_dbl, 3*1, edip))
+     &           call errquit('WFAT: Manual dipole is used with 2a1e '//
+     &           'but cannot find it in RTDB.', 1, RTDB_ERR)
+c           edip contains alternatives to <psi|\vec{r}|psi>,
+c           note that there is no negative sign.
          endif
       else
          umandip(1) = .false.
