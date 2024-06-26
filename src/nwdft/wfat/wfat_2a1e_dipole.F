@@ -995,7 +995,7 @@ c===============================================================
 !========================================================
       subroutine wfat_2a1e_mandip(rtdb, edip)
 c     WARNING:
-C     edip may be overwritten by this subroutine.
+c     edip may be overwritten by this subroutine.
       implicit none
 #include "stdio.fh"
 #include "errquit.fh"

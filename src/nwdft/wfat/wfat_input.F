@@ -41,11 +41,11 @@ c=======================================================
       logical wfat_inp_paraqn, wfat_inp_movec, wfat_inp_omgpos
       logical wfat_inp_field, wfat_inp_perturb, wfat_inp_dt
       logical wfat_inp_tmax, wfat_inp_ffc, wfat_inp_w1x, wfat_inp_s2a1e
-      logical wfat_inp_mydip
+      logical wfat_inp_mydip, wfat_inp_myerg
       external wfat_inp_paraqn, wfat_inp_movec, wfat_inp_omgpos
       external wfat_inp_field, wfat_inp_perturb, wfat_inp_dt
       external wfat_inp_tmax, wfat_inp_ffc, wfat_inp_w1x, wfat_inp_s2a1e
-      external wfat_inp_mydip
+      external wfat_inp_mydip, wfat_inp_myerg
 
       
       WFAT_PRINT_OPTIONS = (/ 'srfc', 'rate', 'yield', 'avbeta', 
@@ -119,6 +119,9 @@ c     ==== Initial status of WFAT inputs ====
 
       mdip_exist = .false.
       mdip_stat = .false.
+
+      merg_exist = .false.
+      merg_stat = .false.
       
       nlgl_exist = .false.
       nlgl_stat = .false.
@@ -335,6 +338,10 @@ c           ==== OPTIONAL INPUTS ====
                mdip_exist = .true.
                mdip_stat = wfat_inp_mydip(ORBID_CHARLEN,
      &              MAX_N_ORBID, wfat_mdip_s, wfat_mdip, mdip_len)
+            else if (inp_compare(.false., 'myenergy', field)) then
+               merg_exist = .true.
+               merg_stat = wfat_inp_myerg(ORBID_CHARLEN,
+     &              MAX_N_ORBID, wfat_merg_s, wfat_merg, merg_len)
             else if (inp_compare(.false., 'nlgl', field)) then
                nlgl_exist = .true.
                nlgl_stat = inp_i(wfat_nlgl)
@@ -1282,9 +1289,64 @@ c=======================================================
 
 c=======================================================
 c=======================================================
+      logical function wfat_inp_myerg(nc, maxn, erg_s, erg, n)
+
+      implicit none
+#include "inp.fh"
+#include "errquit.fh"
+#include "wfat_const.fh"
+      integer nc
+      integer maxn
+      character(len=nc) erg_s(maxn)
+      double precision erg(maxn)
+      integer n
+
+      integer i
+      double precision tmp
+      
+
+      wfat_inp_myerg = .false.
+
+      if (inp_f(tmp)) then
+c        myenergy  erg
+         n = maxn
+         do i = 1, maxn
+            erg_s(i) = 'all'
+            erg(i) = tmp
+         enddo
+      else
+c        myenergy \
+c          "sid1 oid1"  erg1 \
+c          "sid2 oid2"  erg2 \
+c          ...
+         erg_s = ''
+         erg = DEF_MERG
+         n = 0
+         do i = 1, maxn            
+            if (inp_a(erg_s(i))) then
+               if (.not. inp_f(tmp)) call errquit('WFAT: Cannot '//
+     &        'read manual energy.', 18, INPUT_ERR)
+               n = n + 1
+               erg(i) = tmp
+            endif
+         enddo
+         if (n == 0) call errquit('WFAT: Input directive ''myenergy'''//
+     &        'is given without entries.', 8, INPUT_ERR)
+      endif
+
+      wfat_inp_myerg = .true.
+
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
       subroutine wfat_process_mydip(nchar, dip_s, nch, orbid, spinid,
      &     dip, dip_l)
-
+c     DESCRIPTION:
+c     Rearranges contents of dip so that they are filled based on the
+c     channel indices contained in dip_s.
       implicit none
 #include "errquit.fh"
 #include "stdio.fh"
@@ -1333,6 +1395,66 @@ c=======================================================
       enddo
 
       dip(:,1:nch) = tmp(:,1:nch)
+      
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_process_myerg(nchar, erg_s, nch, orbid, spinid,
+     &     erg, erg_l)
+c     DESCRIPTION:
+c     Rearranges contents of erg so that they are filled based on the
+c     channel indices contained in erg_s.
+      implicit none
+#include "errquit.fh"
+#include "stdio.fh"
+#include "wfat_const.fh"
+      integer nchar                  ! [input],
+      character(len=nchar) erg_s(*)  ! [input],
+      integer nch                    ! [input],
+      integer orbid(nch)             ! [input],
+      integer spinid(nch)            ! [input],
+      double precision erg(*)        ! [in/output],
+      logical erg_l(*)               ! [output],
+
+      integer i, ic, info
+      double precision tmp(nch)
+
+
+      tmp = DEF_MERG
+      erg_l(1:nch) = .false.
+      do i = 1, nch
+         if (len_trim(erg_s(i)) > 0) then
+            if (trim(adjustl(erg_s(i))) == 'all') then
+               erg_l(1:nch) = .true.
+               tmp(1:nch) = erg(1:nch)
+               exit
+            else
+               call wfat_read_orb_id(nch, orbid, spinid, erg_s(i), ic,
+     &              info)
+               if (info /= 0) then
+                  write(luout, '(4x, "info = ", i3)') info
+                  write(luout, '(4x, "Bad entry = ", a)')
+     &                 trim(adjustl(erg_s(i)))
+                  if (info == 5) then
+                     call errquit('WFAT: The above entry of input '//
+     &                    'directive myenergy contains an '//
+     &                    'unspecified ionized channel.', 8, INPUT_ERR)
+                  else
+                     call errquit('WFAT: The above entry of input '//
+     &                    'myenergy does not conform to the '//
+     &                    'correct format.', 8, INPUT_ERR)
+                  endif
+               endif
+               erg_l(ic) = .true.
+               tmp(ic) = erg(i)
+            endif
+         endif
+      enddo
+
+      erg(1:nch) = tmp(1:nch)
       
       end
 c=======================================================

@@ -51,5 +51,5 @@ General steps to add new inputs for the WFAT module:
   8) Add the declaration of newinp, newinp_exist, newinp_stat, and newinp_need into
      wfat_input.fh and include them under the wfat_input_var COMMON block. If newinp
      is an optional input, then also add the declaration of the corresponding 
-     default value, say def_newinp, inside wfat_input.fh. Make def_newinp a
+     default value, say def_newinp, inside wfat_const.fh. Make def_newinp a
      parameter.

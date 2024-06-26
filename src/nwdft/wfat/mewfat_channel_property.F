@@ -43,6 +43,7 @@ c     ==== Ionization energy ====
       call mewfat_channel_ionize(rtdb, geom, bas, nb, gq, mcel, n0,
      &     n1, g_mo0, g_mo1, chg0, chg1, mult0, mult1, tol2e, oskel, 
      &     ixcfit, iolgc, gserg0, gserg1, ionerg)
+      call wfat_manerg(rtdb, 1, ionerg)
 
       if (rtdb_get(rtdb, 'mewfat:manual_ip', mt_dbl, 1, manip))
      &     then

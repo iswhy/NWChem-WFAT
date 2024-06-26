@@ -265,6 +265,18 @@ c     ==== Checking existence of OPTIONAL INPUTS ====
             mdip_stat = .true.
          endif
       endif
+      if (.not. merg_exist) then
+         wfat_merg(:) = DEF_MERG
+         merg_stat = .true.
+      else
+         if (or) then
+            write(luout, 202) 'myenergy', 'myenergy'
+         else
+            call wfat_process_myerg(ORBID_CHARLEN, wfat_merg_s, n_orbid,
+     &           wfat_orbid0, wfat_spinid, wfat_merg, wfat_merg_l)
+            merg_stat = .true.
+         endif
+      endif
       if (.not. nlgl_exist) then
          wfat_nlgl = DEF_NLGL
          nlgl_stat = .true.
@@ -553,6 +565,15 @@ c     ==== Checking format of OPTIONAL INPUTS ====
      &        'or ''b'', oid is movec_id, and dipx dipy dipz are the '//
      &        'three Cartesian components of dipole.', 0, INPUT_ERR)
       endif
+
+      if (.not. merg_stat) then
+         call errquit('WFAT: Error reading optional input parameter '//
+     &        '''myenergy''. Please check if it is specified '//
+     &        'following the format ''myenergy '//
+     &        '"spin, oid" erg ...'' where spin is ''a'' '//
+     &        'or ''b'', oid is movec_id, and erg is the '//
+     &        'manually given ionization energy.', 0, INPUT_ERR)
+      endif
       
       if (.not. nlgl_stat) then
          call errquit('WFAT: Error reading optional input parameter '//
@@ -796,6 +817,7 @@ c=======================================================
       wfat1_need = .false.          ! needed when OE or ME
       w1x_need = .false.            ! needed when oe or me
       mdip_need = .false.           ! needed when oe or me
+      merg_need = .false.           ! needed when oe or me
       nlgl_need = .false.           ! needed when oe or me
       dthr_need = .false.           ! needed when oe or me
       ffc_need = .false.            ! needed when oe or me
@@ -864,6 +886,8 @@ c TMD notyet     &     .false., .false., nktmd_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     mdip_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+     &     merg_need)
+      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     nlgl_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     dthr_need)
@@ -905,6 +929,7 @@ c=======================================================
       wfat1_need = .false.              ! needed when oe or me
       w1x_need = .false.                ! needed when oe or me
       mdip_need = .false.               ! needed when oe or me
+      merg_need = .false.               ! needed when oe or me
       nlgl_need = .false.               ! needed when oe or me
       dthr_need = .false.               ! needed when oe or me
       ffc_need = .false.                ! needed when oe or me
@@ -969,6 +994,8 @@ c=======================================================
      &     w1x_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     mdip_need)
+      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+     &     merg_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     nlgl_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
@@ -1773,6 +1800,17 @@ cOLD      if (prtb_ord_need .and. os) then
          if (.not. rtdb_put(rtdb, 'wfat:mandip', mt_dbl, 3*n_orbid,
      &        wfat_mdip(1:3, 1:n_orbid)))
      &        call errquit('WFAT: Failed writing mandip to RTDB',
+     &        1, RTDB_ERR)
+      endif
+
+      if (merg_need .and. os) then
+         if (.not. rtdb_put(rtdb, 'wfat:use_manerg', mt_log, n_orbid,
+     &        wfat_merg_l(1:n_orbid)))
+     &        call errquit('WFAT: Failed writing use_manerg to RTDB',
+     &        1, RTDB_ERR)
+         if (.not. rtdb_put(rtdb, 'wfat:manerg', mt_dbl, n_orbid,
+     &        wfat_merg(1:n_orbid)))
+     &        call errquit('WFAT: Failed writing manerg to RTDB',
      &        1, RTDB_ERR)
       endif
 

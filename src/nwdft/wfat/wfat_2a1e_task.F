@@ -89,6 +89,7 @@ c     ==== Extract the parameters of the quantum system ====
 c     ==== Allocate the coefficients and energies array ====
       call wfat_2a1e_prep_cf(nr, nt, g_cf, l_cf, k_cf, l_eg, k_eg)
       i_eg = k_eg + (orbid-1)
+      call wfat_manerg(rtdb, 1, dbl_mb(i_eg))
 
 
 c     ==== Obtain parabolic quantum numbers ====

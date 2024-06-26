@@ -24,6 +24,7 @@ c=======================================================
       
             
       call wfat_get_coef(nch, orbid, spinid, vcf, erg)
+      call wfat_manerg(rtdb, nch, erg)
       call wfat_channel_moment(rtdb, nch, orbid, spinid, orbcent, 
      &     orbmmt, iondip)
       
@@ -373,6 +374,58 @@ c       1) orbmmt0 is conceptually a 3D array of size [nbas0, nspin0, 3].
 c       2) mpmat is conceptually a 3D array of size [nbas0, nbas0, NMMT].
 c=======================================================
       
+
+c=======================================================
+c=======================================================
+      subroutine wfat_manerg(rtdb, nch, erg)
+c     WARNING:
+c     erg may be overwritten by this subroutine.
+      implicit none
+#include "rtdb.fh"
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer rtdb                ! [input]
+      integer nch                 ! [input]
+      double precision erg(nch)   ! [in/output]
+
+      logical umanerg(nch)
+      integer i, l_eg, k_eg
+      
+
+      if (.not. MA_alloc_get(MT_DBL, nch, 'manerg', l_eg, k_eg))
+     &     call errquit('WFAT: manerg allocation failed', 1, MA_ERR)
+      
+      
+c     ==== When using manual dipole ====
+      if (rtdb_get(rtdb, 'wfat:use_manerg', mt_log, nch, umanerg)) then
+         do i = 1, nch
+            if (umanerg(i)) then
+               if (rtdb_get(rtdb, 'wfat:manerg', mt_dbl, nch,
+     &              dbl_mb(k_eg))) then
+c                 dbl_mb(k_eg) contains alternatives to orbital energies.
+                  exit
+               else
+                  call errquit('WFAT: Manual energy is used but '//
+     &                 'cannot find it in RTDB.', 1, RTDB_ERR)
+               endif
+            endif
+         enddo
+      else
+         umanerg(:) = .false.
+      endif
+
+      
+c     ==== Replace proper orb. energy with the custom ones, if any ====
+      do i = 1, nch
+         if (umanerg(i)) erg(i) = dbl_mb(k_eg + i - 1)
+      enddo
+      
+
+      if (.not. MA_free_heap(l_eg))
+     &     call errquit('WFAT: manerg deallocation failed', 1, MA_ERR)
+      end
+c=======================================================
+
       
 c=======================================================
 c=======================================================
