@@ -1,4 +1,92 @@
+c=======================================================
+c=======================================================
+      subroutine wfat_dft_vcpsi_1pt_x(icent, ghan, bhan, nbas, nspin,
+     &           nch, vch, spinid, chpos, vpt, cgrid, rdm, zi, smh,
+     &           scr, mask, ergmask, amsk, bmsk, vc_psi)
+      
+c     DESCRIPTION:
+c     When wfat1 is true, vch, spinid, chpos, and vc_psi must have 4*nch columns.
+c     The first nch columns contains the GTO coefficients of the unperturbed orbital.
+c     The remaining 3*nch columns contains the Cartesian components of the correction
+c     of each orbital arranged in this way,
+c       orb1_x orb1_y orb1_z orb2_x orb2_y orb2_z ... orb<nch>_x orb<nch>_y orb<nch>_z.
+      implicit none
+#include "mafdecls.fh"
+#include "errquit.fh"
+      integer icent
+      integer ghan
+      integer bhan
+      integer nbas
+      integer nspin
+      integer nch                     ! [input], the number of unperturbed channels.
+      double precision vch(nbas,*)    ! [input], no. of column is nch if wfat1 is false, otherwise, 4*nch.
+      integer spinid(*)               ! [input], no. of elements is nch if wfat1 is false, otherwise, 4*nch.
+      double precision chpos(3,*)     ! [input], no. of column is nch if wfat1 is false, otherwise, 4*nch.
+      double precision vpt(3, nch)    ! [input], Cartesian coordinate of the evaluation point in the molecular frame.
+      logical cgrid(nch)
+      double precision rdm(nbas, nbas, nspin)
+      double precision zi
+      double precision smh
+      double precision scr(1:*)    ! [input], scratch array with min. no. of elements being 21*nbas+4*nspin + nbas * (3*nbas+1+nspin) + 4*nch
+      logical mask
+      double precision ergmask      !< [Input]. Only used when mask=.true.
+      double precision amsk         !< [Input]. Only used when mask=.true.
+      double precision bmsk         !< [Input]. Only used when mask=.true.
+      double precision vc_psi(*)    ! [output], no. of elements is nch if wfat1 is false, otherwise, 4*nch.
 
+      integer i, nch1, l_cf, k_cf, i_cf, b, i1, i2
+      double precision vcp(4)
+
+      
+      nch1 = 0
+      b = 0
+      if (wfat1) then
+         nch1 = 3*nch
+         b = 3
+      endif
+      
+      if (icent /= 0) then
+c        When icent > 0, the columns of vpt should all be identical. In this
+c        case, the first column will be used for the following calculation.
+         call wfat_dft_vcpsi_1pt(ghan, bhan, nbas, nspin, nch+nch1, vch,
+     &        spinid, chpos, vpt(:,1), rdm, zi, smh, scr, mask, ergmask,
+     &        amsk, bmsk, vc_psi)
+      else
+         if (.not. MA_push_get(MT_DBL, nbas*(1+b), 'vc', l_cf, k_cf))
+     &        call errquit('WFAT: vc allocation failed', 24, MA_ERR)
+
+         do i = 1, nch
+            if (wfat1) then
+               i1 = 1 + nch + (i-1)*3
+               i2 = i1 + 2
+            endif
+            
+            if (cgrid(i)) then
+               dbl_mb(k_cf:k_cf+nbas-1) = vch(:,i)
+               if (wfat1) then
+                  i_cf = k_cf + nbas
+                  dbl_mb(i_cf:i_cf+3*nbas-1) = vch(:, i1:i2)
+               endif
+               call wfat_dft_vcpsi_1pt(ghan, bhan, nbas, nspin, 1+b, 
+     &              dbl_mb(k_cf), spinid(i), chpos(:,i), vpt(:,i), rdm, 
+     &              zi, smh, scr, mask, ergmask, amsk, bmsk, vcp)
+               vc_psi(i) = vcp(1)
+               if (wfat1) vc_psi(i1:i2) = vcp(2:4)
+            else
+               vc_psi(i) = 0.0d0
+               if (wfat1) vc_psi(i1:i2) = 0.0d0
+            endif
+         enddo
+
+         if (.not. MA_pop_stack(l_cf))
+     &        call errquit('WFAT: vc deallocation failed', 24, GA_ERR)
+      endif
+      
+
+      end
+c=======================================================
+
+      
 c=======================================================
 c=======================================================
       subroutine wfat_dft_vcpsi_1pt(ghan, bhan, nbas, nspin,

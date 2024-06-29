@@ -5,7 +5,13 @@ c==== Imam ====
      &     mid, lmax_, gqual, zi, celm, smh, res_mode, wfat1, nlgl, 
      &     wfat1_exc, nb, ns, rdm, vch, erg, chpos, chmmt, iondip, 
      &     ismask, mask_param, g_il, g_j, g_k)
-      
+
+c     DESCRIPTION:
+c     When wfat1 is true, vch must have 4*nch columns. The first nch columns
+c     contains the GTO coefficients of the unperturbed orbital. The remaining
+c     3*nch columns contains the Cartesian components of the correction of
+c     each orbital arranged in this way,
+c       orb1_x orb1_y orb1_z orb2_x orb2_y orb2_z ... orb<nch>_x orb<nch>_y orb<nch>_z.
       implicit none
 #include "util.fh"
 #include "rtdb.fh"
@@ -66,7 +72,7 @@ c==== Imam ====
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
       integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch), pr_count
       integer pr_chk(10), kk, g_nptx, g_npt_tot
-      double precision atp(3), znuc, v_c(3), v_m(3), normch, celf
+      double precision atp(3), znuc, v_c(3), v_m(3,nch), normch, celf
       double precision wtcelf, t_now, t_last, t_start, dt_all
       double precision dt_prog, nptx, npt_tot, kp, dum1, dum2, dum3
       double complex czero, cone
@@ -76,6 +82,10 @@ c==== Imam ====
      &          cone = cmplx(1.0d0, 0.0d0, kind=kind(1.0d0)) )
 
 
+      solve these
+c     1) Fix wfat_collect_mfgrid
+      
+      
       call ga_sync()
       ndid = ga_nodeid()
 
@@ -206,24 +216,35 @@ c     ==== Loop over atoms ====
          if (.not. geom_cent_get(geom, icent, tag, atp, znuc))
      &        call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
 
+c        ==== Get all grids associated to the current atom/center ====
          call wfat_get_gridpt(int(znuc), gqual, max_npt, npt,
-     &                        dbl_mb(k_pt : k_pt+3*max_npt-1),
-     &                        dbl_mb(k_wt : k_wt+max_npt-1))
-
+     &        dbl_mb(k_pt), dbl_mb(k_wt))
+            
+c        ==== The first and last grids around the current center ====
+c        ====      that are contained in the current process     ====
          ipt_i = int_mb(k_ipp + (ic-1)*2)
-         ipt_f = int_mb(k_ipp + 1 + (ic-1)*2)
+         ipt_f = int_mb(k_ipp + (ic-1)*2 + 1)
+         
 c        ==== Loop over all quadrature points around the current atom ====
          do ipt = ipt_i, ipt_f
             jpt = jpt + 1             ! Needed for wfat1.
-            ipt0 = k_pt + 3*(ipt-1)
-            v_c(1:3) = dbl_mb(ipt0 : ipt0+2)
-            call geom_cent2cent(geom, icent, v_c, imf, v_m, t1)
+            if (icent == 0) then
+               ipt0 = k_opt + 3*nch*(ipt-1)
+               call wfat_mf_ogrid(nch, cgrid, chpos, dbl_mb(ipt0), v_m)
+            else
+               ipt0 = k_pt + 3*(ipt-1)
+               v_c(1:3) = dbl_mb(ipt0 : ipt0+2)
+               call geom_cent2cent(geom, icent, v_c, imf, v_m(:,1), t1)
+               v_m(1,2:) = v_m(1,1)
+               v_m(2,2:) = v_m(2,1)
+               v_m(3,2:) = v_m(3,1)
+            endif
             
 c           ==== Calculate vc|psi> ====
-            call wfat_dft_vcpsi_1pt(geom, bas, nb, ns, nch+nch1, vch, 
-     &           int_mb(k_si), dbl_mb(k_pos), v_m, rdm, zi, smh,
-     &           dbl_mb(k_sc:k_sc+nscr-1), .false., dum1, dum2, dum3, 
-     &           dbl_mb(k_vc:k_vc+nvc-1))
+            call wfat_dft_vcpsi_1pt_x(icent, geom, bas, nb, ns, nch, 
+     &           vch, int_mb(k_si), dbl_mb(k_pos), v_m, cgrid, rdm, zi,
+     &           smh, dbl_mb(k_sc), .false., dum1, dum2, dum3, 
+     &           dbl_mb(k_vc))
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
             call wfat_omega_1pt(geom, v_m, nch, erg, chpos, nqn, nid, 
@@ -962,9 +983,32 @@ c=======================================================
 
       end
 c=======================================================
-      
-      
-      
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_mf_ogrid(nch, cgrid, chpos, v_c, v_m)
+
+      implicit none
+      integer nch
+      logical cgrid(nch)
+      double precision chpos(3,nch)
+      double precision v_c(3,nch)
+      double precision v_m(3,nch)
+
+      integer i
+
+      do i = 1, nch
+         if (cgrid(i)) then
+            call geom_arb2cent(-1000, chpos(:,i), v_c(:,i), 0, v_m(:,i),
+     &           t)
+         else
+            v_m(:,i) = (/ -1.0e10, -1.0e10, -1.0e10 /)
+         endif
+      enddo      
+
+      end
+c=======================================================
       
       
 

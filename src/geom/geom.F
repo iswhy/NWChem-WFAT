@@ -8090,9 +8090,11 @@ c
       logical geom_check_handle, geom_check_cent
       external geom_check_handle, geom_check_cent
 c
-      
-      tt = geom_check_handle(geom, 'geom_cent2cent')
-      if (.not. tt) return
+
+      if (icent1 /= 0 .or. icent2 /=0) then
+         tt = geom_check_handle(geom, 'geom_cent2cent')
+         if (.not. tt) return
+      endif
 
       if (icent1 /= 0) then
          tt = geom_check_cent(geom, 'geom_cent2cent - icent1', icent1)
@@ -8114,7 +8116,7 @@ c
       tt = .true.
 c
       end
-c========================================================      
+c========================================================
 
 
 c========================================================
@@ -8138,10 +8140,9 @@ c==== Imam ====
       external geom_check_handle, geom_check_cent
 c
       
-      tt = geom_check_handle(geom, 'geom_cent2cent')
-      if (.not. tt) return
-      
       if (icent1 /= 0) then
+         tt = geom_check_handle(geom, 'geom_cent2cent')
+         if (.not. tt) return
          tt = geom_check_cent(geom, 'geom_cent2arb - icent1', icent1)
          if (.not. tt) return
          at1(1:3) = coords(1:3, icent1, geom)
@@ -8152,4 +8153,42 @@ c
       v2 = v1 + at1 - cent2
 
       end
-c========================================================      
+c========================================================
+
+
+c========================================================
+c========================================================
+c==== Imam ====
+      subroutine geom_arb2cent(geom, cent1, v1, icent2, v2, tt)
+
+      implicit none
+#include "nwc_const.fh"
+#include "geomP.fh"
+      integer geom
+      double precision cent1(3)
+      double precision v1(3)
+      integer icent2
+      double precision v2(3)
+      logical tt
+
+      double precision at2(3)
+      
+      logical geom_check_handle, geom_check_cent
+      external geom_check_handle, geom_check_cent
+c
+      
+      if (icent2 /= 0) then
+         tt = geom_check_handle(geom, 'geom_cent2cent')
+         if (.not. tt) return
+         tt = geom_check_cent(geom, 'geom_cent2arb - icent2', icent2)
+         if (.not. tt) return
+         at2(1:3) = coords(1:3, icent2, geom)
+      else
+         at2(1:3) = 0.0d0
+      endif
+      
+      v2 = v1 + cent1 - at2
+
+      end
+c========================================================
+      

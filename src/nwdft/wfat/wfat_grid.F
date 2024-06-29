@@ -28,10 +28,10 @@ c========================================================
       subroutine wfat_get_gridmaxpt(gq, max_npt)
 
 c     DESCRIPTION:
-c       This subroutine returns the biggest possible number of quadrature points
-c       around an atom for a given grid quality. As of the writing of this code, 
-c       this biggest number of points is associated to atoms having nuclear 
-c       charge larger than 19. This is because the numbers of radial and angular 
+c       This subroutine returns the largest possible number of quadrature points
+c       around an atom for a given grid quality. As of the writing of this code,
+c       the largest number of points is associated to atoms having nuclear 
+c       charge larger than 54. This is because the numbers of radial and angular
 c       quadrature points increase with nuclear charge for a given gq.
       implicit none
       integer gq         ! [input],  grid quality level
@@ -254,7 +254,7 @@ c========================================================
 #include "wfat.fh"
       integer zn                  ! [input]
       integer gq                  ! [input]
-      integer nseg0               ! [output]
+      integer nseg0               ! [output], no. of radial segments.
       double precision atr0_(*)   ! [output]
       integer nlang_(*)           ! [output]
 
@@ -979,6 +979,38 @@ c        dbl_mb(k_wt) = The grid weights centered around the center ic.
             
       end
 c=================================================
+
+
+cOLDc=================================================
+cOLDc=================================================
+cOLD      subroutine wfat_get_ogridpt(ozn, gq, max_npt, npt, nch, cgrid,
+cOLD     &     gpt, gwt)
+cOLD
+cOLD      implicit none
+cOLD      integer ozn
+cOLD      integer gq
+cOLD      integer max_npt
+cOLD      integer npt
+cOLD      integer nch
+cOLD      logical cgrid(nch)
+cOLD      double precision gpt(3,nch,max_npt)
+cOLD      double precision gwt(nch,max_npt)
+cOLD
+cOLD      integer i
+cOLD
+cOLD      do i = 1, nch
+cOLD         if (cgrid(i)) then
+cOLD            call wfat_get_gridpt(ozn, gq, max_npt, npt, gpt(:,i,:),
+cOLD     &           gwt(i,:))
+cOLD         else
+cOLD            gpt(:,i,:) = 1.0d10
+cOLD            gwt(i,:) = 1.0d10
+cOLD         endif
+cOLD      enddo
+cOLD
+cOLD      end
+cOLDc=================================================
+      
       
       
       
