@@ -1,5 +1,50 @@
 c=======================================================
 c=======================================================
+      subroutine wfat_omega_1pt_c(icent, geom, nch, v_m, erg, chpos, 
+     &     cgrid, nqn, nid, mid, lmax_, zq, omega)
+
+      implicit none
+      integer icent                                    ! [input]
+      integer geom                                     ! [input]
+      integer nch                                      ! [input]
+      double precision v_m(3,nch)                      ! [input]
+      double precision erg(nch)                        ! [input]
+      double precision chpos(3,nch)                    ! [input]
+      logical cgrid(nch)                               ! [input]
+      integer nqn                                      ! [input]
+      integer nid(nqn)                                 ! [input]
+      integer mid(nqn)                                 ! [input]
+      integer lmax_                                    ! [input]
+      integer zq                                       ! [input]
+      double complex omega(1:(1+lmax_)**2, nqn, nch)   ! [output]
+
+      integer i
+      double complex czero
+
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
+      
+
+      if (icent /= -1) then
+         call wfat_omega_1pt(geom, v_m(:,1), nch, erg, chpos, nqn, 
+     &        nid, mid, lmax_, zq, omega)
+      else
+         do i = 1, nch
+            if (cgrid(i)) then
+               call wfat_omega_1pt(geom, v_m(:,i), 1, erg(i), 
+     &              chpos(:,i), nqn, nid, mid, lmax_, zq,
+     &              omega(:,:,i))
+            else
+               omega(:,:,i) = czero
+            endif
+         enddo
+      endif
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
       subroutine wfat_omega_1pt(geom, v_m, nch, erg, chpos, nqn,
      &                          nid, mid, lmax_, zq, omega)
 
@@ -39,10 +84,9 @@ c=======================================================
 
       do i = 1, nch
 c        ==== Calculate Omega^(n,m)_(l,m') functions ====
-         call geom_cent2arb(geom, imf, v_m, chpos(:,i), v_f,
-     &                      t1)
-         call wfat_omega_1ptx(v_f, erg(i), nqn, nid, mid, 
-     &                        lmax_, zq, omega(:,:,i))
+         call geom_cent2arb(geom, imf, v_m, chpos(:,i), v_f, t1)
+         call wfat_omega_1ptx(v_f, erg(i), nqn, nid, mid, lmax_, zq,
+     &                        omega(:,:,i))
       enddo
       
       end

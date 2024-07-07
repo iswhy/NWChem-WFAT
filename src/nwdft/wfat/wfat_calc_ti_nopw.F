@@ -570,7 +570,7 @@ c=======================================================
       do i = 1, nptp
          maskf_ = cmplx(1.0d0, 0.0d0, kind=kind(1.0d0))
          call wfat_mask_intd(geom, natom, 1, 1, 1, v_m(:,i), 
-     &        mask_param, maskf_)
+     &        mask_param, maskf_)  adjust v_m dimension      ! omega(nsh,nqn)   nch=1
          maskf(i) = real(maskf_)
       enddo
 

@@ -1,14 +1,14 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_dft_vcpsi_1pt_x(icent, ghan, bhan, nbas, nspin,
+      subroutine wfat_dft_vcpsi_1pt_c(icent, ghan, bhan, nbas, nspin,
      &           nch, vch, spinid, chpos, vpt, cgrid, rdm, zi, smh,
      &           scr, mask, ergmask, amsk, bmsk, vc_psi)
       
 c     DESCRIPTION:
-c     When wfat1 is true, vch, spinid, chpos, and vc_psi must have 4*nch columns.
-c     The first nch columns contains the GTO coefficients of the unperturbed orbital.
-c     The remaining 3*nch columns contains the Cartesian components of the correction
-c     of each orbital arranged in this way,
+c     When wfat is false, vch, spinid, chpos, and vc_psi must have nch columns
+c     containing the GTO coefficients of the unperturbed orbital. Otherwise, they must
+c     have 3*nch more columns (thus 4*nch columns in total) containing the Cartesian
+c     components of the correction of each orbital arranged in this way,
 c       orb1_x orb1_y orb1_z orb2_x orb2_y orb2_z ... orb<nch>_x orb<nch>_y orb<nch>_z.
       implicit none
 #include "mafdecls.fh"
@@ -45,8 +45,8 @@ c       orb1_x orb1_y orb1_z orb2_x orb2_y orb2_z ... orb<nch>_x orb<nch>_y orb<
          b = 3
       endif
       
-      if (icent /= 0) then
-c        When icent > 0, the columns of vpt should all be identical. In this
+      if (icent /= -1) then
+c        When icent /= -1, the columns of vpt should all be identical. In this
 c        case, the first column will be used for the following calculation.
          call wfat_dft_vcpsi_1pt(ghan, bhan, nbas, nspin, nch+nch1, vch,
      &        spinid, chpos, vpt(:,1), rdm, zi, smh, scr, mask, ergmask,

@@ -1,5 +1,70 @@
 c=======================================================
 c=======================================================
+      subroutine wfat_celf_1pt_c(geom, geomc, icent, cgrid, v_m, msm,
+     &     celf)
+c     DESCRIPTION:
+c     geomc is an array of geometry objects. Each element of geomc consists
+c     of atomic coordinates such the second up to the last atoms and their
+c     coordinates are identical to those in geom. The first atom in the
+c     elements of geomc is the parabolic channel center of each channel.
+      implicit none
+      integer geom
+      integer geomc(nch)
+      integer icent
+      logical cgrid(nch)
+      double precision v_m(3,nch)
+      integer msm
+      double precision celf(nch)
+
+      logical t
+      integer ic, i, k
+      double precision v_c(3)
+
+
+      ic = icent + 1
+
+c     ==== Calculate cell function for a point belonging to a ====
+c     ====  nucleus and when the channel does not have center ====
+      do i = 1, nch
+         if (.not. cgrid(i) .and. icent /= -1) then
+            k = i
+            call geom_cent2cent(geom, 0, v_m(:,k), icent, v_c, t)
+            call wfat_celf_1pt(geom, icent, v_c, msm, celf(k))
+            exit
+         endif
+      enddo
+
+      
+c     ==== Cell functions for all channels ====
+      if (icent /= -1) then
+c        == When the center is a nucleus ==
+         do i = 1, nch
+            if (.not. cgrid(i)) then
+               celf(i) = celf(k)
+            else
+               call geom_cent2cent(geomc(i), 0, v_m(:,i), ic, v_c, t)
+               call wfat_celf_1pt(geomc(i), ic, v_c, msm, celf(i))
+            endif
+         enddo
+      else
+c        == When the center is a channel center ==
+         do i = 1, nch
+            if (.not. cgrid(i)) then
+               celf(i) = 0.0d0
+            else
+               call geom_cent2arb(geomc(i), 0, v_m(:,i), chpos(:,i),
+     &              v_c, t)
+               call wfat_celf_1pt(geomc(i), 1, v_c, msm, celf(i))
+            endif
+         enddo
+      endif
+      
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
       subroutine wfat_celf_1pt(geom, ia1, d1, msm, celf)
 c     DESCRIPTION:
 c     This subroutine evaluates the function w_A defined in eq. (23) in

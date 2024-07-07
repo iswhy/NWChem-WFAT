@@ -99,7 +99,7 @@ c=======================================================
       integer nch
       integer nqn
       integer nsh
-      double precision v_m(3)                 ! [input], the Cartesian coordinate of the evaluation point in molecular-frame.
+      double precision v_m(3,nch)             ! [input], the Cartesian coordinate of the evaluation point in molecular-frame.
       double precision mask(2)
       double complex intd(nsh, nqn, nch)
 
@@ -113,7 +113,7 @@ c=======================================================
       do i = 1, nch
          r = 0.0d0
          do j = 1, natom
-            call geom_cent2cent(geom, imf, v_m, j, v_c, t1)
+            call geom_cent2cent(geom, imf, v_m(:,i), j, v_c, t1)
             r(j) = sqrt( sum(v_c**2) )
          enddo
          r_ = minval(r)         

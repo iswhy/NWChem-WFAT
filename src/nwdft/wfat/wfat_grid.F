@@ -768,8 +768,8 @@ c=================================================
 
 c=================================================
 c=================================================
-      subroutine wfat_get_gridpt_cents(geom, nat, centid, ptlim, vcent, 
-     &                                 gq, r, t, p)
+      subroutine wfat_get_gridpt_cents(geom, ozn, nat, centid, ptlim, 
+     &                                 vcent, gq, r, t, p)
 
       implicit none
 #include "mafdecls.fh"
@@ -777,7 +777,8 @@ c=================================================
 #include "geom.fh"
 #include "stdio.fh"
 #include "global.fh"
-      integer geom              ! [input], geometry handle.
+      integer geom                 ! [input], geometry handle.
+      integer ozn                  ! [input], charge of the channel center. Will only be used if some elements of centid is zero.
       integer nat                  ! [input], the number of atoms contained in centid.
       integer centid(nat)          ! [input], the ID of atoms containing the points of interest.
       integer ptlim(2, nat)        ! [input], the range of the ID of points in each atom contained in centid.
@@ -790,8 +791,8 @@ c=================================================
       character*16 tag
       logical t1
       integer max_npt, j, ic, icent, i, l_pt, k_pt, l_wt, k_wt, i_pt
-      integer npt
-      double precision atp(3), znuc, v_c(3), v_f(3)
+      integer npt, znuc
+      double precision atp(3), zn, v_c(3), v_f(3)
 
 
 cfordebug      if (ga_nodeid()==0) write(luout, '("vcent = ", 3es21.12)') vcent
@@ -801,11 +802,16 @@ cfordebug      if (ga_nodeid()==0) write(luout, '("vcent = ", 3es21.12)') vcent
       j = 0
       do ic = 1, nat
          icent = centid(ic)
-         if (.not. geom_cent_get(geom, icent, tag, atp, znuc))
-     &        call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
-         call wfat_get_gridpt(int(znuc), gq, max_npt, npt,
-     &                        dbl_mb(k_pt : k_pt+3*max_npt-1),
-     &                        dbl_mb(k_wt : k_wt+max_npt-1))
+         if (icent == 0) then
+            znuc = ozn
+         else
+            if (.not. geom_cent_get(geom, icent, tag, atp, zn))
+     &           call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
+            znuc = int(zn)
+         endif
+         
+         call wfat_get_gridpt(znuc, gq, max_npt, npt, dbl_mb(k_pt),
+     &        dbl_mb(k_wt))
 
          do i = ptlim(1,ic), ptlim(2,ic)
             i_pt = k_pt + 3*(i-1)

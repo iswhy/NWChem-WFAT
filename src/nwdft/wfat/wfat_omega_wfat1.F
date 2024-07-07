@@ -1,8 +1,8 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_omega_wfat1(geom, nch, nqn, erg, chpos, nid, mid,
-     &     lmax, nat, nptp, centid, ptlim, gq, nlgl, zq, wfat0, omg1,
-     &     omg2)
+      subroutine wfat_omega_wfat1(geom, ozn, nch, nqn, erg, chpos, nid, 
+     &     mid, lmax, nat, nptp, centid, ptlim, gq, nlgl, zq, wfat0, 
+     &     omg1, omg2)
 
       implicit none
 #include "util.fh"
@@ -11,6 +11,7 @@ c=======================================================
 #include "mafdecls.fh"
 #include "errquit.fh"
       integer geom                                         ! [input],
+      integer ozn                                          ! [input],
       integer nch                                          ! [input],
       integer nqn                                          ! [input],
       double precision erg(nch)                            ! [input],
@@ -74,13 +75,21 @@ c=======================================================
       t_start = t_last
       do i = 1, nch
 c        ==== Get the grid points with the current channel center ====
-         call wfat_get_gridpt_cents(geom, nat, centid, ptlim, 
+         call wfat_get_gridpt_cents(geom, ozn, nat, centid, ptlim, 
      &        chpos(:,i), gq, dbl_mb(k_r), dbl_mb(k_t), dbl_mb(k_p))
          do k = 1, nptp
             int_mb(k_id+k-1) = k
          enddo
          call wfat_dsortx(dbl_mb(k_r), 1, nptp, int_mb(k_id))
 
+         
+c        The code below will calculate the WFAT(1) parabolic channel functions
+c        regardless of whether the evaluation point belongs to a nuclei, parabolic
+c        channel center with grid, or gridless parabolic channel center. The
+c        reason the last one is not skipped is that it may help in the integration
+c        involved to calculate the WFAT(1) parabolic channel functions at points
+c        with a greater radial distance than that of the current evaluation point
+c        that belongs to a parabolic channel center.
          
 c        ==== Calculate the spherical harmonics for all (l,m) ====
 c        ====   where l=[0,lmax] and m=[-l,l] at each point   ====
@@ -89,7 +98,6 @@ c        ====   where l=[0,lmax] and m=[-l,l] at each point   ====
             call wfat_sphm_1pt(lmax, dbl_mb(k_t+ii-1), dbl_mb(k_p+ii-1),
      &           dcpl_mb(i_sp))
          enddo
-
 
          do j = 1, nqn
             n = nid(j)

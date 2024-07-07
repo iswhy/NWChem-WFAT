@@ -71,8 +71,8 @@ c       orb1_x orb1_y orb1_z orb2_x orb2_y orb2_z ... orb<nch>_x orb<nch>_y orb<
       integer k_ik2_0, k_ik2_, k_ik2
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
       integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch), pr_count
-      integer pr_chk(10), kk, g_nptx, g_npt_tot
-      double precision atp(3), znuc, v_c(3), v_m(3,nch), normch, celf
+      integer pr_chk(10), kk, g_nptx, g_npt_tot, znuc
+      double precision atp(3), zn, v_c(3), v_m(3,nch), normch, celf
       double precision wtcelf, t_now, t_last, t_start, dt_all
       double precision dt_prog, nptx, npt_tot, kp, dum1, dum2, dum3
       double complex czero, cone
@@ -167,7 +167,7 @@ c     ==== Calculate WFAT(1) Omega ====
      &        l_ik1_, k_ik1_, l_ik1, k_ik1,
      &        nom2, nik2_0, nik2_, nik2, l_om2, k_om2, l_ik2_0, k_ik2_0,
      &        l_ik2_, k_ik2_, l_ik2, k_ik2)
-         call wfat_omega_wfat1(geom, nch, nqn, erg, chpos, nid,
+         call wfat_omega_wfat1(geom, ozn, nch, nqn, erg, chpos, nid,
      &        mid, lmax_, natomp, nptp, int_mb(k_icp), int_mb(k_ipp),
      &        gqual, nlgl, zi, wfat1_exc, dcpl_mb(k_om1),
      &        dcpl_mb(k_om2))
@@ -213,13 +213,22 @@ c     ==== Loop over atoms ====
       
       do ic = 1, natomp
          icent = int_mb(k_icp + ic - 1)
-         if (.not. geom_cent_get(geom, icent, tag, atp, znuc))
-     &        call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
+         if (icent == -1) then
+            znuc = ozn   ! ozn = charge of the channel center.
+         else
+            if (.not. geom_cent_get(geom, icent, tag, atp, zn))
+     &           call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
+            znuc = int(zn)
+         endif
 
 c        ==== Get all grids associated to the current atom/center ====
-         call wfat_get_gridpt(int(znuc), gqual, max_npt, npt,
-     &        dbl_mb(k_pt), dbl_mb(k_wt))
-            
+         call wfat_get_gridpt(znuc, gqual, max_npt, npt, dbl_mb(k_pt), 
+     &        dbl_mb(k_wt))
+c        The grid will always be calculated regardless of whether the current
+c        center is a gridless parabolic channel center. This is because its
+c        omission will be taken care of inside the subsequent subroutines.
+
+         
 c        ==== The first and last grids around the current center ====
 c        ====      that are contained in the current process     ====
          ipt_i = int_mb(k_ipp + (ic-1)*2)
@@ -228,12 +237,17 @@ c        ====      that are contained in the current process     ====
 c        ==== Loop over all quadrature points around the current atom ====
          do ipt = ipt_i, ipt_f
             jpt = jpt + 1             ! Needed for wfat1.
-            if (icent == 0) then
-               ipt0 = k_opt + 3*nch*(ipt-1)
-               call wfat_mf_ogrid(nch, cgrid, chpos, dbl_mb(ipt0), v_m)
+c           jpt is always incremented regardless of whether the current
+c           center is a gridless parabolic channel center. This is because
+c           jpt is used to address k_om1 and k_om2, which were calculated
+c           at all grids including the grids of a gridless channel center
+c           (see wfat_omega_wfat1 above).
+
+            ipt0 = k_pt + 3*(ipt-1)
+            v_c(1:3) = dbl_mb(ipt0 : ipt0+2)
+            if (icent == -1) then
+               call wfat_mf_ogrid(nch, chpos, v_c, v_m)
             else
-               ipt0 = k_pt + 3*(ipt-1)
-               v_c(1:3) = dbl_mb(ipt0 : ipt0+2)
                call geom_cent2cent(geom, icent, v_c, imf, v_m(:,1), t1)
                v_m(1,2:) = v_m(1,1)
                v_m(2,2:) = v_m(2,1)
@@ -241,56 +255,60 @@ c        ==== Loop over all quadrature points around the current atom ====
             endif
             
 c           ==== Calculate vc|psi> ====
-            call wfat_dft_vcpsi_1pt_x(icent, geom, bas, nb, ns, nch, 
+            call wfat_dft_vcpsi_1pt_c(icent, geom, bas, nb, ns, nch, 
      &           vch, int_mb(k_si), dbl_mb(k_pos), v_m, cgrid, rdm, zi,
      &           smh, dbl_mb(k_sc), .false., dum1, dum2, dum3, 
      &           dbl_mb(k_vc))
             
-c           ==== Calculate Omega^(n,m)_(l,m') functions ====
-            call wfat_omega_1pt(geom, v_m, nch, erg, chpos, nqn, nid, 
-     &           mid, lmax_, int(zi), dcpl_mb(k_om:k_om+nom-1))
+c           ==== Calculate Omega^(n,m)_(l,m') functions on the current grid ====
+            call wfat_omega_1pt_c(icent, geom, nch, v_m, erg, chpos,
+     &           cgrid, nqn, nid, mid, lmax_, int(zi), dcpl_mb(k_om))
             
 c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
-            call wfat_integrand(nch, nqn, nsh, dcpl_mb(k_om),
-     &           dbl_mb(k_vc), dcpl_mb(k_i0))
+c           ====            on the current grid              ====
+            call wfat_integrand(icent, nch, nqn, nsh, cgrid, 
+     &           dcpl_mb(k_om), dbl_mb(k_vc), dcpl_mb(k_i0))
             if (isnan( abs(dcpl_mb(k_i0)) ))
      &           write(luout, '("isnan", i8, 3es14.6, 6x, 3es21.12E3)')
-     &           ic, v_m, dcpl_mb(k_om), dbl_mb(k_vc)
+     &           ic, v_m(:,1), dcpl_mb(k_om), dbl_mb(k_vc)
             
 c           ==== Calculate the integrand of J^{(n,m)x_i}_{l,m'} ====
-c           =====           and K^{(n,m)}_{l,m'}                ====
+c           ====            and K^{(n,m)}_{l,m'}                ====
             if (wfat1) then
                i_om1 = k_om1 + (jpt-1)*nsh*nqn*nch
                i_om2 = k_om2 + (jpt-1)*nsh*nqn*nch
 
-               call wfat_integrand_wfat1(nch, nqn, nsh, dcpl_mb(k_om),
-     &              dcpl_mb(i_om1), dcpl_mb(i_om2), dbl_mb(k_vc+nch),
-     &              dbl_mb(k_vc), dcpl_mb(k_ij0), dcpl_mb(k_ik1_0),
-     &              dcpl_mb(k_ik2_0))
+               call wfat_integrand_wfat1_c(icent, nch, nqn, nsh, cgrid,
+     &              dcpl_mb(k_om), dcpl_mb(i_om1), dcpl_mb(i_om2), 
+     &              dbl_mb(k_vc+nch), dbl_mb(k_vc), dcpl_mb(k_ij0), 
+     &              dcpl_mb(k_ik1_0), dcpl_mb(k_ik2_0))
             endif
 
 c           ==== Masking of integrands ====#
-            if (ismask) call wfat_mask_intd(geom, natom, nch,
-     &           nqn, nsh, v_m, mask_param, dcpl_mb(k_i0))
-            if (ismask .and. wfat1) call wfat_mask_intd(geom, 
-     &           natom, 3*nch, nqn, nsh, v_m, mask_param,
-     &           dcpl_mb(k_ij0))
+            if (ismask) call wfat_mask_intd(geom, natom, nch, nqn, nsh,
+     &           v_m, mask_param, dcpl_mb(k_i0))
+            if (ismask .and. wfat1) call wfat_mask_intd(geom, natom, 
+     &           3*nch, nqn, nsh, v_m, mask_param, dcpl_mb(k_ij0))
             if (ismask .and. wfat1) then
-               call wfat_mask_intd(geom, natom, nch, nqn, nsh,
-     &              v_m, mask_param, dcpl_mb(k_ik1_0))
-               call wfat_mask_intd(geom, natom, nch, nqn, nsh,
-     &              v_m, mask_param, dcpl_mb(k_ik2_0))
+               call wfat_mask_intd(geom, natom, nch, nqn, nsh, v_m, 
+     &              mask_param, dcpl_mb(k_ik1_0))
+               call wfat_mask_intd(geom, natom, nch, nqn, nsh, v_m, 
+     &              mask_param, dcpl_mb(k_ik2_0))
             endif
                            
 c           ==== Quadrature summation ====
-            call wfat_celf_1pt(geom, icent, v_c, celm, celf)
-            wtcelf = celf * dbl_mb(k_wt+ipt-1)
+            call wfat_celf_1pt_c(geom, geomc, icent, cgrid, v_m, celm,
+     &           celf)
+            wtcelf(:) = celf(:) * dbl_mb(k_wt+ipt-1)
 
-            i_l = k_i_ + (icent-1) * nsh*nqn*nch
-            i_r = i_l + nsh*nqn*nch - 1
-            dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
-     &                         dcpl_mb(k_i0:k_i0+ni0-1) *
-     &                         wtcelf                        !! 1)
+            if (icent /= -1) then
+               i_l = k_i_ + (icent-1) * nsh*nqn*nch
+               call wfat_integrand_acc(nsh, nqn, nch, wtcelf,
+     &              dcpl_mb(k_i0), dcpl_mb(i_l))
+            else
+               call wfat_integrand_acc(nsh, nqn, nch, wtcelf,
+     &              dcpl_mb(k_i0), dcpl_mb(k_inc))
+            endif
 
             if (wfat1) then
                i_l = k_ij_ + (icent-1) * nsh*nqn*nch1
@@ -386,34 +404,85 @@ c     ==== Deallocations ====
       
       
       end subroutine wfat_calc_intgl
-!! 1) The quadrature summation is performed simultaneously for all channels (orbitals),
-!!    each of which is given by 3rd index of wf_intgl. It's possible to do this because
-!!    the cell function, the quadrature points and weights are the same for all channels.
-!!    Note that it may not be possible to perform this simultaneous summation if each of
-!!    the channels is assigned their own set of quadrature points. In the current
-!!    implementation, all channels share the same set of quadrature points because these
-!!    points (and weights) are atom-specific, not channel-specific.
 c=======================================================
 
 
 c=======================================================
 c=======================================================
-      subroutine wfat_integrand(nch, nqn, nsh, omg, vc_psi, intgl0)
+      subroutine wfat_integrand(icent, nch, nqn, nsh, cgrid, omg,
+     &     vc_psi, intgl0)
 
       implicit none
+      integer icent
       integer nch
       integer nqn
       integer nsh
+      logical cgrid(nch)
       double complex omg(nsh, nqn, nch)
       double precision vc_psi(nch)
       double complex intgl0(nsh, nqn, nch)
 
       integer i
+      double complex czero
+
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
 
       do i = 1, nch
-         intgl0(:,:,i) = conjg(omg(:,:,i)) * vc_psi(i)
+         if (icent /= -1) then
+            intgl0(:,:,i) = conjg(omg(:,:,i)) * vc_psi(i)
+         else
+            if (cgrid(i)) then
+               intgl0(:,:,i) = conjg(omg(:,:,i)) * vc_psi(i)
+            else
+               intgl0(:,:,i) = czero
+            endif
+         endif
       enddo
 
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_integrand_wfat1_c(icent, nch, nqn, nsh, cgrid, 
+     &           omg, omg1, omg2, vxi, vc_psi, intd_j, intd_k1, intd_k2)
+
+      implicit none
+#include "stdio.fh"
+      integer icent
+      integer nch
+      integer nqn
+      integer nsh
+      logical cgrid(nch)
+      double complex omg(nsh, nqn, nch)
+      double complex omg1(nsh, nqn, nch)
+      double complex omg2(nsh, nqn, nch)
+      double precision vxi(3, nch)
+      double precision vc_psi(nch)
+      double complex intd_j(nsh, nqn, 3, nch)
+      double complex intd_k1(nsh, nqn, nch)
+      double complex intd_k2(nsh, nqn, nch)
+
+      integer i, j
+
+      if (icent /= -1) then
+         call wfat_integrand_wfat1(nch, nqn, nsh, omg, omg1, omg2,
+     &        vxi, vc_psi, intd_j, intd_k1, intd_k2)
+      else
+         do i = 1, nch
+            if (cgrid(i)) then
+               call wfat_integrand_wfat1(1, nqn, nsh, omg(:,:,i), 
+     &              omg1(:,:,i), omg2(:,:,i), vxi(:,i), vc_psi(i),
+     &              intd_j(:,:,:,i), intd_k1(:,:,i), intd_k2(:,:,i))
+            else
+               intd_j(:,:,:,i) = czero
+               intd_k1(:,:,i) = czero
+               intd_k2(:,:,i) = czero
+            endif
+         enddo
+      endif
+            
       end
 c=======================================================
 
@@ -457,6 +526,27 @@ cfordebug     &     abs(intd_k2(1,1,1))
       end
 c=======================================================
 
+
+c=======================================================
+c=======================================================
+      subroutine wfat_integrand_acc(nsh, nqn, nch, wt, intl0, intl_)
+
+      implicit none
+      integer nsh
+      integer nqn
+      integer nch
+      double precision wt(nch)
+      double complex intl0(nsh, nqn, nch)
+      double complex intl_(nsh, nqn, nch)
+
+      integer i
+
+      do i = 1, nch
+         intl_(:,:,i) = intl_(:,:,i) + intl0(:,:,i) * wt(i)
+      enddo
+
+      end
+c=======================================================
       
 
       
@@ -987,25 +1077,24 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_mf_ogrid(nch, cgrid, chpos, v_c, v_m)
+      subroutine wfat_mf_ogrid(nch, chpos, v_c, v_m)
 
       implicit none
       integer nch
-      logical cgrid(nch)
       double precision chpos(3,nch)
-      double precision v_c(3,nch)
+      double precision v_c(3)
       double precision v_m(3,nch)
 
+      logical t
       integer i
 
       do i = 1, nch
-         if (cgrid(i)) then
-            call geom_arb2cent(-1000, chpos(:,i), v_c(:,i), 0, v_m(:,i),
-     &           t)
-         else
-            v_m(:,i) = (/ -1.0e10, -1.0e10, -1.0e10 /)
-         endif
-      enddo      
+         call geom_arb2cent(-1000, chpos(:,i), v_c, 0, v_m(:,i), t)
+      enddo
+      
+c     The grid will always be calculated regardless of whether the v_c
+c     belongs to a gridless parabolic channel center. This is because its
+c     omission will be taken care of inside the subsequent subroutines.
 
       end
 c=======================================================

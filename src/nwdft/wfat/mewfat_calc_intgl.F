@@ -257,12 +257,12 @@ c           ==== Calculate vc|psi> ====
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
             call wfat_omega_1pt(geom, v_m, 1, ionerg, chpos, nqn,
-     &           nid, mid, lmax_, int(zi), omega)      ! omega(nsh,nqn)   nch=1
+     &           nid, mid, lmax_, int(zi), omega)  adjust v_m dimension      ! omega(nsh,nqn)   nch=1
             
 c           ==== Calculate the integrand of I^(n,m)_(l,m') ====
             intg0 = conjg(omega) * vcpsi ! intg0(nsh,nqn)   nch=1
             if (ismask) call wfat_mask_intd(geom, nat, 1,
-     &           nqn, nsh, v_m, mask_param, intg0)
+     &           nqn, nsh, v_m, mask_param, intg0) adjust v_m dimension      ! omega(nsh,nqn)   nch=1
 
             
 c           ==== Quadrature summation ====

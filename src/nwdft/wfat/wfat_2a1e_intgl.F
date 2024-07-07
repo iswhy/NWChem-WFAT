@@ -148,6 +148,7 @@ c               terms associated to the three cartesian components of the dipole
          call wfat_omega_wfat1(geom, nch, nqn, erg, chpos, nid,
      &        mid, lmax_, natomp, nptp, int_mb(k_icp), int_mb(k_ipp),
      &        gq, nlgl, zi, wfat1_exc, dcpl_mb(k_om1), dcpl_mb(k_om2))
+         add ozn as input above
       endif
       
       if (ndid == 0) then
@@ -235,11 +236,11 @@ c           ==== Calculate vc|psi> ====
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
             call wfat_omega_1pt(geom, v_m, nch, erg, chpos, nqn, nid, 
-     &           mid, lmax_, int(zi), dcpl_mb(k_om:k_om+nom-1))
+     &           mid, lmax_, int(zi), dcpl_mb(k_om:k_om+nom-1))   adjust v_m dimension
             
 c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
             call wfat_integrand(nch, nqn, nsh, dcpl_mb(k_om), vc_psi, 
-     &           dcpl_mb(k_i0))
+     &           dcpl_mb(k_i0))  add cgrid as input to this subroutine.
             if (isnan( abs(dcpl_mb(k_i0)) ))
      &           write(luout, '("isnan", i8, 3es14.6, 6x, 3es21.12E3)')
      &           ic, v_m, dcpl_mb(k_om), vc_psi
@@ -256,14 +257,14 @@ c           =====           and K^{(n,m)}_{l,m'}                ====
 
 c           ==== Apply masks to the integrands ====
             if (ismask) call wfat_mask_intd(geom, natom, nch, 
-     &           nqn, nsh, v_m, mask_param, dcpl_mb(k_i0))
+     &           nqn, nsh, v_m, mask_param, dcpl_mb(k_i0)) adjust v_m dimension      ! omega(nsh,nqn)   nch=1
             if (ismask .and. wfat1) call wfat_mask_intd(geom, natom, 
-     &           3*nch, nqn, nsh, v_m, mask_param, dcpl_mb(k_ij0))
+     &           3*nch, nqn, nsh, v_m, mask_param, dcpl_mb(k_ij0)) adjust v_m dimension      ! omega(nsh,nqn)   nch=1
             if (ismask .and. wfat1) then
                call wfat_mask_intd(geom, natom, nch, nqn, nsh,
-     &              v_m, mask_param, dcpl_mb(k_ik1_0))
+     &              v_m, mask_param, dcpl_mb(k_ik1_0)) adjust v_m dimension      ! omega(nsh,nqn)   nch=1
                call wfat_mask_intd(geom, natom, nch, nqn, nsh,
-     &              v_m, mask_param, dcpl_mb(k_ik2_0))
+     &              v_m, mask_param, dcpl_mb(k_ik2_0)) adjust v_m dimension      ! omega(nsh,nqn)   nch=1
             endif
 
 c           ==== Quadrature summation ====
