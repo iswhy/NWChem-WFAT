@@ -150,9 +150,11 @@ c     ==== Allocate WFAT integral, its integrands, and some other ====
       
 
 c     ==== Obtaining grid ranges for the current process ====
-      call wfat_alloc_gridrange(natom, l_icp, k_icp, l_ipp, k_ipp)
-      call wfat_get_gridrange(geom, ndid, gqual, int_mb(k_icp),
-     &                        int_mb(k_ipp), natomp, nptp)
+      call wfat_alloc_gridrange(natom+1, l_icp, k_icp, l_ipp, k_ipp)
+      call wfat_get_gridrange_c(geom, ndid, gqual, int_mb(k_icp),
+     &     int_mb(k_ipp), natomp, nptp)
+      call wfat_need_cgrid(rtdb, geom, nch, chpos, cgrid)
+      call wfat_cgeom_create(geom, nch, chpos, geomc)
 c      write(luout, '("node:", i3, "  atom1,pt1:", i3, i7, '//
 c     &     '"  atom2,pt2:", i3, i7, "  npoint:", i7)')
 c     &     ndid, icent_i, ipt_i, icent_f, ipt_f, nptp
@@ -205,10 +207,15 @@ c     ==== Loop over atoms ====
       pr_count = 0
       kk = 1
       dcpl_mb(k_i_ : k_i_+ni_-1) = czero
+      dcpl_mb(k_inc : k_inc+ninc-1) = czero
       if (wfat1) then
          dcpl_mb(k_ij_ : k_ij_+nij_-1) = czero
          dcpl_mb(k_ik1_ : k_ik1_+nik1_-1) = czero
          dcpl_mb(k_ik2_ : k_ik2_+nik2_-1) = czero
+
+         dcpl_mb(k_jnc : k_jnc+njnc-1) = czero
+         dcpl_mb(k_k1nc : k_k1nc+nk1nc-1) = czero
+         dcpl_mb(k_k2nc : k_k2nc+nk2nc-1) = czero
       endif
       
       do ic = 1, natomp
@@ -296,11 +303,12 @@ c           ==== Masking of integrands ====#
      &              mask_param, dcpl_mb(k_ik2_0))
             endif
                            
-c           ==== Quadrature summation ====
+c           ==== Cell function ====
             call wfat_celf_1pt_c(geom, geomc, icent, cgrid, v_m, celm,
      &           celf)
             wtcelf(:) = celf(:) * dbl_mb(k_wt+ipt-1)
-
+            
+c           ==== Quadrature summation ====
             if (icent /= -1) then
                i_l = k_i_ + (icent-1) * nsh*nqn*nch
                call wfat_integrand_acc(nsh, nqn, nch, wtcelf,
@@ -311,23 +319,32 @@ c           ==== Quadrature summation ====
             endif
 
             if (wfat1) then
-               i_l = k_ij_ + (icent-1) * nsh*nqn*nch1
-               i_r = i_l + nsh*nqn*nch1 - 1
-               dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
-     &                            dcpl_mb(k_ij0:k_ij0+nij0-1) *
-     &                            wtcelf
+               if (icent /= -1) then
+                  i_l = k_ij_ + (icent-1) * nsh*nqn*nch1
+                  call wfat_integrand_acc(nsh, nqn, nch1, wtcelf,
+     &                 dcpl_mb(k_ij0), dcpl_mb(i_l))
+               else
+                  call wfat_integrand_acc(nsh, nqn, nch1, wtcelf,
+     &                 dcpl_mb(k_ij0), dcpl_mb(k_jnc))
+               endif
 
-               i_l = k_ik1_ + (icent-1) * nsh*nqn*nch
-               i_r = i_l + nsh*nqn*nch - 1
-               dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
-     &                            dcpl_mb(k_ik1_0:k_ik1_0+nik1_0-1) *
-     &                            wtcelf
+               if (icent /= -1) then
+                  i_l = k_ik1_ + (icent-1) * nsh*nqn*nch
+                  call wfat_integrand_acc(nsh, nqn, nch, wtcelf,
+     &                 dcpl_mb(k_ik1_0), dcpl_mb(i_l))
+               else
+                  call wfat_integrand_acc(nsh, nqn, nch, wtcelf,
+     &                 dcpl_mb(k_ik1_0), dcpl_mb(k_k1nc))
+               endif
 
-               i_l = k_ik2_ + (icent-1) * nsh*nqn*nch
-               i_r = i_l + nsh*nqn*nch - 1
-               dcpl_mb(i_l:i_r) = dcpl_mb(i_l:i_r) +
-     &                            dcpl_mb(k_ik2_0:k_ik2_0+nik2_0-1) *
-     &                            wtcelf
+               if (icent /= -1) then
+                  i_l = k_ik2_ + (icent-1) * nsh*nqn*nch
+                  call wfat_integrand_acc(nsh, nqn, nch, wtcelf,
+     &                 dcpl_mb(k_ik2_0), dcpl_mb(i_l))
+               else
+                  call wfat_integrand_acc(nsh, nqn, nch, wtcelf,
+     &                 dcpl_mb(k_ik2_0), dcpl_mb(k_k2nc))
+               endif
             endif
 
 cfordebug            if (ga_nodeid() >= 0)
@@ -355,7 +372,21 @@ c           ==== Print progress ====
      &     'integrals takes ", a, " s.")') trim(adjustl(dt_str))
       
 
-c     ==== Reorder elements of intgl ====      
+c     ==== Distribute the integrals over grids belonging ====
+c     ==== to the channel center for the current process ====
+      call wfat_distrib_intgl(nsh, natom, nqn, nch, dcpl_mb(k_inc),
+     &     dcpl_mb(k_i_))
+      if (wfat1) then
+         call wfat_distrib_intgl(nsh, natom, nqn, nch1, dcpl_mb(k_jnc),
+     &        dcpl_mb(k_ij_))
+         call wfat_distrib_intgl(nsh, natom, nqn, nch, dcpl_mb(k_k1nc),
+     &        dcpl_mb(k_ik1_))
+         call wfat_distrib_intgl(nsh, natom, nqn, nch, dcpl_mb(k_k2nc),
+     &        dcpl_mb(k_ik2_))
+      endif
+         
+      
+c     ==== Reorder elements of intgl ====
       call wfat_reorder_intgl(nsh, natom, nqn, nch,
      &     dcpl_mb(k_i_ : k_i_+ni_-1), dcpl_mb(k_il : k_il+nil-1))
       if (wfat1)
@@ -387,6 +418,7 @@ c     ==== Accumulate to global intgl (g_il) ====
       
 c     ==== Deallocations ====
       call wfat_dealloc_quadgrid(l_pt, l_wt)
+      call wfat_cgeom_destroy(nch, geomc)
       if (.not. MA_free_heap(l_sc))
      &     call errquit('WFAT: vscr deallocation failed', 61, MA_ERR)
       if (.not. MA_free_heap(l_vc))
@@ -596,6 +628,27 @@ cOLDc=======================================================
 
 c=======================================================
 c=======================================================
+      subroutine wfat_distrib_intgl(nsh, ncent, nqn, nch, intglc,
+     &     intgl_)
+
+      implicit none
+      integer nsh
+      integer ncent
+      integer nqn
+      integer nch
+      double complex intglc(nsh, nqn, nch)            ! [input],
+      double complex intgl_(nsh, nqn, nch, ncent)     ! [in/output],
+
+      do ic = 1, ncent
+         intgl_(:,:,:,i) = intgl_(:,:,:,i) + intglc/ncent
+      enddo
+
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
       subroutine wfat_reorder_intgl(nsh, ncent, nqn, nch, intgl_, intgl)
 
       implicit none
@@ -734,8 +787,7 @@ c=======================================================
       integer nat
       integer l_icp, k_icp
       integer l_ipp, k_ipp
-      
-      
+
       if (.not. ma_alloc_get(MT_INT, nat, 'icent_p', l_icp, k_icp))
      &     call errquit('WFAT: icent_p allocation failed.', 1, MA_ERR)
       if (.not. ma_alloc_get(MT_INT, 2*nat, 'ipt_p', l_ipp, k_ipp))

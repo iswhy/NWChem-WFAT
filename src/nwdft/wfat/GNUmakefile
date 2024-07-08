@@ -68,6 +68,7 @@
 	wfat_print_corb.o \
 	wfat_print_cube.o \
 	wfat_util.o \
+	wfat_geom.o \
 	wfat_orb_mulliken.o \
 	wfat_opvec_coef.o \
 	wfat_get_opmat.o \

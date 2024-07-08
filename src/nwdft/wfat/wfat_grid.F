@@ -618,6 +618,60 @@ c=================================================
 
 c=================================================
 c=================================================
+      subroutine wfat_get_gridrange_c(geom, ndid, gq, ic, ipt, natomp,
+     &     nptp)
+
+      implicit none
+#include "geom.fh"
+#include "errquit.fh"
+      integer geom            ! [input], geometry handle.
+      integer ndid            ! [input], node ID of the current process.
+      integer gq              ! [input], the chosen grid quality.
+      integer ic(1:*)         ! [output], the first natom_proc elements contains the centers for the current process.
+      integer ipt(2,1:*)      ! [output], the first natom_proc columns contains the starting (1st row) and ending (2nd row) points of the corresponding center for the current process.
+      integer natomp          ! [output], no. of centers for the current process.
+      integer nptp            ! [output], total no. of points for the current process.
+
+      character*16 ctag
+      integer natom, geomt, i
+      double precision ccd(3), ccg
+
+
+      if (.not. geom_ncent(geom, natom))
+     &     call errquit('WFAT: Cannot get natom', 25)
+            
+      if (.not. geom_create(geomt, 'geom_temp'))
+     &     call errquit('WFAT: Error in creating geom_temp.', 30,
+     &     GEOM_ERR)
+      ctag = 'chcent'
+      ccd = (/ 0.0d0, 0.0d0, 0.0d0/)    ! 1)
+      ccg = 0.0d0    ! 2)
+      call wfat_channel_geom0(geom, natom, ctag, ccd, ccg, geomt)
+c     1) The coordinate of the channel center is unimportant here because
+c        it is not needed for the computation of grid range and counts
+c        inside wfat_get_gridrange below.
+c     2) Channel center has zero charge.
+
+      call wfat_get_gridrange(geomt, ndid, gq, ic, ipt, natomp, nptp)
+
+      do i = 1, natomp
+         if (ic(i) == 1) then
+            ic(i) = -1
+         else
+            ic(i) = ic(i) - 1
+         endif
+      enddo
+      
+      if (.not. geom_destroy(geomt))
+     &     call errquit('WFAT: Cannot destroy geom_temp.', 30,
+     &     GEOM_ERR)
+      
+      end
+c=================================================
+
+      
+c=================================================
+c=================================================
       subroutine wfat_get_gridrange(geomhan, id, gq, ic, ipt,
      &     natom_proc, npt_proc)
 c     DESCRIPTION :
@@ -770,7 +824,10 @@ c=================================================
 c=================================================
       subroutine wfat_get_gridpt_cents(geom, ozn, nat, centid, ptlim, 
      &                                 vcent, gq, r, t, p)
-
+c     DESCRIPTION:
+c     Returns the spherical coordinates of all grid points belonging to
+c     all of the atoms defined in geom and that reside in the current
+c     process. The coordinates are relative to vcent.
       implicit none
 #include "mafdecls.fh"
 #include "errquit.fh"
@@ -802,7 +859,7 @@ cfordebug      if (ga_nodeid()==0) write(luout, '("vcent = ", 3es21.12)') vcent
       j = 0
       do ic = 1, nat
          icent = centid(ic)
-         if (icent == 0) then
+         if (icent == -1) then
             znuc = ozn
          else
             if (.not. geom_cent_get(geom, icent, tag, atp, zn))
@@ -985,6 +1042,56 @@ c        dbl_mb(k_wt) = The grid weights centered around the center ic.
             
       end
 c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_need_cgrid(rtdb, geom, nch, chpos, cgrid)
+
+      implicit none
+#include "rtdb.fh"
+#include "geom.fh"
+#include "stdio.fh"
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer rtdb
+      integer geom
+      integer nch
+      double precision chpos(3,nch)
+      logical cgrid(nch)
+
+      character*16 tag
+      integer natom, i, ic, l_d, k_d
+      double precision cd(3), cg, d(3), cgrid_thr
+
+      if (.not. geom_ncent(geom, natom))
+     &     call errquit('WFAT: Cannot get natom', 25)
+      if (.not. MA_alloc_get(MT_DBL, natom, 'dist', l_d, k_d))
+     &     call errquit('WFAT: dist allocation failed', 59, MA_ERR)
+
+      if (.not. rtdb_get(rtdb, 'wfat:cgrid_thr', mt_dbl, 1, cgrid_thr))
+     &     call errquit('WFAT: Failed reading cgrid_thr from RTDB.', 1,
+     &     RTDB_ERR)
+      
+      cgrid = .true.
+      do i = 1, nch
+         do ic = 1, natom
+            if (.not. geom_cent_get(geom, ic, tag, cd, cg))
+     &           call errquit('WFAT: Error in inquiring center.',
+     &           71, GEOM_ERR)
+            d = chpos(:,i) - cd
+            dbl_mb(k_d+ic-1) = sqrt(sum(d*d))
+         enddo
+         if (minval(dbl_mb(k_d:k_d+natom-1)) < cgrid_thr)
+     &        cgrid(i) = .false.
+      enddo
+
+      if (.not. MA_free_heap(l_d))
+     &     call errquit('WFAT: dist deallocation failed', 61, MA_ERR)
+      
+      end
+c=================================================
+      
 
 
 cOLDc=================================================
