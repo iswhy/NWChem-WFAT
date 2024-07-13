@@ -60,18 +60,21 @@ cOLD      double precision cfz(nr*nt) ! [input], only used when wfat1=.true.
 
       character*12 dt_str
       character*16 tag
-      logical t1
-      integer ndid, natom, max_npt, nscr, nsh, nom, ni0, ni_, nil
-      integer nij0, nij_, nij, nik1_0, nik1_, nik1, nik2_0, nik2_, nik2
-      integer natomp, nptp, pr_chk(10), g_nptx, nptx, jpt, pr_count, kk
+      logical t1, cgrid(1)
+      integer ndid, natom, max_npt, nscr, nsh, nom, ni0, ni_, nil, ninc
+      integer nij0, nij_, nij, njc, nik1_0, nik1_, nik1, nk1c, nik2_0
+      integer nik2_, nik2, nk2c, natomp, nptp, pr_chk(10), g_nptx, nptx
+      integer jpt, pr_count, kk, ozn
       integer ic, nom1, nom2, i_om1, i_om2, nnnr, nnnt
       integer icent, npt, ipt_i, ipt_f, ipt, ipt0, i_l, i_r
-      integer l_pt, l_wt, l_sc, l_om, l_i0, l_i_, l_il, l_icp, l_ipp
-      integer l_ij0, l_ij_, l_ij, l_ik1_0, l_ik1_, l_ik1, l_ik2_0
-      integer l_ik2_, l_ik2, l_om1, l_om2, l_dr, l_dt
-      integer k_pt, k_wt, k_sc, k_om, k_i0, k_i_, k_il, k_icp, k_ipp
-      integer k_ij0, k_ij_, k_ij, k_ik1_0, k_ik1_, k_ik1, k_ik2_0
-      integer k_ik2_, k_ik2, k_om1, k_om2, k_dr, k_dt
+      integer l_pt, l_wt, l_sc, l_om, l_i0, l_i_, l_il, l_inc, l_icp
+      integer l_ipp, l_ij0, l_ij_, l_ij, l_jc, l_ik1_0, l_ik1_, l_ik1
+      integer l_k1c, l_ik2_0, l_ik2_, l_ik2, l_k2c, l_om1, l_om2, l_dr
+      integer l_dt
+      integer k_pt, k_wt, k_sc, k_om, k_i0, k_i_, k_il, k_inc, k_icp
+      integer k_ipp, k_ij0, k_ij_, k_ij, k_jc, k_ik1_0, k_ik1_, k_ik1
+      integer k_k1c, k_ik2_0, k_ik2_, k_ik2, k_k2c, k_om1, k_om2, k_dr
+      integer k_dt
       double precision npt_tot, t_now
       double precision t_last, t_start, celf, atp(3), znuc, v_c(3)
       double precision v_m(3), vc_psi, wtcelf, dt_prog, dt_all, normch
@@ -124,31 +127,34 @@ c     ==== Allocate WFAT integral, its integrands, and some other ====
       if (.not. MA_alloc_get(MT_DBL, nscr, 'scratch', l_sc, k_sc))
      &     call errquit('WFAT: scratch allocation failed', 59, MA_ERR)
       call wfat_alloc_intgl(lmax_, nqn, nch, natom, nsh, nom, ni0, ni_,
-     &     nil, l_om, k_om, l_i0, k_i0, l_i_, k_i_, l_il, k_il)
+     &     nil, ninc, l_om, k_om, l_i0, k_i0, l_i_, k_i_, l_il, k_il,
+     &     l_inc, k_inc)
 
 
 c     ==== Obtaining grid ranges for the current process ====
       call wfat_alloc_gridrange(natom, l_icp, k_icp, l_ipp, k_ipp)
       call wfat_get_gridrange(geom, ndid, gq, int_mb(k_icp),
      &     int_mb(k_ipp), natomp, nptp)
+      call wfat_need_cgrid(rtdb, geom, 1, chpos, cgrid)
 
 
 c     ==== Calculate WFAT(1) Omega ====
+      if (.not. rtdb_get(rtdb, 'wfat:ozn', mt_int, 1, ozn))
+     &     call errquit('WFAT: Cannot read ozn.', 44, RTDB_ERR)
       if (wfat1) then
 c        nch1 = the number of channels that contains the correction terms (needed for
 c               WFAT(1)), it is equal to 3 because the ionized channel has three correction
 c               terms associated to the three cartesian components of the dipole operator.
          call wfat_alloc_intgl_wfat1(lmax_, nqn, nch, nch1, natom,
-     &        nptp, nsh, nij0, nij_, nij,
-     &        l_ij0, k_ij0, l_ij_, k_ij_, l_ij, k_ij,
-     &        nom1, nik1_0, nik1_, nik1, l_om1, k_om1, l_ik1_0, k_ik1_0,
-     &        l_ik1_, k_ik1_, l_ik1, k_ik1,
-     &        nom2, nik2_0, nik2_, nik2, l_om2, k_om2, l_ik2_0, k_ik2_0,
-     &        l_ik2_, k_ik2_, l_ik2, k_ik2)
-         call wfat_omega_wfat1(geom, nch, nqn, erg, chpos, nid,
+     &        nptp, nsh, nij0, nij_, nij, njc,
+     &        l_ij0, k_ij0, l_ij_, k_ij_, l_ij, k_ij, l_jc, k_jc,
+     &        nom1, nik1_0, nik1_, nik1, nk1c, l_om1, k_om1, l_ik1_0, 
+     &        k_ik1_0, l_ik1_, k_ik1_, l_ik1, k_ik1, l_k1c, k_k1c,
+     &        nom2, nik2_0, nik2_, nik2, nk2c, l_om2, k_om2, l_ik2_0, 
+     &        k_ik2_0, l_ik2_, k_ik2_, l_ik2, k_ik2, l_k2c, k_k2c)
+         call wfat_omega_wfat1(geom, ozn, nch, nqn, erg, chpos, nid,
      &        mid, lmax_, natomp, nptp, int_mb(k_icp), int_mb(k_ipp),
      &        gq, nlgl, zi, wfat1_exc, dcpl_mb(k_om1), dcpl_mb(k_om2))
-         add ozn as input above
       endif
       
       if (ndid == 0) then
@@ -236,11 +242,11 @@ c           ==== Calculate vc|psi> ====
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
             call wfat_omega_1pt(geom, v_m, nch, erg, chpos, nqn, nid, 
-     &           mid, lmax_, int(zi), dcpl_mb(k_om:k_om+nom-1))   adjust v_m dimension
+     &           mid, lmax_, int(zi), dcpl_mb(k_om:k_om+nom-1))
             
 c           ==== Calculate the integrand of I^{(n,m)}_{l,m'} ====
-            call wfat_integrand(nch, nqn, nsh, dcpl_mb(k_om), vc_psi, 
-     &           dcpl_mb(k_i0))  add cgrid as input to this subroutine.
+            call wfat_integrand(icent, nch, nqn, nsh, cgrid, 
+     &           dcpl_mb(k_om), vc_psi, dcpl_mb(k_i0))
             if (isnan( abs(dcpl_mb(k_i0)) ))
      &           write(luout, '("isnan", i8, 3es14.6, 6x, 3es21.12E3)')
      &           ic, v_m, dcpl_mb(k_om), vc_psi
@@ -250,21 +256,22 @@ c           =====           and K^{(n,m)}_{l,m'}                ====
             if (wfat1) then
                i_om1 = k_om1 + (jpt-1)*nsh*nqn*nch
                i_om2 = k_om2 + (jpt-1)*nsh*nqn*nch
-               call wfat_integrand_wfat1(nch, nqn, nsh, dcpl_mb(k_om),
-     &              dcpl_mb(i_om1), dcpl_mb(i_om2), vc_cpsi, vc_psi, 
-     &              dcpl_mb(k_ij0), dcpl_mb(k_ik1_0), dcpl_mb(k_ik2_0))
+               call wfat_integrand_wfat1_c(icent, nch, nqn, nsh, cgrid, 
+     &              dcpl_mb(k_om), dcpl_mb(i_om1), dcpl_mb(i_om2), 
+     &              vc_cpsi, vc_psi, dcpl_mb(k_ij0), dcpl_mb(k_ik1_0),
+     &              dcpl_mb(k_ik2_0))
             endif
 
 c           ==== Apply masks to the integrands ====
             if (ismask) call wfat_mask_intd(geom, natom, nch, 
-     &           nqn, nsh, v_m, mask_param, dcpl_mb(k_i0)) adjust v_m dimension      ! omega(nsh,nqn)   nch=1
+     &           nqn, nsh, v_m, mask_param, dcpl_mb(k_i0))       ! omega(nsh,nqn)   nch=1
             if (ismask .and. wfat1) call wfat_mask_intd(geom, natom, 
-     &           3*nch, nqn, nsh, v_m, mask_param, dcpl_mb(k_ij0)) adjust v_m dimension      ! omega(nsh,nqn)   nch=1
+     &           3*nch, nqn, nsh, v_m, mask_param, dcpl_mb(k_ij0))     ! omega(nsh,nqn)   nch=1
             if (ismask .and. wfat1) then
                call wfat_mask_intd(geom, natom, nch, nqn, nsh,
-     &              v_m, mask_param, dcpl_mb(k_ik1_0)) adjust v_m dimension      ! omega(nsh,nqn)   nch=1
+     &              v_m, mask_param, dcpl_mb(k_ik1_0))           ! omega(nsh,nqn)   nch=1
                call wfat_mask_intd(geom, natom, nch, nqn, nsh,
-     &              v_m, mask_param, dcpl_mb(k_ik2_0)) adjust v_m dimension      ! omega(nsh,nqn)   nch=1
+     &              v_m, mask_param, dcpl_mb(k_ik2_0))           ! omega(nsh,nqn)   nch=1
             endif
 
 c           ==== Quadrature summation ====
@@ -361,10 +368,11 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: Cannot deallocate scratch', 18, MA_ERR)
       call wfat_dealloc_quadgrid(l_pt, l_wt)
       call wfat_dealloc_gridrange(l_icp, l_ipp)
-      call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il)
+      call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il, l_inc)
       if (wfat1)
-     &     call wfat_dealloc_intgl_wfat1(l_ij0, l_ij_, l_ij,
-     &     l_om1, l_ik1_0, l_ik1_, l_ik1, l_om2, l_ik2_0, l_ik2_, l_ik2)
+     &     call wfat_dealloc_intgl_wfat1(l_ij0, l_ij_, l_ij, l_jc,
+     &     l_om1, l_ik1_0, l_ik1_, l_ik1, l_k1c,
+     &     l_om2, l_ik2_0, l_ik2_, l_ik2, l_k2c)
       call wfat_terminate_progress(g_nptx)
       
       end

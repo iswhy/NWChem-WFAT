@@ -1,8 +1,8 @@
 c=======================================================
 c=======================================================
       subroutine wfat_dft_vcpsi_1pt_c(icent, ghan, bhan, nbas, nspin,
-     &           nch, vch, spinid, chpos, vpt, cgrid, rdm, zi, smh,
-     &           scr, mask, ergmask, amsk, bmsk, vc_psi)
+     &           nch, wfat1, vch, spinid, chpos, vpt, cgrid, rdm, zi, 
+     &           smh, scr, mask, ergmask, amsk, bmsk, vc_psi)
       
 c     DESCRIPTION:
 c     When wfat is false, vch, spinid, chpos, and vc_psi must have nch columns
@@ -19,6 +19,7 @@ c       orb1_x orb1_y orb1_z orb2_x orb2_y orb2_z ... orb<nch>_x orb<nch>_y orb<
       integer nbas
       integer nspin
       integer nch                     ! [input], the number of unperturbed channels.
+      logical wfat1
       double precision vch(nbas,*)    ! [input], no. of column is nch if wfat1 is false, otherwise, 4*nch.
       integer spinid(*)               ! [input], no. of elements is nch if wfat1 is false, otherwise, 4*nch.
       double precision chpos(3,*)     ! [input], no. of column is nch if wfat1 is false, otherwise, 4*nch.
@@ -65,7 +66,7 @@ c        case, the first column will be used for the following calculation.
                dbl_mb(k_cf:k_cf+nbas-1) = vch(:,i)
                if (wfat1) then
                   i_cf = k_cf + nbas
-                  dbl_mb(i_cf:i_cf+3*nbas-1) = vch(:, i1:i2)
+                  call dcopy(nbas*3, vch(1,i1), 1, dbl_mb(i_cf), 1)
                endif
                call wfat_dft_vcpsi_1pt(ghan, bhan, nbas, nspin, 1+b, 
      &              dbl_mb(k_cf), spinid(i), chpos(:,i), vpt(:,i), rdm, 

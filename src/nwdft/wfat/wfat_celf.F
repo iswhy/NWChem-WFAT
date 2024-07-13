@@ -1,17 +1,19 @@
 c=======================================================
 c=======================================================
-      subroutine wfat_celf_1pt_c(geom, geomc, icent, cgrid, v_m, msm,
-     &     celf)
+      subroutine wfat_celf_1pt_c(geom, nch, geomc, icent, cgrid, chpos,
+     &     v_m, msm, celf)
 c     DESCRIPTION:
 c     geomc is an array of geometry objects. Each element of geomc consists
-c     of atomic coordinates such the second up to the last atoms and their
-c     coordinates are identical to those in geom. The first atom in the
+c     of atomic coordinates such that the second up to the last atoms and
+c     their coordinates are identical to those in geom. The first atom in the
 c     elements of geomc is the parabolic channel center of each channel.
       implicit none
       integer geom
+      integer nch
       integer geomc(nch)
       integer icent
       logical cgrid(nch)
+      double precision chpos(3,nch)
       double precision v_m(3,nch)
       integer msm
       double precision celf(nch)
@@ -55,6 +57,8 @@ c        == When the center is a channel center ==
                call geom_cent2arb(geomc(i), 0, v_m(:,i), chpos(:,i),
      &              v_c, t)
                call wfat_celf_1pt(geomc(i), 1, v_c, msm, celf(i))
+c              The second argument above is 1 because the channel center
+c              is the first center of the geometry object geomc(i).
             endif
          enddo
       endif

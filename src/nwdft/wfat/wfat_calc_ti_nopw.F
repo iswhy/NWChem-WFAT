@@ -557,6 +557,7 @@ c=======================================================
      &     maskf)
 
       implicit none
+#include "errquit.fh"
       integer geom
       integer natom
       integer nptp
@@ -570,7 +571,10 @@ c=======================================================
       do i = 1, nptp
          maskf_ = cmplx(1.0d0, 0.0d0, kind=kind(1.0d0))
          call wfat_mask_intd(geom, natom, 1, 1, 1, v_m(:,i), 
-     &        mask_param, maskf_)  adjust v_m dimension      ! omega(nsh,nqn)   nch=1
+     &        mask_param, maskf_)
+         call errquit('ERROR: No-partial-wave algorithm cannot be '//
+     &        'used at the moment. First, change the dimension of v_m'//
+     &        ' to also include nch.', 55, UERR)
          maskf(i) = real(maskf_)
       enddo
 

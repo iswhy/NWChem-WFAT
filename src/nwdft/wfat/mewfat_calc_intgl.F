@@ -41,8 +41,9 @@ c=================================================
       integer g_il                ! [output],
 
       integer nat, ndid, natp, nptp, max_npt, nsh, nom, ni0, ni_, nil
-      integer l_icp, l_ipp, l_pt, l_wt, l_om, l_i0, l_i_, l_il
-      integer k_icp, k_ipp, k_pt, k_wt, k_om, k_i0, k_i_, k_il
+      integer ninc
+      integer l_icp, l_ipp, l_pt, l_wt, l_om, l_i0, l_i_, l_il, l_inc
+      integer k_icp, k_ipp, k_pt, k_wt, k_om, k_i0, k_i_, k_il, k_inc
       double precision normch
       double complex cone
 
@@ -69,7 +70,8 @@ c     ==== Allocate grid-related arrays ====
       
 c     ==== Perform quadrature summation ====
       call wfat_alloc_intgl(lmax_, nqn, 1, nat, nsh, nom, ni0, ni_,
-     &     nil, l_om, k_om, l_i0, k_i0, l_i_, k_i_, l_il, k_il)
+     &     nil, ninc, l_om, k_om, l_i0, k_i0, l_i_, k_i_, l_il, k_il,
+     &     l_inc, k_inc)
       call mewfat_calc_intgl_qsum(rtdb, geom, bas, nb, natp, 
      &     int_mb(k_icp), int_mb(k_ipp), gq, sx, sy, n0, n1, ocmo0,
      &     ocmo1, pcf, rcf, qcf, scf, zi, chpos, ionerg, max_npt, 
@@ -90,7 +92,7 @@ cfordebug      if (ndid==0) write(luout, '("intgl norm = ", es14.6)') normch
 c     ==== Deallocations ====
       call wfat_dealloc_gridrange(l_icp, l_ipp)
       call wfat_dealloc_quadgrid(l_pt, l_wt)
-      call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il)
+      call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il, l_inc)
 
       end
 c=================================================
@@ -257,12 +259,12 @@ c           ==== Calculate vc|psi> ====
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
             call wfat_omega_1pt(geom, v_m, 1, ionerg, chpos, nqn,
-     &           nid, mid, lmax_, int(zi), omega)  adjust v_m dimension      ! omega(nsh,nqn)   nch=1
+     &           nid, mid, lmax_, int(zi), omega)  ! adjust v_m dimension      ! omega(nsh,nqn)   nch=1
             
 c           ==== Calculate the integrand of I^(n,m)_(l,m') ====
             intg0 = conjg(omega) * vcpsi ! intg0(nsh,nqn)   nch=1
             if (ismask) call wfat_mask_intd(geom, nat, 1,
-     &           nqn, nsh, v_m, mask_param, intg0) adjust v_m dimension      ! omega(nsh,nqn)   nch=1
+     &           nqn, nsh, v_m, mask_param, intg0) ! adjust v_m dimension      ! omega(nsh,nqn)   nch=1
 
             
 c           ==== Quadrature summation ====

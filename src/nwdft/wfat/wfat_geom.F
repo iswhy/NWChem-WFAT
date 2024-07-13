@@ -132,6 +132,7 @@ c========================================================
       integer geomo
 
       character*16 tag_(natom+1)
+      integer ic
       double precision cd_(3,natom+1)
       double precision cg_(natom+1)
 
@@ -173,8 +174,11 @@ c========================================================
       integer geomc(nch)
 
       character*16 ctag
-      integer i
+      integer i, natom
 
+      if (.not. geom_ncent(geom, natom))
+     &     call errquit('WFAT: Cannot get natom.', 30, GEOM_ERR)
+      
       do i = 1, nch
          if (.not. geom_create(geomc(i), 'geomc'))
      &        call errquit('WFAT: Error in creating geomc.', 30,

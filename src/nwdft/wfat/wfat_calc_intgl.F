@@ -54,26 +54,26 @@ c       orb1_x orb1_y orb1_z orb2_x orb2_y orb2_z ... orb<nch>_x orb<nch>_y orb<
 
       character*12 dt_str
       character*16 tag
-      logical t1
-      integer natom, nrd, max_npt, nvc, nsh, nom, ni0, ni_
-      integer nch1, npt, natomp, nptp, ncpos, nscr, nil, nmo
-      integer nij0, nij_, nij
-      integer nom1, nik1_0, nik1_, nik1, nom2, nik2_0, nik2_, nik2
+      logical t1, cgrid(nch)
+      integer natom, nrd, max_npt, nvc, nsh, nom, ni0, ni_, ozn
+      integer nch1, npt, natomp, nptp, ncpos, nscr, nil, ninc, nmo
+      integer nij0, nij_, nij, njc, nom1, nik1_0, nik1_, nik1, nk1c
+      integer nom2, nik2_0, nik2_, nik2, nk2c
       integer i, j, ic, icent, ipt, ipt_i, ipt_f
       integer jpt, ich, iqn, ish, i_vc, ndid
       integer l_pt, l_wt, l_vc, l_om, l_i0
-      integer l_i_, l_sc, l_il, l_icp, l_ipp, l_si, l_pos
+      integer l_i_, l_sc, l_il, l_inc, l_icp, l_ipp, l_si, l_pos
       integer k_pt, k_wt, k_vc, k_om, k_i0
-      integer k_i_, k_sc, k_il, k_icp, k_ipp, k_si, k_pos
-      integer l_ij0, l_ij_, l_ij, l_om1, l_ik1_0, l_ik1_, l_ik1, l_om2
-      integer l_ik2_0, l_ik2_, l_ik2
-      integer k_ij0, k_ij_, k_ij, k_om1, k_ik1_0, k_ik1_, k_ik1, k_om2
-      integer k_ik2_0, k_ik2_, k_ik2
+      integer k_i_, k_sc, k_il, k_inc, k_icp, k_ipp, k_si, k_pos
+      integer l_ij0, l_ij_, l_ij, l_jc, l_om1, l_ik1_0, l_ik1_, l_ik1
+      integer l_k1c, l_om2, l_ik2_0, l_ik2_, l_ik2, l_k2c
+      integer k_ij0, k_ij_, k_ij, k_jc, k_om1, k_ik1_0, k_ik1_, k_ik1
+      integer k_k1c, k_om2, k_ik2_0, k_ik2_, k_ik2, k_k2c
       integer is, io, ipt0, i0l, i0r, oml, omr, i_l, i_r, imf, i_rd
       integer g_rd(2), i_mo, i_om1, i_om2, spinid1(nch+3*nch), pr_count
-      integer pr_chk(10), kk, g_nptx, g_npt_tot, znuc
-      double precision atp(3), zn, v_c(3), v_m(3,nch), normch, celf
-      double precision wtcelf, t_now, t_last, t_start, dt_all
+      integer pr_chk(10), kk, g_nptx, g_npt_tot, znuc, geomc(nch)
+      double precision atp(3), zn, v_c(3), v_m(3,nch), normch, celf(nch)
+      double precision wtcelf(nch), t_now, t_last, t_start, dt_all
       double precision dt_prog, nptx, npt_tot, kp, dum1, dum2, dum3
       double complex czero, cone
       
@@ -82,7 +82,7 @@ c       orb1_x orb1_y orb1_z orb2_x orb2_y orb2_z ... orb<nch>_x orb<nch>_y orb<
      &          cone = cmplx(1.0d0, 0.0d0, kind=kind(1.0d0)) )
 
 
-      solve these
+c      solve these
 c     1) Fix wfat_collect_mfgrid
       
       
@@ -146,7 +146,8 @@ c     ==== Allocate WFAT integral, its integrands, and some other ====
       if (.not. MA_alloc_get(MT_DBL, nvc, 'vcpsi', l_vc, k_vc))
      &     call errquit('WFAT: vcpsi allocation failed', 59, MA_ERR)
       call wfat_alloc_intgl(lmax_, nqn, nch, natom, nsh, nom, ni0, ni_,
-     &     nil, l_om, k_om, l_i0, k_i0, l_i_, k_i_, l_il, k_il)
+     &     nil, ninc, l_om, k_om, l_i0, k_i0, l_i_, k_i_, l_il, k_il,
+     &     l_inc, k_inc)
       
 
 c     ==== Obtaining grid ranges for the current process ====
@@ -161,14 +162,16 @@ c     &     ndid, icent_i, ipt_i, icent_f, ipt_f, nptp
 
 
 c     ==== Calculate WFAT(1) Omega ====
+      if (.not. rtdb_get(rtdb, 'wfat:ozn', mt_int, 1, ozn))
+     &     call errquit('WFAT: Cannot read ozn.', 73, RTDB_ERR)
       if (wfat1) then
          call wfat_alloc_intgl_wfat1(lmax_, nqn, nch, nch1, natom,
-     &        nptp, nsh, nij0, nij_, nij,
-     &        l_ij0, k_ij0, l_ij_, k_ij_, l_ij, k_ij,
-     &        nom1, nik1_0, nik1_, nik1, l_om1, k_om1, l_ik1_0, k_ik1_0,
-     &        l_ik1_, k_ik1_, l_ik1, k_ik1,
-     &        nom2, nik2_0, nik2_, nik2, l_om2, k_om2, l_ik2_0, k_ik2_0,
-     &        l_ik2_, k_ik2_, l_ik2, k_ik2)
+     &        nptp, nsh, nij0, nij_, nij, njc,
+     &        l_ij0, k_ij0, l_ij_, k_ij_, l_ij, k_ij, l_jc, k_jc,
+     &        nom1, nik1_0, nik1_, nik1, nk1c, l_om1, k_om1, l_ik1_0, 
+     &        k_ik1_0, l_ik1_, k_ik1_, l_ik1, k_ik1, l_k1c, k_k1c,
+     &        nom2, nik2_0, nik2_, nik2, nk2c, l_om2, k_om2, l_ik2_0, 
+     &        k_ik2_0, l_ik2_, k_ik2_, l_ik2, k_ik2, l_k2c, k_k2c)
          call wfat_omega_wfat1(geom, ozn, nch, nqn, erg, chpos, nid,
      &        mid, lmax_, natomp, nptp, int_mb(k_icp), int_mb(k_ipp),
      &        gqual, nlgl, zi, wfat1_exc, dcpl_mb(k_om1),
@@ -213,9 +216,9 @@ c     ==== Loop over atoms ====
          dcpl_mb(k_ik1_ : k_ik1_+nik1_-1) = czero
          dcpl_mb(k_ik2_ : k_ik2_+nik2_-1) = czero
 
-         dcpl_mb(k_jnc : k_jnc+njnc-1) = czero
-         dcpl_mb(k_k1nc : k_k1nc+nk1nc-1) = czero
-         dcpl_mb(k_k2nc : k_k2nc+nk2nc-1) = czero
+         dcpl_mb(k_jc : k_jc+njc-1) = czero
+         dcpl_mb(k_k1c : k_k1c+nk1c-1) = czero
+         dcpl_mb(k_k2c : k_k2c+nk2c-1) = czero
       endif
       
       do ic = 1, natomp
@@ -263,8 +266,8 @@ c           (see wfat_omega_wfat1 above).
             
 c           ==== Calculate vc|psi> ====
             call wfat_dft_vcpsi_1pt_c(icent, geom, bas, nb, ns, nch, 
-     &           vch, int_mb(k_si), dbl_mb(k_pos), v_m, cgrid, rdm, zi,
-     &           smh, dbl_mb(k_sc), .false., dum1, dum2, dum3, 
+     &           wfat1, vch, int_mb(k_si), dbl_mb(k_pos), v_m, cgrid, 
+     &           rdm, zi, smh, dbl_mb(k_sc), .false., dum1, dum2, dum3, 
      &           dbl_mb(k_vc))
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions on the current grid ====
@@ -284,7 +287,6 @@ c           ====            and K^{(n,m)}_{l,m'}                ====
             if (wfat1) then
                i_om1 = k_om1 + (jpt-1)*nsh*nqn*nch
                i_om2 = k_om2 + (jpt-1)*nsh*nqn*nch
-
                call wfat_integrand_wfat1_c(icent, nch, nqn, nsh, cgrid,
      &              dcpl_mb(k_om), dcpl_mb(i_om1), dcpl_mb(i_om2), 
      &              dbl_mb(k_vc+nch), dbl_mb(k_vc), dcpl_mb(k_ij0), 
@@ -304,8 +306,8 @@ c           ==== Masking of integrands ====#
             endif
                            
 c           ==== Cell function ====
-            call wfat_celf_1pt_c(geom, geomc, icent, cgrid, v_m, celm,
-     &           celf)
+            call wfat_celf_1pt_c(geom, nch, geomc, icent, cgrid, chpos,
+     &           v_m, celm, celf)
             wtcelf(:) = celf(:) * dbl_mb(k_wt+ipt-1)
             
 c           ==== Quadrature summation ====
@@ -325,7 +327,7 @@ c           ==== Quadrature summation ====
      &                 dcpl_mb(k_ij0), dcpl_mb(i_l))
                else
                   call wfat_integrand_acc(nsh, nqn, nch1, wtcelf,
-     &                 dcpl_mb(k_ij0), dcpl_mb(k_jnc))
+     &                 dcpl_mb(k_ij0), dcpl_mb(k_jc))
                endif
 
                if (icent /= -1) then
@@ -334,7 +336,7 @@ c           ==== Quadrature summation ====
      &                 dcpl_mb(k_ik1_0), dcpl_mb(i_l))
                else
                   call wfat_integrand_acc(nsh, nqn, nch, wtcelf,
-     &                 dcpl_mb(k_ik1_0), dcpl_mb(k_k1nc))
+     &                 dcpl_mb(k_ik1_0), dcpl_mb(k_k1c))
                endif
 
                if (icent /= -1) then
@@ -343,7 +345,7 @@ c           ==== Quadrature summation ====
      &                 dcpl_mb(k_ik2_0), dcpl_mb(i_l))
                else
                   call wfat_integrand_acc(nsh, nqn, nch, wtcelf,
-     &                 dcpl_mb(k_ik2_0), dcpl_mb(k_k2nc))
+     &                 dcpl_mb(k_ik2_0), dcpl_mb(k_k2c))
                endif
             endif
 
@@ -377,11 +379,11 @@ c     ==== to the channel center for the current process ====
       call wfat_distrib_intgl(nsh, natom, nqn, nch, dcpl_mb(k_inc),
      &     dcpl_mb(k_i_))
       if (wfat1) then
-         call wfat_distrib_intgl(nsh, natom, nqn, nch1, dcpl_mb(k_jnc),
+         call wfat_distrib_intgl(nsh, natom, nqn, nch1, dcpl_mb(k_jc),
      &        dcpl_mb(k_ij_))
-         call wfat_distrib_intgl(nsh, natom, nqn, nch, dcpl_mb(k_k1nc),
+         call wfat_distrib_intgl(nsh, natom, nqn, nch, dcpl_mb(k_k1c),
      &        dcpl_mb(k_ik1_))
-         call wfat_distrib_intgl(nsh, natom, nqn, nch, dcpl_mb(k_k2nc),
+         call wfat_distrib_intgl(nsh, natom, nqn, nch, dcpl_mb(k_k2c),
      &        dcpl_mb(k_ik2_))
       endif
          
@@ -423,10 +425,11 @@ c     ==== Deallocations ====
      &     call errquit('WFAT: vscr deallocation failed', 61, MA_ERR)
       if (.not. MA_free_heap(l_vc))
      &     call errquit('WFAT: vc|psi> deallocation failed', 61, MA_ERR)
-      call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il)
+      call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il, l_inc)
       if (wfat1)
-     &     call wfat_dealloc_intgl_wfat1(l_ij0, l_ij_, l_ij,
-     &     l_om1, l_ik1_0, l_ik1_, l_ik1, l_om2, l_ik2_0, l_ik2_, l_ik2)
+     &     call wfat_dealloc_intgl_wfat1(l_ij0, l_ij_, l_ij, l_jc,
+     &     l_om1, l_ik1_0, l_ik1_, l_ik1, l_k1c,
+     &     l_om2, l_ik2_0, l_ik2_, l_ik2, l_k2c)
       call wfat_dealloc_gridrange(l_icp, l_ipp)
       if (.not. MA_free_heap(l_si))
      &     call errquit('WFAT: spinid1 deallocation failed', 61, MA_ERR)
@@ -497,6 +500,9 @@ c=======================================================
       double complex intd_k2(nsh, nqn, nch)
 
       integer i, j
+      double complex czero
+
+      parameter ( czero = cmplx(0.0d0, 0.0d0, kind=kind(1.0d0)) )
 
       if (icent /= -1) then
          call wfat_integrand_wfat1(nch, nqn, nsh, omg, omg1, omg2,
@@ -639,8 +645,10 @@ c=======================================================
       double complex intglc(nsh, nqn, nch)            ! [input],
       double complex intgl_(nsh, nqn, nch, ncent)     ! [in/output],
 
+      integer ic
+      
       do ic = 1, ncent
-         intgl_(:,:,:,i) = intgl_(:,:,:,i) + intglc/ncent
+         intgl_(:,:,:,ic) = intgl_(:,:,:,ic) + intglc/ncent
       enddo
 
       end
@@ -860,22 +868,24 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_alloc_intgl(lmax_, nqn, nch, nat, nsh, nom, ni0, 
-     &     ni_, nil, l_om, k_om, l_i0, k_i0, l_i_, k_i_, l_il, k_il)
+     &     ni_, nil, ninc, l_om, k_om, l_i0, k_i0, l_i_, k_i_,
+     &     l_il, k_il, l_inc, k_inc)
 
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
-      integer lmax_                     ! [input],
-      integer nqn                       ! [input],
-      integer nch                       ! [input],
-      integer nat                       ! [input],
-      integer nsh, nom, ni0, ni_, nil   ! [output],
-      integer l_om, k_om                ! [output],
-      integer l_i0, k_i0                ! [output],
-      integer l_i_, k_i_                ! [output],
-      integer l_il, k_il                ! [output],
+      integer lmax_                           ! [input],
+      integer nqn                             ! [input],
+      integer nch                             ! [input],
+      integer nat                             ! [input],
+      integer nsh, nom, ni0, ni_, nil, ninc   ! [output],
+      integer l_om, k_om                      ! [output],
+      integer l_i0, k_i0                      ! [output],
+      integer l_i_, k_i_                      ! [output],
+      integer l_il, k_il                      ! [output],
+      integer l_inc, k_inc                    ! [output],
 
-
+      
       nsh = (1 + lmax_)**2
       nom = nsh * nqn * nch
       if (.not. MA_alloc_get(MT_DCPL, nom, 'omega', l_om, k_om))
@@ -889,6 +899,9 @@ c=======================================================
       nil = nsh * nqn * nch * nat
       if (.not. MA_alloc_get(MT_DCPL, nil, 'intgl', l_il, k_il))
      &     call errquit('WFAT: intgl allocation failed', 59, MA_ERR)
+      ninc = nsh * nqn * nch
+      if (.not. MA_alloc_get(MT_DCPL, ninc, 'cintgl', l_inc, k_inc))
+     &     call errquit('WFAT: cintgl allocation failed', 59, MA_ERR)
 
       end
 c=======================================================
@@ -897,37 +910,39 @@ c=======================================================
 c=======================================================
 c=======================================================
       subroutine wfat_alloc_intgl_wfat1(lmax_, nqn, nch, nch1, nat, 
-     &     nptp, nsh, nij0, nij_, nij,
-     &     l_ij0, k_ij0, l_ij_, k_ij_, l_ij, k_ij,
-     &     nom1, nik1_0, nik1_, nik1, l_om1, k_om1, l_ik1_0, k_ik1_0, 
-     &     l_ik1_, k_ik1_, l_ik1, k_ik1,
-     &     nom2, nik2_0, nik2_, nik2, l_om2, k_om2, l_ik2_0, k_ik2_0, 
-     &     l_ik2_, k_ik2_, l_ik2, k_ik2)
+     &     nptp, nsh, nij0, nij_, nij, njc,
+     &     l_ij0, k_ij0, l_ij_, k_ij_, l_ij, k_ij, l_jc, k_jc,
+     &     nom1, nik1_0, nik1_, nik1, nk1c, l_om1, k_om1, l_ik1_0, 
+     &     k_ik1_0, l_ik1_, k_ik1_, l_ik1, k_ik1, l_k1c, k_k1c,
+     &     nom2, nik2_0, nik2_, nik2, nk2c, l_om2, k_om2, l_ik2_0, 
+     &     k_ik2_0, l_ik2_, k_ik2_, l_ik2, k_ik2, l_k2c, k_k2c)
 
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
-      integer lmax_                       ! [input],
-      integer nqn                         ! [input],
-      integer nch                         ! [input],
-      integer nch1                        ! [input],
-      integer nat                         ! [input], the total number of atoms in the system.
-      integer nptp                        ! [input], the number of points in the current process.
-      integer nsh, nij0, nij_, nij        ! [output],
-      integer l_ij0, k_ij0                ! [output],
-      integer l_ij_, k_ij_                ! [output],
-      integer l_ij, k_ij                  ! [output],
-      integer nom1, nik1_0, nik1_, nik1   ! [output],
-      integer l_om1, k_om1                ! [output],
-      integer l_ik1_0, k_ik1_0            ! [output],
-      integer l_ik1_, k_ik1_              ! [output],
-      integer l_ik1, k_ik1                ! [output],
-      integer nom2, nik2_0, nik2_, nik2   ! [output],
-      integer l_om2, k_om2                ! [output],
-      integer l_ik2_0, k_ik2_0            ! [output],
-      integer l_ik2_, k_ik2_              ! [output],
-      integer l_ik2, k_ik2                ! [output],
-
+      integer lmax_                            ! [input],
+      integer nqn                              ! [input],
+      integer nch                              ! [input],
+      integer nch1                             ! [input],
+      integer nat                              ! [input], the total number of atoms in the system.
+      integer nptp                             ! [input], the number of points in the current process.
+      integer nsh, nij0, nij_, nij, njc        ! [output],
+      integer l_ij0, k_ij0                     ! [output],
+      integer l_ij_, k_ij_                     ! [output],
+      integer l_ij, k_ij                       ! [output],
+      integer l_jc, k_jc                       ! [output],
+      integer nom1, nik1_0, nik1_, nik1, nk1c  ! [output],
+      integer l_om1, k_om1                     ! [output],
+      integer l_ik1_0, k_ik1_0                 ! [output],
+      integer l_ik1_, k_ik1_                   ! [output],
+      integer l_ik1, k_ik1                     ! [output],
+      integer l_k1c, k_k1c                     ! [output],
+      integer nom2, nik2_0, nik2_, nik2, nk2c  ! [output],
+      integer l_om2, k_om2                     ! [output],
+      integer l_ik2_0, k_ik2_0                 ! [output],
+      integer l_ik2_, k_ik2_                   ! [output],
+      integer l_ik2, k_ik2                     ! [output],
+      integer l_k2c, k_k2c                     ! [output],
       
       nsh = (1 + lmax_)**2
 
@@ -945,6 +960,10 @@ c     ==== J ====
       nij = nsh * nqn * nch1 * nat
       if (.not. MA_alloc_get(MT_DCPL, nij, 'intl_j', l_ij, k_ij))
      &     call errquit('WFAT: intl_j allocation failed', 59, MA_ERR)
+
+      njc = nsh * nqn * nch1
+      if (.not. MA_alloc_get(MT_DCPL, njc, 'cintl_j', l_jc, k_jc))
+     &     call errquit('WFAT: cintl_j allocation failed', 59, MA_ERR)
 
 
 c     ==== Omega1 and K1 ====
@@ -966,6 +985,10 @@ c     ==== Omega1 and K1 ====
       if (.not. MA_alloc_get(MT_DCPL, nik1, 'intl_k1', l_ik1, k_ik1))
      &     call errquit('WFAT: intl_k1 allocation failed', 59, MA_ERR)
 
+      nk1c = nsh * nqn * nch
+      if (.not. MA_alloc_get(MT_DCPL, nk1c, 'cintl_k1', l_k1c, k_k1c))
+     &     call errquit('WFAT: cintl_k1 allocation failed', 59, MA_ERR)
+
       
 c     ==== Omega2 and K2 ====
       nom2 = nsh * nqn * nch * nptp
@@ -985,7 +1008,10 @@ c     ==== Omega2 and K2 ====
       nik2 = nsh * nqn * nch * nat
       if (.not. MA_alloc_get(MT_DCPL, nik2, 'intl_k2', l_ik2, k_ik2))
      &     call errquit('WFAT: intl_k2 allocation failed', 59, MA_ERR)
-      
+
+      nk2c = nsh * nqn * nch
+      if (.not. MA_alloc_get(MT_DCPL, nk2c, 'cintl_k2', l_k2c, k_k2c))
+     &     call errquit('WFAT: cintl_k2 allocation failed', 59, MA_ERR)
       
       end
 c=======================================================
@@ -993,12 +1019,12 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il)
+      subroutine wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il, l_inc)
 
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
-      integer l_om, l_i0, l_i_, l_il     ! [input]
+      integer l_om, l_i0, l_i_, l_il, l_inc     ! [input]
 
       
       if (.not. MA_free_heap(l_om))
@@ -1009,6 +1035,8 @@ c=======================================================
      &     call errquit('WFAT: intgl_ deallocation failed', 61, MA_ERR)
       if (.not. MA_free_heap(l_il))
      &     call errquit('WFAT: intgl deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_inc))
+     &     call errquit('WFAT: cintgl deallocation failed', 61, MA_ERR)
 
       end
 c=======================================================
@@ -1016,15 +1044,16 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      subroutine wfat_dealloc_intgl_wfat1(l_ij0, l_ij_, l_ij,
-     &     l_om1, l_ik1_0, l_ik1_, l_ik1, l_om2, l_ik2_0, l_ik2_, l_ik2)
+      subroutine wfat_dealloc_intgl_wfat1(l_ij0, l_ij_, l_ij, l_jc,
+     &     l_om1, l_ik1_0, l_ik1_, l_ik1, l_k1c,
+     &     l_om2, l_ik2_0, l_ik2_, l_ik2, l_k2c)
 
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
-      integer l_ij0, l_ij_, l_ij     ! [input]
-      integer l_om1, l_ik1_0, l_ik1_, l_ik1
-      integer l_om2, l_ik2_0, l_ik2_, l_ik2
+      integer l_ij0, l_ij_, l_ij, l_jc
+      integer l_om1, l_ik1_0, l_ik1_, l_ik1, l_k1c
+      integer l_om2, l_ik2_0, l_ik2_, l_ik2, l_k2c
 
       if (.not. MA_free_heap(l_ij0))
      &     call errquit('WFAT: intd_j0 deallocation failed', 61, MA_ERR)
@@ -1032,6 +1061,8 @@ c=======================================================
      &     call errquit('WFAT: intl_j_ deallocation failed', 61, MA_ERR)
       if (.not. MA_free_heap(l_ij))
      &     call errquit('WFAT: intl_j deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_jc))
+     &     call errquit('WFAT: cintl_j deallocation failed', 61, MA_ERR)
 
       if (.not. MA_free_heap(l_om1))
      &     call errquit('WFAT: omg1 deallocation failed', 61, MA_ERR)
@@ -1043,6 +1074,9 @@ c=======================================================
      &     MA_ERR)
       if (.not. MA_free_heap(l_ik1))
      &     call errquit('WFAT: intl_k1 deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_k1c))
+     &     call errquit('WFAT: cintl_k1 deallocation failed',
+     &     61, MA_ERR)
 
       if (.not. MA_free_heap(l_om2))
      &     call errquit('WFAT: omg2 deallocation failed', 61, MA_ERR)
@@ -1054,6 +1088,9 @@ c=======================================================
      &     MA_ERR)
       if (.not. MA_free_heap(l_ik2))
      &     call errquit('WFAT: intl_k2 deallocation failed', 61, MA_ERR)
+      if (.not. MA_free_heap(l_k2c))
+     &     call errquit('WFAT: cintl_k2 deallocation failed',
+     &     61, MA_ERR)
       
       end
 c=======================================================
