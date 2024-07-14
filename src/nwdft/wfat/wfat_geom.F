@@ -163,12 +163,13 @@ c========================================================
 
 c========================================================
 c========================================================
-      subroutine wfat_cgeom_create(geom, nch, chpos, geomc)
+      subroutine wfat_cgeom_create(geom, ozn, nch, chpos, geomc)
 
       implicit none
 #include "geom.fh"
 #include "errquit.fh"
       integer geom
+      integer ozn
       integer nch
       double precision chpos(3,nch)
       integer geomc(nch)
@@ -184,8 +185,8 @@ c========================================================
      &        call errquit('WFAT: Error in creating geomc.', 30,
      &        GEOM_ERR)
          ctag = 'chcent'
-         call wfat_channel_geom0(geom, natom, ctag, chpos(:,i), 0.0d0,
-     &        geomc(i))
+         call wfat_channel_geom0(geom, natom, ctag, chpos(:,i), 
+     &        dble(ozn), geomc(i))
       enddo
 
       end

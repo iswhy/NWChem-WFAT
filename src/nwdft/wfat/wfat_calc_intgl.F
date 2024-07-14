@@ -151,19 +151,22 @@ c     ==== Allocate WFAT integral, its integrands, and some other ====
       
 
 c     ==== Obtaining grid ranges for the current process ====
+      write(luout, '("hereb0")')
+      if (.not. rtdb_get(rtdb, 'wfat:ozn', mt_int, 1, ozn))
+     &     call errquit('WFAT: Cannot read ozn.', 73, RTDB_ERR)
+      write(luout, '("hereb2", i4)') ozn
       call wfat_alloc_gridrange(natom+1, l_icp, k_icp, l_ipp, k_ipp)
-      call wfat_get_gridrange_c(geom, ndid, gqual, int_mb(k_icp),
+      call wfat_get_gridrange_c(geom, ozn, ndid, gqual, int_mb(k_icp),
      &     int_mb(k_ipp), natomp, nptp)
       call wfat_need_cgrid(rtdb, geom, nch, chpos, cgrid)
-      call wfat_cgeom_create(geom, nch, chpos, geomc)
+      call wfat_cgeom_create(geom, ozn, nch, chpos, geomc)
 c      write(luout, '("node:", i3, "  atom1,pt1:", i3, i7, '//
 c     &     '"  atom2,pt2:", i3, i7, "  npoint:", i7)')
 c     &     ndid, icent_i, ipt_i, icent_f, ipt_f, nptp
 
 
 c     ==== Calculate WFAT(1) Omega ====
-      if (.not. rtdb_get(rtdb, 'wfat:ozn', mt_int, 1, ozn))
-     &     call errquit('WFAT: Cannot read ozn.', 73, RTDB_ERR)
+      write(luout, '("hereb1")')
       if (wfat1) then
          call wfat_alloc_intgl_wfat1(lmax_, nqn, nch, nch1, natom,
      &        nptp, nsh, nij0, nij_, nij, njc,
@@ -323,10 +326,10 @@ c           ==== Quadrature summation ====
             if (wfat1) then
                if (icent /= -1) then
                   i_l = k_ij_ + (icent-1) * nsh*nqn*nch1
-                  call wfat_integrand_acc(nsh, nqn, nch1, wtcelf,
+                  call wfat_integrandj_acc(nsh, nqn, nch, wtcelf,
      &                 dcpl_mb(k_ij0), dcpl_mb(i_l))
                else
-                  call wfat_integrand_acc(nsh, nqn, nch1, wtcelf,
+                  call wfat_integrandj_acc(nsh, nqn, nch, wtcelf,
      &                 dcpl_mb(k_ij0), dcpl_mb(k_jc))
                endif
 
@@ -585,8 +588,32 @@ c=======================================================
 
       end
 c=======================================================
-      
 
+
+c=======================================================
+c=======================================================
+      subroutine wfat_integrandj_acc(nsh, nqn, nch, wt, intl0, intl_)
+
+      implicit none
+      integer nsh
+      integer nqn
+      integer nch
+      double precision wt(nch)
+      double complex intl0(nsh, nqn, 3*nch)
+      double complex intl_(nsh, nqn, 3*nch)
+
+      integer i, j
+
+      do i = 1, 3*nch, 3
+         j = (i+2)/3   ! = 1, 2, 3, ...
+         intl_(:,:,i+0) = intl_(:,:,i+0) + intl0(:,:,i+0) * wt(j)
+         intl_(:,:,i+1) = intl_(:,:,i+1) + intl0(:,:,i+1) * wt(j)
+         intl_(:,:,i+2) = intl_(:,:,i+2) + intl0(:,:,i+2) * wt(j)
+      enddo
+
+      end
+c=======================================================
+      
       
 cOLDc=======================================================
 cOLDc=======================================================
@@ -1181,7 +1208,7 @@ c=======================================================
          call geom_arb2cent(-1000, chpos(:,i), v_c, 0, v_m(:,i), t)
       enddo
       
-c     The grid will always be calculated regardless of whether the v_c
+c     The grid will always be calculated regardless of whether v_c
 c     belongs to a gridless parabolic channel center. This is because its
 c     omission will be taken care of inside the subsequent subroutines.
 

@@ -1862,6 +1862,13 @@ cOLD      if (prtb_ord_need .and. os) then
      &        call errquit('WFAT: Failed writing ozn to RTDB', 1,
      &        RTDB_ERR)
       endif
+
+      if (.true.) then
+         if (.not. rtdb_put(rtdb, 'wfat:cgrid_thr', mt_dbl, 1,
+     &        DEF_CGRID_THR))
+     &        call errquit('WFAT: Failed writing cgrid_thr to RTDB', 1,
+     &        RTDB_ERR)
+      endif
       
       if (s2a1e) then
          if (.not. rtdb_put(rtdb, 'wfat:2a1e_nc', mt_int, 1, wfat2a_nc))

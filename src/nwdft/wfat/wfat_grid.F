@@ -251,6 +251,7 @@ c========================================================
 
       implicit none
 #include "errquit.fh"      
+#include "stdio.fh"
 #include "wfat.fh"
       integer zn                  ! [input]
       integer gq                  ! [input]
@@ -332,6 +333,7 @@ c     ==== K and beyond ====
          endif
 c     ==== Anything else ====
       else
+         write(luout, '("Input zn = ", i4)') zn
          call errquit('WFAT: Error in determining atr0 and nlang',
      &        52, UERR)
       endif
@@ -618,13 +620,14 @@ c=================================================
 
 c=================================================
 c=================================================
-      subroutine wfat_get_gridrange_c(geom, ndid, gq, ic, ipt, natomp,
-     &     nptp)
+      subroutine wfat_get_gridrange_c(geom, ozn, ndid, gq, ic, ipt, 
+     &     natomp, nptp)
 
       implicit none
 #include "geom.fh"
 #include "errquit.fh"
       integer geom            ! [input], geometry handle.
+      integer ozn             ! [input],
       integer ndid            ! [input], node ID of the current process.
       integer gq              ! [input], the chosen grid quality.
       integer ic(1:*)         ! [output], the first natom_proc elements contains the centers for the current process.
@@ -645,12 +648,11 @@ c=================================================
      &     GEOM_ERR)
       ctag = 'chcent'
       ccd = (/ 0.0d0, 0.0d0, 0.0d0/)    ! 1)
-      ccg = 0.0d0    ! 2)
+      ccg = dble(ozn)
       call wfat_channel_geom0(geom, natom, ctag, ccd, ccg, geomt)
 c     1) The coordinate of the channel center is unimportant here because
 c        it is not needed for the computation of grid range and counts
 c        inside wfat_get_gridrange below.
-c     2) Channel center has zero charge.
 
       call wfat_get_gridrange(geomt, ndid, gq, ic, ipt, natomp, nptp)
 
@@ -873,7 +875,11 @@ cfordebug      if (ga_nodeid()==0) write(luout, '("vcent = ", 3es21.12)') vcent
          do i = ptlim(1,ic), ptlim(2,ic)
             i_pt = k_pt + 3*(i-1)
             v_c(1:3) = dbl_mb(i_pt : i_pt+2)
-            call geom_cent2arb(geom, icent, v_c, vcent, v_f, t1)
+            if (icent == -1) then
+               v_f = v_c
+            else
+               call geom_cent2arb(geom, icent, v_c, vcent, v_f, t1)
+            endif
 
             j = j + 1
             r(j) = sqrt(sum(v_f*v_f))
@@ -1084,6 +1090,13 @@ c=================================================
          enddo
          if (minval(dbl_mb(k_d:k_d+natom-1)) < cgrid_thr)
      &        cgrid(i) = .false.
+
+         if (cgrid(i)) then
+            write(luout, '("Channel ", i3, " uses center grid.")') i
+         else
+            write(luout, '("Channel ", i3, " does not use center '//
+     &           'grid.")') i
+         endif
       enddo
 
       if (.not. MA_free_heap(l_d))
