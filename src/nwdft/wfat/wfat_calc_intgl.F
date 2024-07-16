@@ -151,10 +151,8 @@ c     ==== Allocate WFAT integral, its integrands, and some other ====
       
 
 c     ==== Obtaining grid ranges for the current process ====
-      write(luout, '("hereb0")')
       if (.not. rtdb_get(rtdb, 'wfat:ozn', mt_int, 1, ozn))
      &     call errquit('WFAT: Cannot read ozn.', 73, RTDB_ERR)
-      write(luout, '("hereb2", i4)') ozn
       call wfat_alloc_gridrange(natom+1, l_icp, k_icp, l_ipp, k_ipp)
       call wfat_get_gridrange_c(geom, ozn, ndid, gqual, int_mb(k_icp),
      &     int_mb(k_ipp), natomp, nptp)
@@ -166,7 +164,6 @@ c     &     ndid, icent_i, ipt_i, icent_f, ipt_f, nptp
 
 
 c     ==== Calculate WFAT(1) Omega ====
-      write(luout, '("hereb1")')
       if (wfat1) then
          call wfat_alloc_intgl_wfat1(lmax_, nqn, nch, nch1, natom,
      &        nptp, nsh, nij0, nij_, nij, njc,
