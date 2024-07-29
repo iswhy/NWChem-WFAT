@@ -1,5 +1,47 @@
 c=======================================================
 c=======================================================
+      subroutine mewfat_hf_vcpsi_1pt_c(icent, geom, bas, nb, sx, sy, 
+     &     n0, n1, vpt, cgrid, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, 
+     &     ccent, smh, scr, vcpsi)
+
+      implicit none
+      integer icent
+      integer geom                                    ! [input], geometry handle.
+      integer bas                                     ! [input], basis handle.
+      integer nb                                      ! [input], no. of bases in bas.
+      integer sx                                      ! [input], sx=1 or 2. The ionized spin channel.
+      integer sy                                      ! [input], if sx=1 then sy=2 and vice versa. The complementary channel.
+      integer n0(2)                                   ! [input], no. of electrons in neutral.
+      integer n1(2)                                   ! [input], no. of electrons in cation.
+      double precision vpt(3)                         ! [input], evaluation point.
+      logical cgrid          
+      double precision ocmo0(nb, n0(1)+n0(2))         ! [input], occupied neutral MO coeffs. The first n0(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision ocmo1(nb, n1(1)+n1(2))         ! [input], occupied cation MO coeffs. The first n1(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision pcf(n0(sx))                    ! [input], P det. coefficients. Its elements index neutral MO's.
+      double precision rcf                            ! [input], R det. coefficient.
+      double precision qcf(n0(sx), n0(sx), n0(sx)-1)  ! [input], Q det. coefficient. 1st and 2nd dimension index neutral MO's, while the 3rd index cation MO's.
+      double precision scf(n0(sy), n0(sy))            ! [input], S det. coefficients. Its rows index neutral MO's while its columns index cation MO's.
+      double precision zi                             ! [input],
+      double precision ccent(3)                       ! [input],
+      double precision smh                            ! [input],
+      double precision scr(1:*)                       ! [input], scratch array. 3)
+      double precision vcpsi                          ! [output],
+
+
+      if (icent /= -1 .or. (icent == -1 .and. cgrid)) then
+         call mewfat_hf_vcpsi_1pt(geom, bas, nb, sx, sy, n0, n1,
+     &        vpt, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, ccent, smh,
+     &        scr, vcpsi)
+      else
+         vcpsi = 0.0d0
+      endif
+      
+      end
+c=======================================================
+
+      
+c=======================================================
+c=======================================================
       subroutine mewfat_hf_vcpsi_1pt(geom, bas, nb, sx, sy, n0, n1,
      &     vpt, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, ccent, smh, 
      &     scr, vcpsi)
@@ -99,6 +141,51 @@ cfordebug     &     vhfpsi, vhfpsi/rcf, v1psi, v1psi/rcf
 c=======================================================
 
 
+c=======================================================
+c=======================================================
+      subroutine mewfat_dft_vcpsi_1pt_c(icent, geom, bas, nb, sx, sy, 
+     &     n0, n1, vpt, cgrid, ocmo0, ocmo1, rdm0, pcf, rcf, qcf, scf, 
+     &     zi, ccent, smh, rs, si_type, scr, vcpsi)
+
+      implicit none
+      integer icent
+      integer geom                                    ! [input], geometry handle.
+      integer bas                                     ! [input], basis handle.
+      integer nb                                      ! [input], no. of bases in bas.
+      integer sx                                      ! [input], sx=1 or 2. The ionized spin channel.
+      integer sy                                      ! [input], if sx=1 then sy=2 and vice versa. The complementary channel.
+      integer n0(2)                                   ! [input], no. of electrons in neutral.
+      integer n1(2)                                   ! [input], no. of electrons in cation.
+      double precision vpt(3)                         ! [input], evaluation point.
+      logical cgrid
+      double precision ocmo0(nb, n0(1)+n0(2))         ! [input], occupied neutral MO coeffs. The first n0(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision ocmo1(nb, n1(1)+n1(2))         ! [input], occupied cation MO coeffs. The first n1(1) columns hold spin-a coeffs., the rest holds spin-b coeffs.
+      double precision rdm0(nb,nb,2)                  ! [input], RDM of the neutral (that corresponds to ocmo0).
+      double precision pcf(n0(sx))                    ! [input], P det. coefficients. Its elements index neutral MO's.
+      double precision rcf                            ! [input], R det. coefficient.
+      double precision qcf(n0(sx), n0(sx), n0(sx)-1)  ! [input], Q det. coefficient. 1st and 2nd dimension index neutral MO's, while the 3rd index cation MO's.
+      double precision scf(n0(sy), n0(sy))            ! [input], S det. coefficients. Its rows index neutral MO's while its columns index cation MO's.
+      double precision zi                             ! [input],
+      double precision ccent(3)                       ! [input],
+      double precision smh                            ! [input],
+      logical rs                                      ! [input],
+      character*5 si_type                             ! [input], self-interaction type.
+      double precision scr(1:*)                       ! [input], scratch array.  3)
+      double precision vcpsi                          ! [output],
+
+      
+      if (icent /= -1 .or. (icent == -1 .and. cgrid)) then
+         call mewfat_dft_vcpsi_1pt(geom, bas, nb, sx, sy, n0, n1,
+     &     vpt, ocmo0, ocmo1, rdm0, pcf, rcf, qcf, scf, zi, ccent, smh,
+     &     rs, si_type, scr, vcpsi)
+      else
+         vcpsi = 0.0d0
+      endif
+
+      end
+c=======================================================
+
+      
 c=======================================================
 c=======================================================
       subroutine mewfat_dft_vcpsi_1pt(geom, bas, nb, sx, sy, n0, n1,

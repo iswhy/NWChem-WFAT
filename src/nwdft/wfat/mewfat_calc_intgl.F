@@ -6,6 +6,7 @@ c=================================================
      &     g_il)
 
       implicit none
+#include "rtdb.fh"
 #include "stdio.fh"
 #include "errquit.fh"
 #include "geom.fh"
@@ -40,8 +41,9 @@ c=================================================
       logical rmode               ! [input],
       integer g_il                ! [output],
 
+      logical cgrid
       integer nat, ndid, natp, nptp, max_npt, nsh, nom, ni0, ni_, nil
-      integer ninc
+      integer ninc, ozn, geomc
       integer l_icp, l_ipp, l_pt, l_wt, l_om, l_i0, l_i_, l_il, l_inc
       integer k_icp, k_ipp, k_pt, k_wt, k_om, k_i0, k_i_, k_il, k_inc
       double precision normch
@@ -59,9 +61,13 @@ c     ==== Get number of atoms ====
       
 
 c     ==== Obtaining grid ranges for the current process ====
-      call wfat_alloc_gridrange(nat, l_icp, k_icp, l_ipp, k_ipp)
-      call wfat_get_gridrange(geom, ndid, gq, int_mb(k_icp),
+      if (.not. rtdb_get(rtdb, 'wfat:ozn', mt_int, 1, ozn))
+     &     call errquit('WFAT: Cannot read ozn.', 73, RTDB_ERR)
+      call wfat_alloc_gridrange(nat+1, l_icp, k_icp, l_ipp, k_ipp)
+      call wfat_get_gridrange_c(geom, ozn, ndid, gq, int_mb(k_icp),
      &     int_mb(k_ipp), natp, nptp)
+      call wfat_need_cgrid(rtdb, geom, 1, chpos, cgrid)
+      call wfat_cgeom_create(geom, ozn, 1, chpos, geomc)
 
 
 c     ==== Allocate grid-related arrays ====
@@ -75,9 +81,10 @@ c     ==== Perform quadrature summation ====
       call mewfat_calc_intgl_qsum(rtdb, geom, bas, nb, natp, 
      &     int_mb(k_icp), int_mb(k_ipp), gq, sx, sy, n0, n1, ocmo0,
      &     ocmo1, pcf, rcf, qcf, scf, zi, chpos, ionerg, max_npt, 
-     &     dbl_mb(k_pt), dbl_mb(k_wt), mcel, nsh, nqn, nid, mid, 
-     &     lmax_, nat, smh, ismask, mask_param, dcpl_mb(k_om), 
-     &     dcpl_mb(k_i_), dcpl_mb(k_i0), dcpl_mb(k_il))
+     &     dbl_mb(k_pt), dbl_mb(k_wt), cgrid, geomc, ozn, mcel, nsh, 
+     &     nqn, nid, mid, lmax_, nat, smh, ismask, mask_param, 
+     &     dcpl_mb(k_om), dcpl_mb(k_i_), dcpl_mb(k_inc), dcpl_mb(k_i0),
+     &     dcpl_mb(k_il))
 
 
 c     ==== Accumulate to global intgl (g_il) ====
@@ -90,6 +97,7 @@ cfordebug      if (ndid==0) write(luout, '("intgl norm = ", es14.6)') normch
 
 
 c     ==== Deallocations ====
+      call wfat_cgeom_destroy(1, geomc)
       call wfat_dealloc_gridrange(l_icp, l_ipp)
       call wfat_dealloc_quadgrid(l_pt, l_wt)
       call wfat_dealloc_intgl(l_om, l_i0, l_i_, l_il, l_inc)
@@ -102,9 +110,9 @@ c=================================================
 c=================================================
       subroutine mewfat_calc_intgl_qsum(rtdb, geom, bas, nb, natp, icp,
      &     ipp, gq, sx, sy, n0, n1, ocmo0, ocmo1, pcf, rcf, qcf, scf, 
-     &     zi, chpos, ionerg, max_npt, qpt, qwt, mcel, nsh, nqn, nid,
-     &     mid, lmax_, nat, smh, ismask, mask_param, omega, intg_,
-     &     intg0, intg)
+     &     zi, chpos, ionerg, max_npt, qpt, qwt, cgrid, geomc, ozn, 
+     &     mcel, nsh, nqn, nid, mid, lmax_, nat, smh, ismask, 
+     &     mask_param, omega, intg_, cintg, intg0, intg)
 
       implicit none
 #include "util.fh"
@@ -137,7 +145,10 @@ c=================================================
       double precision ionerg                         ! [input], ionization energy of the channel returned by wfat_get_gridrange.
       integer max_npt                                 ! [input], max. no. of points for the given gq as returned by wfat_get_gridmaxpt.
       double precision qpt(3, max_npt)                ! [output/scratch], array Quadrature points
-      double precision qwt(max_npt)                   ! [output/scratch], array Quadrature weights
+      double precision qwt(max_npt) ! [output/scratch], array Quadrature weights
+      logical cgrid
+      integer geomc
+      integer ozn
       integer mcel                                    ! [input], the m parameter related to the cell function. Usually taken as wf_msm from wfat.fh.
       integer nsh                                     ! [input], no. of spherical harmonics.
       integer nqn                                     ! [input], no. of parabolic quantum number pairs.
@@ -150,6 +161,7 @@ c=================================================
       double precision mask_param(2)                  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
       double complex omega(nsh, nqn)                  ! [output/scratch],
       double complex intg_(nsh, nqn, nat)             ! [output/scratch],
+      double complex cintg(nsh, nqn)                  ! [output/scratch],
       double complex intg0(nsh, nqn)                  ! [output/scratch],
       double complex intg(nsh, nqn, nat)              ! [output], 
 
@@ -159,9 +171,9 @@ c=================================================
       logical t1, rs, isdft
       integer ndid, nsc, l_sc, k_sc, l_rd0, k_rd0, npt, ic, icent
       integer i, imf, nsc_rs, nptp, pr_chk(10), pr_count, kk
-      integer g_nptx, g_npt_tot
+      integer g_nptx, g_npt_tot, znuc
       double precision nptx, npt_tot, t_now, t_last, t_start, dt_all
-      double precision atp(3), zn, v_m(3), vcpsi, celf, dt_prog
+      double precision atp(3), zn, v_m(3,1), vcpsi, celf(1), dt_prog
       double complex czero
 
       parameter (imf = 0)
@@ -234,42 +246,70 @@ c     ==== Loop over atoms ====
       t_start = t_last
       pr_count = 0
       kk = 1
-      intg_ = czero              ! intg_(nsh,nqn,nat)     nch=1
+      intg_ = czero             ! intg_(nsh,nqn,nat)     nch=1
+      cintg = czero
       do ic = 1, natp
          icent = icp(ic)        ! icp(natp)
-         if (.not. geom_cent_get(geom, icent, tag, atp, zn))
-     &        call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
-         call wfat_get_gridpt(int(zn), gq, max_npt, npt, qpt, qwt)   ! qpt(3,max_npt)   qwt(max_npt)
+         if (icent == -1) then
+            znuc = ozn   ! ozn = charge of the channel center.
+         else
+            if (.not. geom_cent_get(geom, icent, tag, atp, zn))
+     &           call errquit('WFAT: Getting znuc failed', 52, GEOM_ERR)
+            znuc = int(zn)
+         endif
+         
+c        ==== Get all grids associated to the current atom/center ====
+         call wfat_get_gridpt(znuc, gq, max_npt, npt, qpt, qwt)   ! qpt(3,max_npt)   qwt(max_npt)
+c        The grid will always be calculated regardless of whether the current
+c        center is a gridless parabolic channel center. This is because its
+c        omission will be taken care of inside the subsequent subroutines.
+
          
 c        ==== Loop over all quadrature points around the current atom ====
          do i = ipp(1,ic), ipp(2,ic)           ! ipp(2,natp)
-            call geom_cent2cent(geom, icent, qpt(:,i), imf, v_m, t1)
+            if (icent == -1) then
+               call wfat_mf_ogrid(1, chpos, qpt(:,i), v_m)
+            else
+               call geom_cent2cent(geom, icent, qpt(:,i), imf, v_m(:,1),
+     &              t1)
+cforlater               v_m(1,2:) = v_m(1,1)
+cforlater               v_m(2,2:) = v_m(2,1)
+cforlater               v_m(3,2:) = v_m(3,1)
+            endif
 
 c           ==== Calculate vc|psi> ====
             if (isdft) then
-               call mewfat_dft_vcpsi_1pt(geom, bas, nb, sx, sy, n0, n1,
-     &              v_m, ocmo0, ocmo1, dbl_mb(k_rd0), pcf, rcf, qcf, 
-     &              scf, zi, chpos, smh, rs, si_type, dbl_mb(k_sc),
-     &              vcpsi)
+               call mewfat_dft_vcpsi_1pt(icent, geom, bas, nb, sx, sy, 
+     &              n0, n1, v_m, cgrid, ocmo0, ocmo1, dbl_mb(k_rd0), 
+     &              pcf, rcf, qcf, scf, zi, chpos, smh, rs, si_type, 
+     &              dbl_mb(k_sc), vcpsi)
             else
-               call mewfat_hf_vcpsi_1pt(geom, bas, nb, sx, sy, n0, n1,
-     &              v_m, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, chpos, 
-     &              smh, dbl_mb(k_sc), vcpsi)
+               call mewfat_hf_vcpsi_1pt_c(icent, geom, bas, nb, sx, sy,
+     &              n0, n1, v_m, cgrid, ocmo0, ocmo1, pcf, rcf, qcf, 
+     &              scf, zi, chpos, smh, dbl_mb(k_sc), vcpsi)
             endif
             
 c           ==== Calculate Omega^(n,m)_(l,m') functions ====
-            call wfat_omega_1pt(geom, v_m, 1, ionerg, chpos, nqn,
-     &           nid, mid, lmax_, int(zi), omega)  ! adjust v_m dimension      ! omega(nsh,nqn)   nch=1
+            call wfat_omega_1pt_c(icent, geom, 1, v_m, ionerg, chpos,
+     &           cgrid, nqn, nid, mid, lmax_, int(zi), omega)  ! adjust v_m dimension      ! omega(nsh,nqn)   nch=1
             
 c           ==== Calculate the integrand of I^(n,m)_(l,m') ====
-            intg0 = conjg(omega) * vcpsi ! intg0(nsh,nqn)   nch=1
-            if (ismask) call wfat_mask_intd(geom, nat, 1,
-     &           nqn, nsh, v_m, mask_param, intg0) ! adjust v_m dimension      ! omega(nsh,nqn)   nch=1
+            intg0 = conjg(omega) * vcpsi           ! intg0(nsh,nqn)   nch=1
+            if (ismask) call wfat_mask_intd(geom, nat, 1, nqn, nsh, 
+     &           v_m, mask_param, intg0) ! adjust v_m dimension      ! omega(nsh,nqn)   nch=1
 
+c           ==== Cell function ====
+            call wfat_celf_1pt_c(geom, 1, geomc, icent, cgrid, chpos,
+     &           v_m, mcel, celf)
             
 c           ==== Quadrature summation ====
-            call wfat_celf_1pt(geom, icent, qpt(:,i), mcel, celf)
-            intg_(:,:,icent) = intg_(:,:,icent) + intg0 * celf * qwt(i)
+            if (icent /= -1) then
+               call wfat_integrand_acc(nsh, nqn, 1, celf*qwt(i),
+     &              intg0, intg_(:,:,icent))
+            else
+               call wfat_integrand_acc(nsh, nqn, 1, celf*qwt(i),
+     &              intg0, cintg)
+            endif
 
 
 cfordebug            if (ndid==0) then
@@ -297,6 +337,11 @@ c           ==== Print progress ====
      &     'integrals takes ", a, " s.")') trim(adjustl(dt_str))
       
 
+c     ==== Distribute the integrals over grids belonging ====
+c     ==== to the channel center for the current process ====
+      call wfat_distrib_intgl(nsh, nat, nqn, 1, cintg, intg_)
+
+      
 c     ==== Reorder elements of intgl ====
       call wfat_reorder_intgl(nsh, nat, nqn, 1, intg_, intg)    ! intg(nsh,nqn,nat)    nch=1
       call ga_sync()
