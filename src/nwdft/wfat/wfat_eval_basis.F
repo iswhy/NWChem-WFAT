@@ -35,7 +35,7 @@ c==== Imam ====
 
 c     ==== Filling docset ====
       if (.not. bas_numcont(bhan, ncont))
-     &     call errquit('WFAT: Getting ncont failed', 54, BASIS_ERR)
+     &     call errquit('WFAT: Getting ncont failed', 32, BASIS_ERR)
       if (.not. MA_alloc_get(mt_log, ncont, 'docset', lds, ids))
      &     call errquit('WFAT: Cannot allocate docset', ncont, MA_ERR)
       log_mb(ids : ids+ncont-1) = .true.
@@ -158,7 +158,7 @@ c==== Imam ====
 
 c     ==== Filling docset ====
       if (.not. bas_numcont(bhan, ncont))
-     &     call errquit('WFAT: Getting ncont failed', 54, BASIS_ERR)
+     &     call errquit('WFAT: Getting ncont failed', 9, BASIS_ERR)
       if (.not. MA_alloc_get(mt_log, ncont, 'docset', lds, ids))
      &     call errquit('WFAT: Cannot allocate docset', ncont, MA_ERR)
       log_mb(ids : ids+ncont-1) = .true.

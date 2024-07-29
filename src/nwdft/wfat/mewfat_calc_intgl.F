@@ -279,7 +279,7 @@ cforlater               v_m(3,2:) = v_m(3,1)
 
 c           ==== Calculate vc|psi> ====
             if (isdft) then
-               call mewfat_dft_vcpsi_1pt(icent, geom, bas, nb, sx, sy, 
+               call mewfat_dft_vcpsi_1pt_c(icent, geom, bas, nb, sx, sy,
      &              n0, n1, v_m, cgrid, ocmo0, ocmo1, dbl_mb(k_rd0), 
      &              pcf, rcf, qcf, scf, zi, chpos, smh, rs, si_type, 
      &              dbl_mb(k_sc), vcpsi)
