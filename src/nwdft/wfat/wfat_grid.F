@@ -1091,12 +1091,12 @@ c=================================================
          if (minval(dbl_mb(k_d:k_d+natom-1)) < cgrid_thr)
      &        cgrid(i) = .false.
 
-         if (cgrid(i)) then
-            write(luout, '("Channel ", i3, " uses center grid.")') i
-         else
-            write(luout, '("Channel ", i3, " does not use center '//
-     &           'grid.")') i
-         endif
+cfordebug         if (cgrid(i)) then
+cfordebug            write(luout, '("Channel ", i3, " uses center grid.")') i
+cfordebug         else
+cfordebug            write(luout, '("Channel ", i3, " does not use center '//
+cfordebug     &           'grid.")') i
+cfordebug         endif
       enddo
 
       if (.not. MA_free_heap(l_d))
@@ -1104,6 +1104,178 @@ c=================================================
       
       end
 c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine wfat_print_gridpt(geom, gq, ozn, nch, cgrid, chpos)
+
+      implicit none
+#include "geom.fh"
+#include "global.fh"
+#include "stdio.fh"
+#include "errquit.fh"
+      integer geom
+      integer gq
+      integer ozn
+      integer nch
+      logical cgrid(nch)
+      double precision chpos(3,nch)
+
+      character*16 tag
+      integer natom, i
+      double precision c(3), znuc
+
+      if (ga_nodeid() == 0) then
+         write(luout, '(2/)')
+         call util_print_centered(luout, 
+     &        'WFAT Integration Quadrature Grid', 40, .true.)
+         write(luout, '("")')
+         write(luout, '(3x, a)') "Note: All lengths are in angstrom."
+         write(luout, '(3x, a, /, 9x, a, /, 9x, a)')
+     &        "Note: In the grid points distributions, numbers "//
+     &        "inside parentheses are segment boundaries. The two ",
+     &        "integers between consecutive boundaries are the "//
+     &        "number of radial and angular points in the segment ",
+     &        "bounded by these boundaries."
+      endif
+
+      
+      if (.not. geom_ncent(geom, natom))
+     &     call errquit('WFAT: Cannot get natom', 25)
+
+      if (ga_nodeid() == 0) then
+         write(luout, '(/, 3x, a)') "Atomic quadrature grid"
+         write(luout, '(3x, a)') "----------------------"
+      endif
+      
+      do i = 1, natom
+         if (.not. geom_cent_get(geom, i, tag, c, znuc))
+     &        call errquit('WFAT: Cannot read center', 18)
+         call wfat_print_gridpt_cent(tag, int(znuc), gq, c)
+      enddo
+
+      
+      if (ga_nodeid() == 0) then
+         write(luout, '(/, 3x, a)') "Channel center quadrature grid"
+         write(luout, '(3x, a)') "------------------------------"
+         write(luout, '(3x, "Virtual charge of channel grids = ", i3)')
+     &        ozn
+      endif
+      
+      do i = 1, nch
+         write(tag, '("Channel ", i3)') i
+         if (cgrid(i)) then
+            call wfat_print_gridpt_cent(tag, ozn, gq, chpos(:,i))
+         else
+            if (ga_nodeid() == 0) then
+               write(luout, '(3x, "Center: ", a)') trim(adjustl(tag))
+               write(luout, '(7x, a)') 'This channel does not have '//
+     &              'quadrature grids.'
+            endif
+         endif
+      enddo
+         
+      end
+c=================================================
+
+      
+c=================================================
+c=================================================
+      subroutine wfat_print_gridpt_cent(tag, zn, gq, c)
+
+      implicit none
+#include "stdio.fh"
+c     wfat.fh contains: m_emc, nseg      
+#include "wfat.fh"
+#include "errquit.fh"      
+#include "global.fh"
+      character*16 tag
+      integer zn                        ! [input]
+      integer gq                        ! [input]
+      double precision c(3)
+      
+      integer ndid, nseg0, nlang0, nlang(nseg), nrad, isg, iq, nrseg
+      integer npt
+      double precision dq, q, q0, qn, r, atr, atr0(nseg), rseg
+      double precision b2a
+      
+      parameter (q0=0.0d0, qn=1.0d0, b2a=0.52917721067d0)
+
+      
+      ndid = ga_nodeid()
+      
+
+c     ==== Get radii and no. of angular grids for all segments  ====
+      call wfat_get_gridseg(zn, gq, nseg0, atr0(1:nseg), nlang(1:nseg))
+      
+c     ==== Get atom radius and no. of radial points ====
+      call wfat_get_atomrad(zn, atr)
+      call wfat_get_gridnrad(zn, gq, nrad)
+
+c     ==== Calculate quadrature points and weights ====
+      if (ndid == 0) then
+         write(luout, '(3x, "Center: ", a)') trim(adjustl(tag))
+         write(luout, '(7x, "* Coordinate = ", 3f12.6)') c*b2a
+         write(luout, '(7x, "* Grid points distribution = ")')
+         write(luout, '(11x, "")', advance='no')
+      endif
+      nrseg = 0
+      npt = 0
+      dq = (qn - q0)/(nrad - 1)
+      isg = 0
+      do iq = 1, nrad-2
+         q = q0 + dq * iq   ! q starts from dq (not 0) and ends at 1-dq (not 1).
+         
+c        == Get radial quadrature point ====
+         call wfat_grid_q2r_em(q, m_emc, atr, r)
+         
+c        == Determine segment number ==
+         if (isg < nseg0) then
+            if (r > atr0(isg+1)*atr) then
+               if (isg > 0) then
+                  npt = npt + nrseg*nlang0
+                  if (ndid == 0)
+     &                 write(luout, '("(", es11.4, ")", 2i5, 2x)',
+     &                 advance='no') rseg*b2a, nrseg, nlang0
+                  if (ndid == 0 .and. mod(isg,3)==0) then
+                     write(luout, '("")')
+                     write(luout, '(11x, "")', advance='no')
+                  endif
+               endif
+               isg = isg + 1
+               rseg = atr0(isg) * atr
+               nlang0 = nlang(isg)
+               nrseg = 0
+            endif
+         endif
+
+         nrseg = nrseg + 1
+      enddo
+      
+c     ==== The last segment ====
+      rseg = atr0(nseg0) * atr
+      nlang0 = nlang(nseg0)
+      npt = npt + nrseg*nlang0
+      if (ndid == 0) then
+         write(luout, '("(", es11.4, ")", 2i5, 2x, "(Infinity)")')
+     &        rseg*b2a, nrseg, nlang0
+         write(luout, '(7x, "* The largest r = ", es11.4)') r*b2a
+         write(luout, '(7x, "* No. of radial points = ", i4)') nrad-2
+         write(luout, '(7x, "* No. of grid points = ", i7)') npt
+      endif
+
+      
+      if (isg /= nseg0) then
+ccheck         write(luout, '("isg = ", i3)') isg
+ccheck         write(luout, '("nseg0 = ", i3)') nseg0
+         call errquit('WFAT: Wrong last value of isg - '//
+     &                'isg should be equal to nseg0', 59, UERR)
+      endif
+
+      end
+c=================================================
+      
       
 
 
