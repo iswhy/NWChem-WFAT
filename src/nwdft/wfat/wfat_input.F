@@ -303,6 +303,8 @@ c           ==== OPTIONAL INPUTS ====
             else if (inp_compare(.false., 'lmax', field)) then
                lmax_exist = .true.
                lmax_stat = inp_i(wfat_lmax)
+            else if (inp_compare(.false., 'quadgrid', field)) then
+               call wfat_parse_quadgrid(rtdb)
             else if (inp_compare(.false., 'gridqual', field)) then
                gqual_exist = .true.
                gqual_stat = inp_i(wfat_gqual)
@@ -1982,7 +1984,59 @@ cOLD     &           1, INPUT_ERR)
       wfat_inp_perturb = .true.
 
       end
-c=======================================================                  
+c=======================================================
+      
+
+c=======================================================
+c=======================================================
+      subroutine wfat_parse_quadgrid(rtdb)
+
+      implicit none
+#include "errquit.fh"
+#include "inp.fh"
+#include "stdio.fh"
+#include "rtdb.fh"
+#include "mafdecls.fh"
+      integer rtdb
+
+      character*50 field
+      logical stat
+      integer ozn
+      double precision cgrid_thr
+
+
+      do while (inp_read())
+         if (inp_a(field)) then
+               
+            if (inp_compare(.false., 'omegaz', field)) then
+               stat = inp_i(ozn)
+               if (stat) then
+                  if (.not. rtdb_put(rtdb, 'wfat:inp:ozn', mt_int, 1,
+     &                 ozn)) call errquit(
+     &                 'WFAT: Failed writing inp:ozn to RTDB',
+     &                 1, RTDB_ERR)
+               endif
+            else if (inp_compare(.false., 'cgridthr', field)) then
+               stat = inp_f(cgrid_thr)
+               if (stat) then
+                  if (.not. rtdb_put(rtdb, 'wfat:inp:cgrid_thr', mt_dbl,
+     &                 1, cgrid_thr)) call errquit(
+     &                 'WFAT: Failed writing inp:cgrid_thr to RTDB',
+     &                 1, RTDB_ERR)
+               endif
+            else if (inp_compare(.false., 'end', field)) then
+               exit
+            else
+               call errquit('WFAT: Unknown input directive '''//
+     &              trim(adjustl(field))//''' is found under the '//
+     &              '''quadgrid'' subdirective', 1, INPUT_ERR)
+            endif
+
+         endif
+      enddo
+
+      end
+c=======================================================
       
       
 cc=======================================================

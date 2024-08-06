@@ -16,7 +16,10 @@ c     ==== Obtain the level of WFAT (OE or ME) ====
       if (.not. rtdb_cput(rtdb, 'wfat:level', 1, trim(wfat_level)))
      &     call errquit('WFAT: Error writing waft_level to RTDB',
      &     1, RTDB_ERR)
-      
+
+
+c     ==== Process inputs using the new algorithm ====
+      call wfat_process_input0(rtdb)      
       
 c     ==== Check the existence of inputs ====
       call wfat_exist_input(rtdb)
@@ -1941,3 +1944,5 @@ cOLD      if (prtb_ord_need .and. os) then
       
       end
 c=======================================================
+
+

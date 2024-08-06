@@ -139,6 +139,7 @@ c     ==== Obtaining grid ranges for the current process ====
      &     int_mb(k_ipp), natomp, nptp)
       call wfat_need_cgrid(rtdb, geom, nch, chpos, cgrid)
       call wfat_cgeom_create(geom, ozn, nch, chpos, geomc)
+      call wfat_print_gridpt(rtdb, geom, gq, ozn, nch, cgrid, chpos)
 
 
 c     ==== Calculate WFAT(1) Omega ====

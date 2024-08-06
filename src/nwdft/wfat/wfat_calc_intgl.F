@@ -158,6 +158,7 @@ c     ==== Obtaining grid ranges for the current process ====
      &     int_mb(k_ipp), natomp, nptp)
       call wfat_need_cgrid(rtdb, geom, nch, chpos, cgrid)
       call wfat_cgeom_create(geom, ozn, nch, chpos, geomc)
+      call wfat_print_gridpt(rtdb, geom, gqual, ozn, nch, cgrid, chpos)
 c      write(luout, '("node:", i3, "  atom1,pt1:", i3, i7, '//
 c     &     '"  atom2,pt2:", i3, i7, "  npoint:", i7)')
 c     &     ndid, icent_i, ipt_i, icent_f, ipt_f, nptp

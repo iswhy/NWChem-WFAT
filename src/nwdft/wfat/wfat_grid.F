@@ -1077,7 +1077,7 @@ c=================================================
 
       if (.not. rtdb_get(rtdb, 'wfat:cgrid_thr', mt_dbl, 1, cgrid_thr))
      &     call errquit('WFAT: Failed reading cgrid_thr from RTDB.', 1,
-     &     RTDB_ERR)
+     &     RTDB_ERR)   ! cgrid_thr is in bohr.
       
       cgrid = .true.
       do i = 1, nch
@@ -1108,13 +1108,17 @@ c=================================================
 
 c=================================================
 c=================================================
-      subroutine wfat_print_gridpt(geom, gq, ozn, nch, cgrid, chpos)
+      subroutine wfat_print_gridpt(rtdb, geom, gq, ozn, nch, cgrid,
+     &     chpos)
 
       implicit none
+#include "mafdecls.fh"
+#include "rtdb.fh"
 #include "geom.fh"
 #include "global.fh"
 #include "stdio.fh"
 #include "errquit.fh"
+      integer rtdb
       integer geom
       integer gq
       integer ozn
@@ -1124,7 +1128,10 @@ c=================================================
 
       character*16 tag
       integer natom, i
-      double precision c(3), znuc
+      double precision c(3), znuc, cgrid_thr, dummy, b2a
+      
+      parameter (b2a=0.52917721067d0)
+      
 
       if (ga_nodeid() == 0) then
          write(luout, '(2/)')
@@ -1134,10 +1141,10 @@ c=================================================
          write(luout, '(3x, a)') "Note: All lengths are in angstrom."
          write(luout, '(3x, a, /, 9x, a, /, 9x, a)')
      &        "Note: In the grid points distributions, numbers "//
-     &        "inside parentheses are segment boundaries. The two ",
-     &        "integers between consecutive boundaries are the "//
-     &        "number of radial and angular points in the segment ",
-     &        "bounded by these boundaries."
+     &        "inside parentheses are radial segment boundaries. ",
+     &        "The two integers between consecutive radial "//
+     &        "boundaries are the number of radial and angular ",
+     &        "points in the segment bounded by these boundaries."
       endif
 
       
@@ -1145,33 +1152,42 @@ c=================================================
      &     call errquit('WFAT: Cannot get natom', 25)
 
       if (ga_nodeid() == 0) then
-         write(luout, '(/, 3x, a)') "Atomic quadrature grid"
-         write(luout, '(3x, a)') "----------------------"
+         write(luout, '(/, 3x, a)') "Atomic quadrature grids"
+         write(luout, '(3x, a)')    "-----------------------"
       endif
       
       do i = 1, natom
          if (.not. geom_cent_get(geom, i, tag, c, znuc))
      &        call errquit('WFAT: Cannot read center', 18)
-         call wfat_print_gridpt_cent(tag, int(znuc), gq, c)
+         call wfat_print_gridpt_cent(tag, int(znuc), gq, .false., c)
       enddo
 
-      
+
+      if (.not. rtdb_get(rtdb, 'wfat:cgrid_thr', mt_dbl, 1, cgrid_thr))
+     &     call errquit('WFAT: Failed reading cgrid_thr from RTDB.', 1,
+     &     RTDB_ERR)
+      write(tag, '("Ion. channel")')
       if (ga_nodeid() == 0) then
-         write(luout, '(/, 3x, a)') "Channel center quadrature grid"
-         write(luout, '(3x, a)') "------------------------------"
+         write(luout, '(/, 3x, a)') "Channel center quadrature grids"
+         write(luout, '(3x, a)')    "-------------------------------"
          write(luout, '(3x, "Virtual charge of channel grids = ", i3)')
      &        ozn
+         write(luout, '(3x, "Channel grid threshold = ", es13.6)')
+     &        cgrid_thr*b2a
+         call wfat_print_gridpt_cent(tag, ozn, gq, .true., dummy)
       endif
       
       do i = 1, nch
-         write(tag, '("Channel ", i3)') i
-         if (cgrid(i)) then
-            call wfat_print_gridpt_cent(tag, ozn, gq, chpos(:,i))
-         else
-            if (ga_nodeid() == 0) then
-               write(luout, '(3x, "Center: ", a)') trim(adjustl(tag))
-               write(luout, '(7x, a)') 'This channel does not have '//
-     &              'quadrature grids.'
+         if (ga_nodeid() == 0) then
+            write(luout, '(3x, "Channel: ", i3)') i
+            write(luout, '(7x, "* Center coordinate = ", 3f12.6)')
+     &           chpos(:,i)*b2a
+            write(luout, '(7x, "* Does it have the center grid '//
+     &           'above? ")', advance='no')
+            if (cgrid(i)) then
+               write(luout, '("Yes")')
+            else
+               write(luout, '("No")')
             endif
          endif
       enddo
@@ -1182,7 +1198,7 @@ c=================================================
       
 c=================================================
 c=================================================
-      subroutine wfat_print_gridpt_cent(tag, zn, gq, c)
+      subroutine wfat_print_gridpt_cent(tag, zn, gq, chcent, c)
 
       implicit none
 #include "stdio.fh"
@@ -1193,7 +1209,8 @@ c     wfat.fh contains: m_emc, nseg
       character*16 tag
       integer zn                        ! [input]
       integer gq                        ! [input]
-      double precision c(3)
+      logical chcent
+      double precision c(*)             ! [input], if chcent is false, it must have three elements.
       
       integer ndid, nseg0, nlang0, nlang(nseg), nrad, isg, iq, nrseg
       integer npt
@@ -1216,7 +1233,8 @@ c     ==== Get atom radius and no. of radial points ====
 c     ==== Calculate quadrature points and weights ====
       if (ndid == 0) then
          write(luout, '(3x, "Center: ", a)') trim(adjustl(tag))
-         write(luout, '(7x, "* Coordinate = ", 3f12.6)') c*b2a
+         if (.not. chcent)
+     &        write(luout, '(7x, "* Coordinate = ", 3f12.6)') c(1:3)*b2a
          write(luout, '(7x, "* Grid points distribution = ")')
          write(luout, '(11x, "")', advance='no')
       endif

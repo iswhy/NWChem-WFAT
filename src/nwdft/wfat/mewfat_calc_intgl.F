@@ -68,7 +68,7 @@ c     ==== Obtaining grid ranges for the current process ====
      &     int_mb(k_ipp), natp, nptp)
       call wfat_need_cgrid(rtdb, geom, 1, chpos, cgrid)
       call wfat_cgeom_create(geom, ozn, 1, chpos, geomc)
-      call wfat_print_gridpt(geom, gq, ozn, 1, cgrid, chpos)
+      call wfat_print_gridpt(rtdb, geom, gq, ozn, 1, cgrid, chpos)
 
 
 c     ==== Allocate grid-related arrays ====

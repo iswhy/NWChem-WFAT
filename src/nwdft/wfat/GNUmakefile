@@ -6,6 +6,7 @@
 	OBJ=\
 	wfat_input.o \
 	wfat_process_input.o \
+	wfat_process_input0.o \
 	wfat_task.o \
 	wfat_prepare_task.o \
 	wfat_init.o \

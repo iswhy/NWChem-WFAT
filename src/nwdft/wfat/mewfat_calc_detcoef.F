@@ -578,6 +578,7 @@ c=================================================
       double precision scf(cy, cy)                ! [input], rows of scf index neutral MO's while its columns index nation MO's.
 
       integer i, j, g, j_in, j_fin, ng
+      double precision qmean, qstd
 
 
       write(luout, '(2/)')
@@ -639,6 +640,10 @@ c        ==== Determinant values ====
      &     'them, a statistics below is provided.")')
       write(luout, '(5x, "Max. value = ", f13.8)') maxval(qcf)
       write(luout, '(5x, "Min. value = ", f13.8)') minval(qcf)
+      qmean = sum(qcf) / (n0(sx)*n0(sx)*cx)
+      write(luout, '(5x, "Mean value = ", f13.8)') qmean
+      qstd = sqrt( sum((qcf-qmean)**2) / (n0(sx)*n0(sx)*cx) )
+      write(luout, '(5x, "Std. deviation = ", f13.8)') qstd
       write(luout, '("")')
 
       end
