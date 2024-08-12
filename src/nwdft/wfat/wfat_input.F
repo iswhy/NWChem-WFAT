@@ -91,8 +91,8 @@ c     ==== Initial status of WFAT inputs ====
       lmax_exist = .false.
       lmax_stat = .false.
 
-      gqual_exist = .false.
-      gqual_stat = .false.
+cOLD      gqual_exist = .false.
+cOLD      gqual_stat = .false.
 
       omgpos_exist = .false.
       omgpos_stat = .false.
@@ -305,9 +305,9 @@ c           ==== OPTIONAL INPUTS ====
                lmax_stat = inp_i(wfat_lmax)
             else if (inp_compare(.false., 'quadgrid', field)) then
                call wfat_parse_quadgrid(rtdb)
-            else if (inp_compare(.false., 'gridqual', field)) then
-               gqual_exist = .true.
-               gqual_stat = inp_i(wfat_gqual)
+cOLD            else if (inp_compare(.false., 'gridqual', field)) then
+cOLD               gqual_exist = .true.
+cOLD               gqual_stat = inp_i(wfat_gqual)
             else if (inp_compare(.false., 'omgpos', field)) then
                omgpos_exist = .true.
                omgpos_stat = wfat_inp_omgpos(autopos, omgpos)
@@ -442,7 +442,7 @@ c     ==== Check whether the current theory is DFT ====
      &       'conjunction with single determinant methods to obtain ',
      &       'quantities such as molecular orbitals and effective ',
      &       'potential. All WFAT related inputs will thus be ignored.')
-      
+
       
       end
 c=======================================================
@@ -2001,14 +2001,23 @@ c=======================================================
 
       character*50 field
       logical stat
-      integer ozn
+      integer ozn, gs
       double precision cgrid_thr
 
 
       do while (inp_read())
          if (inp_a(field)) then
-               
-            if (inp_compare(.false., 'omegaz', field)) then
+c           ==== gridset ====
+            if (inp_compare(.false., 'gridset', field)) then
+               stat = inp_i(gs)
+               if (stat) then
+                  if (.not. rtdb_put(rtdb, 'wfat:inp:gqual', mt_int, 1,
+     &                 gs)) call errquit(
+     &                 'WFAT: Failed writing inp:gqual to RTDB', 1,
+     &                 RTDB_ERR)
+               endif
+c           ==== omegaz ====
+            else if (inp_compare(.false., 'omegaz', field)) then
                stat = inp_i(ozn)
                if (stat) then
                   if (.not. rtdb_put(rtdb, 'wfat:inp:ozn', mt_int, 1,
@@ -2016,6 +2025,7 @@ c=======================================================
      &                 'WFAT: Failed writing inp:ozn to RTDB',
      &                 1, RTDB_ERR)
                endif
+c           ==== cgridthr ====
             else if (inp_compare(.false., 'cgridthr', field)) then
                stat = inp_f(cgrid_thr)
                if (stat) then

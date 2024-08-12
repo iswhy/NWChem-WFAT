@@ -213,12 +213,12 @@ c     ==== Checking existence of OPTIONAL INPUTS ====
       else if (lmax_exist .and. or) then
          write(luout, 202) 'lmax', 'lmax'
       endif
-      if (.not. gqual_exist) then
-         wfat_gqual = def_gqual
-         gqual_stat = .true.
-      else if (gqual_exist .and. or) then
-         write(luout, 202) 'gqual', 'gqual'
-      endif
+cOLD      if (.not. gqual_exist) then
+cOLD         wfat_gqual = def_gqual
+cOLD         gqual_stat = .true.
+cOLD      else if (gqual_exist .and. or) then
+cOLD         write(luout, 202) 'gqual', 'gqual'
+cOLD      endif
       if (.not. omgpos_exist) then
          autopos = .true.
          omgpos = 0.0d0
@@ -487,12 +487,12 @@ c     ==== Checking format of OPTIONAL INPUTS ====
      &        '(0,0); (0,-1); (0,+1); (1,0).',
      &        0, INPUT_ERR)
       endif      
-      if (.not. gqual_stat) then
-         call errquit('WFAT: Error reading optional input parameter '//
-     &        '''gridqual''. Please check if it is specified '//
-     &        'following the format ''gridqual <integer value>''.',
-     &        0, INPUT_ERR)
-      endif
+cOLD      if (.not. gqual_stat) then
+cOLD         call errquit('WFAT: Error reading optional input parameter '//
+cOLD     &        '''gridqual''. Please check if it is specified '//
+cOLD     &        'following the format ''gridqual <integer value>''.',
+cOLD     &        0, INPUT_ERR)
+cOLD      endif
       if (.not. omgpos_stat) then
          call errquit('WFAT: Error reading optional input parameter '//
      &        '''omgpos''. Please check if it is specified '//
@@ -809,7 +809,7 @@ c=======================================================
       nktmd_need = .false.          ! needed when OE or ME
       orbid_need = .false.          ! needed when OE
       paraqn_need = .false.         ! needed when OE or ME
-      gqual_need = .false.          ! needed when OE or ME
+cOLD      gqual_need = .false.          ! needed when OE or ME
       omgpos_need = .false.         ! needed when OE or ME
       dgnthr_need = .false.         ! needed when oe or me
       lmax_need = .false.           ! needed when OE or ME
@@ -866,8 +866,8 @@ c TMD notyet     &     .false., .false., nktmd_need)
 
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     paraqn_need)
-      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
-     &     gqual_need)
+cOLD      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+cOLD     &     gqual_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     omgpos_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
@@ -922,7 +922,7 @@ c=======================================================
       nktmd_need = .false.              ! needed when oe or me
       orbid_need = .false.              ! needed when oe
       paraqn_need = .false.             ! needed when oe or me
-      gqual_need = .false.              ! needed when oe or me
+cOLD      gqual_need = .false.              ! needed when oe or me
       omgpos_need = .false.             ! needed when oe or me
       dgnthr_need = .false.             ! needed when oe or me
       lmax_need = .false.               ! needed when oe or me
@@ -979,8 +979,8 @@ c=======================================================
      &     orbid_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     paraqn_need)
-      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
-     &     gqual_need)
+cOLD      call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
+cOLD     &     gqual_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
      &     omgpos_need)
       call wfat_need_input0(sr, rt, tmd, tmda, yi, avb, avg,
@@ -1228,10 +1228,10 @@ c     ==== Check parabolic quantum numbers ====
      &        'WFAT', '''gamma_tmd''', 'f', w, r)
       endif
 
-      if (gqual_need) then
-         call wfat_ival_inrange(wfat_gqual, 1, 4, 'WFAT', 
-     &        '''gridqual''', w, r)
-      endif
+cOLD      if (gqual_need) then
+cOLD         call wfat_ival_inrange(wfat_gqual, 1, 4, 'WFAT', 
+cOLD     &        '''gridqual''', w, r)
+cOLD      endif
 
       unit_ffc = .false.
       ffcount = 0
@@ -1610,11 +1610,11 @@ c forcheck     &     call errquit('WFAT: Printing rtdb failed', 1, RTDB_ERR)
      &        1, INPUT_ERR)
       endif
 
-      if (gqual_need .and. os) then
-         if (.not. rtdb_put(rtdb, 'wfat:gqual', mt_int, 1, wfat_gqual))
-     &        call errquit('WFAT: Failed writing gqual to rtdb',
-     &        1, INPUT_ERR)
-      endif
+cOLD      if (gqual_need .and. os) then
+cOLD         if (.not. rtdb_put(rtdb, 'wfat:gqual', mt_int, 1, wfat_gqual))
+cOLD     &        call errquit('WFAT: Failed writing gqual to rtdb',
+cOLD     &        1, INPUT_ERR)
+cOLD      endif
       
       if (omgpos_need .and. os) then
          if (.not. rtdb_put(rtdb, 'wfat:autopos', mt_log, 1, autopos))
@@ -1860,18 +1860,18 @@ cOLD      if (prtb_ord_need .and. os) then
      &        RTDB_ERR)
       endif
 
-      if (.true.) then
-         if (.not. rtdb_put(rtdb, 'wfat:ozn', mt_int, 1, DEF_OZN))
-     &        call errquit('WFAT: Failed writing ozn to RTDB', 1,
-     &        RTDB_ERR)
-      endif
-
-      if (.true.) then
-         if (.not. rtdb_put(rtdb, 'wfat:cgrid_thr', mt_dbl, 1,
-     &        DEF_CGRID_THR))
-     &        call errquit('WFAT: Failed writing cgrid_thr to RTDB', 1,
-     &        RTDB_ERR)
-      endif
+cOLD      if (.true.) then
+cOLD         if (.not. rtdb_put(rtdb, 'wfat:ozn', mt_int, 1, DEF_OZN))
+cOLD     &        call errquit('WFAT: Failed writing ozn to RTDB', 1,
+cOLD     &        RTDB_ERR)
+cOLD      endif
+cOLD
+cOLD      if (.true.) then
+cOLD         if (.not. rtdb_put(rtdb, 'wfat:cgrid_thr', mt_dbl, 1,
+cOLD     &        DEF_CGRID_THR))
+cOLD     &        call errquit('WFAT: Failed writing cgrid_thr to RTDB', 1,
+cOLD     &        RTDB_ERR)
+cOLD      endif
       
       if (s2a1e) then
          if (.not. rtdb_put(rtdb, 'wfat:2a1e_nc', mt_int, 1, wfat2a_nc))
