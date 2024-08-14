@@ -442,19 +442,21 @@ c===============================================================
 
 c===============================================================
 c===============================================================
-      subroutine wfat_2a1e_orbcent(geom, orbmmt0, orbcent, orbmmt)
+      subroutine wfat_2a1e_orbcent(rtdb, geom, orbmmt0, orbcent, orbmmt)
 
       implicit none
 #include "geom.fh"
 #include "errquit.fh"
+      integer rtdb
       integer geom                 ! [input],
-      double precision orbmmt0(3)  ! [input]. Unshifted electronic dipole moment.
+      double precision orbmmt0(3)  ! [input], Unshifted electronic dipole moment.
       double precision orbcent(3)  ! [output],
       double precision orbmmt(3)   ! [output]. Shifted electronic dipole moment.
       
       character*16 t
+      logical umanpos(1)
       integer i, nc
-      double precision r(3), q, totzn
+      double precision r(3), q, totzn, manpos(3,1)
 
 
       if (.not. geom_ncent(geom, nc))
@@ -462,9 +464,9 @@ c===============================================================
 
 c     Orbital center (orbcent) is given by D_{ion}/(tot. charge)
 c     where D_{ion} and tot. charge are the total dipole and total
-c     charge of cation. For a system (one electron initially), the
-c     cation is a bare molecule. Thus the above two quantities
-c     corresponds to the total dipole and charge of the nuclei.
+c     charge of cation. For 2a1e system (one electron initially), the
+c     cation is a bare nuclei. Thus the above two quantities
+c     correspond to the total dipole and charge of the nuclei.
       orbcent = 0.0d0
       do i = 1, nc
          if (.not. geom_cent_get(geom, i, t, r, q))
@@ -475,7 +477,12 @@ c     corresponds to the total dipole and charge of the nuclei.
 
       if (.not. geom_nuc_charge(geom, totzn))
      &     call errquit('WFAT: Getting totzn failed', 5, GEOM_ERR)
-      orbcent = orbcent / totzn
+      call wfat_man_chpos(rtdb, 1, umanpos, manpos)
+      if (umanpos(1)) then
+         orbcent = manpos(:,1)
+      else
+         orbcent = orbcent / totzn
+      endif
       orbmmt = orbmmt0 - orbcent
       
       end

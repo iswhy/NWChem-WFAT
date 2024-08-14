@@ -417,7 +417,7 @@ c=================================================
       double precision mdip(3)
 
       
-      call mewfat_get_orbcent(geom, bas, nb, n0, n1, ocmo0, ocmo1,
+      call mewfat_get_orbcent(rtdb, geom, bas, nb, n0, n1, ocmo0, ocmo1,
      &     edipm0, edipm1, chcent, dipm1)
 
 
@@ -447,7 +447,7 @@ c=================================================
       
 c=================================================
 c=================================================
-      subroutine mewfat_get_orbcent(geom, bas, nb, n0, n1, ocmo0,
+      subroutine mewfat_get_orbcent(rtdb, geom, bas, nb, n0, n1, ocmo0,
      &     ocmo1, edipm0, edipm1, chcent, dipm1)
 
       implicit none
@@ -455,6 +455,7 @@ c=================================================
 #include "global.fh"
 #include "mafdecls.fh"
 #include "geom.fh"
+      integer rtdb
       integer geom                               ! [input],
       integer bas                                ! [input],
       integer nb                                 ! [input],
@@ -469,9 +470,10 @@ cOLD      double precision chmmt(3)                  ! [output], shifted channel
       double precision dipm1(3)                  ! [output], shifted cation dipole moment.
 
       character*8 dipname(3)
+      logical umanpos(1)
       integer NMMT, i, g_dp(3), i_dp, l_dp, k_dp, is, io, mo
       parameter (NMMT=4)
-      double precision zt, nucmmt(NMMT), ndipm1(3)
+      double precision zt, nucmmt(NMMT), ndipm1(3), manpos(3,1)
       double precision moment(3)
 
       integer ga_create_atom_blocked
@@ -522,12 +524,21 @@ c        ==== Cation dipole ====
             edipm1 = edipm1 - moment
          enddo
       enddo
+
+      
       if (.not. geom_nuc_charge(geom, zt))
      &     call errquit('MEWFAT: Getting zt failed', 5, UERR)
       call geom_nuc_mpole(geom, (/ 0.0d0, 0.0d0, 0.0d0 /), 1,
      &     nucmmt, NMMT)
       ndipm1 = nucmmt(2:4)
-      chcent = (ndipm1 + edipm1) / (zt-sum(n1))      ! Channel center
+
+      
+      call wfat_man_chpos(rtdb, 1, umanpos, manpos)
+      if (umanpos(1)) then
+         chcent = manpos(:,1)
+      else
+         chcent = (ndipm1 + edipm1) / (zt-sum(n1)) ! Channel center
+      endif
 cOLD      chmmt = -(edipm0 - edipm1) - chcent            ! Shifted channel first moment
       dipm1 = ndipm1 + edipm1 - (zt-sum(n1))*chcent  ! Shifted cation dipole moment, should be zero.
 

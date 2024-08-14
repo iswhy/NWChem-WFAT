@@ -214,7 +214,7 @@ c     ==== When using manual dipole ====
                if (rtdb_get(rtdb, 'wfat:mandip', mt_dbl, 3*nch,
      &              dbl_mb(k_omm))) then
 c                 dbl_mb(k_omm) contains alternatives to <psi|\vec{r}|psi>,
-c                 note that there is no negative sign.
+c                 note that there is no negative sign associated with electron charge.
                   exit
                else
                   call errquit('WFAT: Manual dipole is used but '//
@@ -274,14 +274,14 @@ c=======================================================
       double precision orbmmt0(3, nch)   ! [output], unshifted channel dipole moment, <psi|\vec{r}|psi>. Note that there is no negative sign.
       double precision iondip(3, nch)    ! [output], shifted total dipole of cation.
 
-      logical autopos
+      logical umanpos(nch)
       integer ndid, nmp, NMMT, ncf, nom0, niondip
       integer l_mp, l_cf, l_om0
       integer k_mp, k_cf, k_om0
       integer is, icf, id, iq, imp, iom0, i, io, k
       parameter (NMMT = 4)
       double precision vorig(3), ndip0(NMMT), edip0(3), totdip0(3)
-      double precision totzn, omgpos(3), ndip(3), edip(3), totdip(3)
+      double precision totzn, manpos(3,nch), ndip(3), edip(3), totdip(3)
 
 
       ndid = ga_nodeid()
@@ -327,12 +327,7 @@ c     ==== Total dipole relative to origin ====
 
 
 c     ==== Orb. center and orb. moments relative to orb. center ====
-      if (.not. rtdb_get(rtdb, 'wfat:autopos', mt_log, 1, autopos))
-     &     call errquit('WFAT: Cannot get autopos from RTDB',
-     &     1, RTDB_ERR)
-      if (.not. rtdb_get(rtdb, 'wfat:omgpos', mt_dbl, 3, omgpos))
-     &     call errquit('WFAT: Cannot get omgpos from RTDB',
-     &     1, RTDB_ERR)
+      call wfat_man_chpos(rtdb, nch, umanpos, manpos)
       if (.not. geom_nuc_charge(geom_hd, totzn))
      &     call errquit('WFAT: Getting totzn failed', 5, UERR)
       do i = 1, nch
@@ -341,11 +336,11 @@ c     ==== Orb. center and orb. moments relative to orb. center ====
          do id = 1, 3
 c           ==== Compute orb. center ====
             iom0 = k_om0 + nbas0*nspin0*(id-1) + nbas0*(is-1) + (io-1)
-            if (autopos) then
+            if (umanpos(i)) then
+               orbcent(id,i) = manpos(id,i)
+            else
                orbcent(id,i) = (totdip0(id) + dbl_mb(iom0)) /
      &                         (totzn - nelec0 + 1)
-            else
-               orbcent(id,i) = omgpos(id)
             endif
 
 c           ==== Get orb. moments relative to origin ====
@@ -423,6 +418,45 @@ c     ==== Replace proper orb. energy with the custom ones, if any ====
 
       if (.not. MA_free_heap(l_eg))
      &     call errquit('WFAT: manerg deallocation failed', 1, MA_ERR)
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_man_chpos(rtdb, nch, umanpos, chpos)
+
+      implicit none
+#include "stdio.fh"
+#include "errquit.fh"
+#include "mafdecls.fh"
+#include "rtdb.fh"
+      integer rtdb
+      integer nch
+      logical umanpos(nch)
+      double precision chpos(3,nch)
+
+      integer i
+
+      
+c     ==== When using manual dipole ====
+      if (rtdb_get(rtdb, 'wfat:use_manpos', mt_log, nch, umanpos)) then
+         do i = 1, nch
+            if (umanpos(i)) then
+               if (rtdb_get(rtdb, 'wfat:manpos', mt_dbl, 3*nch,
+     &              chpos)) then
+                  exit
+               else
+                  call errquit('WFAT: Manual chpos is used but '//
+     &                 'cannot find it in RTDB.', 1, RTDB_ERR)
+               endif
+            endif
+         enddo
+      else
+         umanpos(:) = .false.
+      endif
+
+
       end
 c=======================================================
 
