@@ -1158,6 +1158,11 @@ c=======================================================
 
       integer i
       
+c        wfat1_exclude \
+c          "sid1 oid1 n1 m1" \
+c          "sid2 oid2 n2 m2" \
+c          ...
+
       wfat_inp_w1x = .false.
       w1x = ''
       n = 0
@@ -1231,7 +1236,8 @@ c=======================================================
 c=======================================================
 c=======================================================
       logical function wfat_inp_mydip(nc, maxn, dip_s, dip, n)
-
+c     DESCRIPTION:
+c     Parse the user-specified unshifted moments of the ionized channels.
       implicit none
 #include "inp.fh"
 #include "errquit.fh"
