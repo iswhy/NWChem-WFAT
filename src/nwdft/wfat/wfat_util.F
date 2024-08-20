@@ -1390,4 +1390,25 @@ c
 c=======================================================
       
       
+c=======================================================
+c=======================================================
+      subroutine wfat_mabyte_copy(m, s, i_s)
+c     DESCRIPTION:
+c     Copies the first m characters in string s into an ma_byte array.
+c     The caller is responsible in ensuring that the m elements of the
+c     ma_byte array that will be filled have been allocated.
+      implicit none
+#include "mafdecls.fh"
+      integer m            ! [input] length of the string
+      character(len=m) s   ! [input] the string
+      integer i_s          ! [output] ma index if byte array in byte_mb
+
+      integer i
+      
+      do i = 1, m
+         byte_mb(i_s+i-1) = s(i:i)
+      enddo
+      
+      end
+c=======================================================
       

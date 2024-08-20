@@ -182,6 +182,7 @@ cOLD      gqual_stat = .false.
       s2a1e_exist = .false.
       s2a1e_stat = .true.
 
+      
 c     ========================================================
 c     ==================== INPUTS PARSING ====================
 c     ========================================================
@@ -294,8 +295,8 @@ c           ==== CONDITIONALLY OPTIONAL INPUTS ====
 c           ==== OPTIONAL INPUTS ====
             else if (inp_compare(.false., 'movec_id', field)) then
                orbid_exist = .true.
-               orbid_stat = wfat_inp_movec(MAX_N_ORBID, wfat_orbid0,
-     &                      wfat_spinid, n_orbid)
+               orbid_stat = wfat_inp_movec(rtdb, MAX_N_ORBID, 
+     &                      wfat_orbid0, wfat_spinid, n_orbid)
             else if(inp_compare(.false., 'paraqn', field)) then
                paraqn_exist = .true.
                paraqn_stat = wfat_inp_paraqn(MAX_N_NPARA, npara, mpara,
@@ -344,6 +345,8 @@ cOLD               gqual_stat = inp_i(wfat_gqual)
                merg_exist = .true.
                merg_stat = wfat_inp_myerg(ORBID_CHARLEN,
      &              MAX_N_ORBID, wfat_merg_s, wfat_merg, merg_len)
+            else if (inp_compare(.false., 'mychpos', field)) then
+               call wfat_inp_mypos(rtdb, MAX_N_ORBID)
             else if (inp_compare(.false., 'nlgl', field)) then
                nlgl_exist = .true.
                nlgl_stat = inp_i(wfat_nlgl)
@@ -864,13 +867,16 @@ c=======================================================
 
 c=======================================================
 c=======================================================
-      logical function wfat_inp_movec(nelm, orbid0, spinid0, nor0)
+      logical function wfat_inp_movec(rtdb, nelm, orbid0, spinid0, nor0)
 
       implicit none
+#include "rtdb.fh"
 #include "stdio.fh"
 #include "errquit.fh"
 #include "wfat_input.fh"
-#include "inp.fh"      
+#include "mafdecls.fh"
+#include "inp.fh"
+      integer rtdb
       integer nelm
       integer orbid0(nelm)
       integer spinid0(nelm)
@@ -971,6 +977,16 @@ c        ==== Check duplicate in orbital ====
          endif
 
       enddo
+
+      if (.not. rtdb_put(rtdb, 'wfat:inp:nch', mt_int, 1, nor0))
+     &     call errquit('WFAT: Failed writing wfat:inp:nch to rtdb',
+     &     1, INPUT_ERR)
+      if (.not. rtdb_put(rtdb, 'wfat:inp:orbid', mt_int, nor0, orbid0))
+     &     call errquit('WFAT: Failed writing inp:orbid to rtdb',
+     &     1, INPUT_ERR)
+      if (.not. rtdb_put(rtdb, 'wfat:inp:spinid', mt_int, nor0, 
+     &     spinid0)) call errquit('WFAT: Failed writing inp:spinid to'//
+     &     ' rtdb', 1, INPUT_ERR)
 
       wfat_inp_movec = .true.
 
@@ -1463,6 +1479,107 @@ c     channel indices contained in erg_s.
       enddo
 
       erg(1:nch) = tmp(1:nch)
+      
+      end
+c=======================================================
+
+
+c=======================================================
+c=======================================================
+      subroutine wfat_inp_mypos(rtdb, maxn)
+c     DESCRIPTION:
+c     Parse the user-specified center of the ionized channels.
+      implicit none
+#include "inp.fh"
+#include "errquit.fh"
+#include "wfat_const.fh"
+#include "stdio.fh"
+#include "rtdb.fh"
+#include "mafdecls.fh"
+      integer rtdb
+      integer maxn
+
+      character*1 u
+      integer i, l_s, k_s, l_p, k_p, n, i1, i2, k
+      double precision tmp(3), b2a, ufactor
+      parameter (b2a=0.52917721067d0)
+
+      character(len=maxidlen) field
+      
+
+c     ==== Read unit ====
+      if (inp_a(field)) then
+         if (inp_compare(.false., 'angstrom', field)) then
+            u = 'a'
+         else if (inp_compare(.false., 'bohr', field)) then
+            u = 'b'
+         else
+            u = 'a'
+            call inp_prev_field()
+         endif
+      else
+         u = 'a'   ! default unit is angstrom
+      endif
+
+      
+c     ==== Unit's conversion factor ====
+      ufactor = 1.0d0
+      if (u == 'a') ufactor = 1.0d0/b2a
+      
+
+      if (.not.ma_push_get(mt_byte, maxidlen*maxn, 'chid', l_s, k_s))
+     &     call errquit('WFAT: cannot allocate chid',0, MA_ERR)
+      if (.not.ma_push_get(mt_dbl, 3*maxn, 'pos', l_p, k_p))
+     &     call errquit('WFAT: cannot allocate pos', 0, MA_ERR)
+
+c     mychpos \
+c       "sid1 oid1"  posx1 posy1 posz1 \
+c       "sid2 oid2"  posx2 posy2 posz2 \
+c       ...
+
+      
+c     ==== Parse channel positions ====
+      byte_mb(k_s:k_s+maxidlen*maxn-1) = ''
+      dbl_mb(k_p:k_p+3*maxn-1) = DEF_MPOS
+      n = 0
+      do i = 1, maxn            
+         if (inp_a(field)) then
+            if (.not. inp_f(tmp(1))) call errquit('WFAT: Cannot '//
+     &     'read the x component of manual chpos.', 18, INPUT_ERR)
+            if (.not. inp_f(tmp(2))) call errquit('WFAT: Cannot '//
+     &     'read the y component of manual chpos.', 18, INPUT_ERR)
+            if (.not. inp_f(tmp(3))) call errquit('WFAT: Cannot '//
+     &     'read the z component of manual chpos.', 18, INPUT_ERR)
+            n = n + 1
+            i1 = k_s + (i-1)*maxidlen
+            call wfat_mabyte_copy(maxidlen, field, i1)
+            i1 = k_p + (i-1)*3 
+            i2 = i1 + 3 - 1
+            dbl_mb(i1:i2) = tmp * ufactor
+         endif
+      enddo
+      if (n == 0) call errquit('WFAT: Input directive ''mychpos'''//
+     &     'is given without entries.', 8, INPUT_ERR)
+
+      
+c     ==== Write to RTDB ====
+      if (.not. rtdb_put(rtdb, 'wfat:inp:chpos_n', mt_int, 1, n))
+     &     call errquit('WFAT: Failed writing wfat:inp:chpos_n to rtdb'
+     &     , 1, INPUT_ERR)
+      if (.not. rtdb_cput(rtdb, 'wfat:inp:chpos_id', n*maxidlen,
+     &     byte_mb(k_s)))
+     &     call errquit('WFAT: Failed writing wfat:inp:chpos_id to rtdb'
+     &     , 1, INPUT_ERR)
+      if (.not. rtdb_put(rtdb, 'wfat:inp:chpos', mt_dbl, 3*n,
+     &     dbl_mb(k_p)))
+     &     call errquit('WFAT: Failed writing wfat:inp:chpos to rtdb',
+     &     1, INPUT_ERR)
+
+      
+      if (.not. MA_pop_stack(l_p))
+     &     call errquit('WFAT: cannot deallocate pos', 0, MA_ERR)
+      if (.not. MA_pop_stack(l_s))
+     &     call errquit('WFAT: cannot deallocate chid', 0, MA_ERR)
       
       end
 c=======================================================
