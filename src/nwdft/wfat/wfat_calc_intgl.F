@@ -326,6 +326,8 @@ c           ==== Quadrature summation ====
                   i_l = k_ij_ + (icent-1) * nsh*nqn*nch1
                   call wfat_integrandj_acc(nsh, nqn, nch, wtcelf,
      &                 dcpl_mb(k_ij0), dcpl_mb(i_l))
+                  call wfat_print_debug(icent, ipt, v_c, nch, nqn, nsh,
+     &                 dbl_mb(k_vc+nch), dcpl_mb(k_ij0))
                else
                   call wfat_integrandj_acc(nsh, nqn, nch, wtcelf,
      &                 dcpl_mb(k_ij0), dcpl_mb(k_jc))
@@ -350,11 +352,11 @@ c           ==== Quadrature summation ====
                endif
             endif
 
-cfordebug            if (ga_nodeid() >= 0)
-cfordebug     &           write(luout, '("@grid: ", i8, 2es20.10, '//
-cfordebug     &           '3es20.10, i5)')
-cfordebug     &           jpt, dcpl_mb(k_om), dbl_mb(k_vc), celf,
-cfordebug     &           dbl_mb(k_wt+ipt-1), celm
+cdebug            if (ga_nodeid() >= 0 .and. icent /= -1)
+cdebug     &           write(luout, '("@grid: ", i8, 2es20.10, '//
+cdebug     &           '3es20.10, i5)')
+cdebug     &           jpt, dcpl_mb(k_om), dbl_mb(k_vc), celf
+
 
 c           ==== Print progress ====
             pr_count = pr_count + 1
@@ -373,6 +375,11 @@ c           ==== Print progress ====
       write(dt_str, '(f12.2)') dt_all
       if (ndid == 0) write(luout, '(5x, "The computation of the WFAT '//
      &     'integrals takes ", a, " s.")') trim(adjustl(dt_str))
+
+cdebug      if (wfat1) then
+cdebug         write(luout, '("jc: ", i4, 2es14.6)')
+cdebug     &        ga_nodeid(), sum(dcpl_mb(k_jc:k_jc+njc-1))
+cdebug      endif
       
 
 c     ==== Distribute the integrals over grids belonging ====
@@ -1213,6 +1220,38 @@ c     omission will be taken care of inside the subsequent subroutines.
       end
 c=======================================================
       
+      
+c=================================================
+c=================================================
+      subroutine wfat_print_debug(icent, igrid, nch, nqn, nsh, v_c, vxi,
+     &     intdj)
+
+      implicit none
+#include "global.fh"
+#include "stdio.fh"
+      integer icent
+      integer igrid
+      integer nch
+      integer nqn
+      integer nsh
+      double precision v_c(3)
+      double precision vxi(3, nch)
+      double complex intdj(nsh, nqn, 3, nch)
+
+      integer ig, i
+      
+      ig = ga_nodeid()
+
+      write(luout, '("debug: ", i3, i5, i7)') icent, ig, igrid
+      write(luout, '(3x, "coord = ", 3es14.6)') v_c
+      write(luout, '(3x, "V =  ", 3es14.6)') vxi(:,1)
+      do i = 1, 3
+         write(luout, '(3x, "J: ", i1, 2es14.6)') i, sum(intdj(:,:,i,1))
+      enddo
+      
+
+      end
+c=================================================
       
 
       
