@@ -1242,13 +1242,15 @@ c=================================================
       
       ig = ga_nodeid()
 
-      write(luout, '("debug: ", i3, i5, i7)') icent, ig, igrid
-      write(luout, '(3x, "coord = ", 3es14.6)') v_c
-      write(luout, '(3x, "V =  ", 3es14.6)') vxi(:,1)
-      do i = 1, 3
-         write(luout, '(3x, "J: ", i1, 2es14.6)') i, sum(intdj(:,:,i,1))
-      enddo
-      
+      if (ig == 20) then
+         write(luout, '("debug: ", i3, i5, i7)') icent, ig, igrid
+         write(luout, '(3x, "coord = ", 3es14.6)') v_c
+         write(luout, '(3x, "V =  ", 3es14.6)') vxi(:,1)
+         do i = 1, 3
+            write(luout, '(3x, "J: ", i1, 2es14.6)') i,
+     &           sum(intdj(:,:,i,1))
+         enddo
+      endif
 
       end
 c=================================================
