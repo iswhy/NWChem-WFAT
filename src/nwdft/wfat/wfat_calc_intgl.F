@@ -1242,7 +1242,7 @@ c=================================================
       
       ig = ga_nodeid()
 
-      if (ig == 20) then
+      if (icent == 2) then
          write(luout, '("debug: ", i3, i5, i7)') icent, ig, igrid
          write(luout, '(3x, "coord = ", 3es14.6)') v_c
          write(luout, '(3x, "V =  ", 3es14.6)') vxi(:,1)
