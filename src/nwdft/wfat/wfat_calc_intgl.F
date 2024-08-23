@@ -326,7 +326,7 @@ c           ==== Quadrature summation ====
                   i_l = k_ij_ + (icent-1) * nsh*nqn*nch1
                   call wfat_integrandj_acc(nsh, nqn, nch, wtcelf,
      &                 dcpl_mb(k_ij0), dcpl_mb(i_l))
-                  call wfat_print_debug(icent, ipt, v_c, nch, nqn, nsh,
+                  call wfat_print_debug(icent, ipt, nch, nqn, nsh, v_c, 
      &                 dbl_mb(k_vc+nch), dcpl_mb(k_ij0))
                else
                   call wfat_integrandj_acc(nsh, nqn, nch, wtcelf,
