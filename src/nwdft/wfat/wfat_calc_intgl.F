@@ -294,6 +294,10 @@ c           ====            and K^{(n,m)}_{l,m'}                ====
      &              dcpl_mb(k_ik1_0), dcpl_mb(k_ik2_0))
             endif
 
+            if (icent /= -1)
+     &           call wfat_print_debug(icent, ipt, nch, nqn, nsh, v_c,
+     &           dbl_mb(k_vc+nch), dcpl_mb(k_ij0))
+            
 c           ==== Masking of integrands ====#
             if (ismask) call wfat_mask_intd(geom, natom, nch, nqn, nsh,
      &           v_m, mask_param, dcpl_mb(k_i0))
@@ -326,8 +330,6 @@ c           ==== Quadrature summation ====
                   i_l = k_ij_ + (icent-1) * nsh*nqn*nch1
                   call wfat_integrandj_acc(nsh, nqn, nch, wtcelf,
      &                 dcpl_mb(k_ij0), dcpl_mb(i_l))
-                  call wfat_print_debug(icent, ipt, nch, nqn, nsh, v_c, 
-     &                 dbl_mb(k_vc+nch), dcpl_mb(k_ij0))
                else
                   call wfat_integrandj_acc(nsh, nqn, nch, wtcelf,
      &                 dcpl_mb(k_ij0), dcpl_mb(k_jc))
@@ -1243,12 +1245,12 @@ c=================================================
       ig = ga_nodeid()
 
       if (icent == 2) then
-         write(luout, '("debug: ", i3, i5, i7)') icent, ig, igrid
+         write(luout, '("debuga: ", i3, i5, i7)') icent, ig, igrid
          write(luout, '(3x, "coord = ", 3es14.6)') v_c
          write(luout, '(3x, "V =  ", 3es14.6)') vxi(:,1)
          do i = 1, 3
-            write(luout, '(3x, "J: ", i1, 2es14.6)') i,
-     &           sum(intdj(:,:,i,1))
+            write(luout, '(3x, "J00: ", i1, 2es14.6)') i,
+     &           intdj(1,1,i,1)
          enddo
       endif
 
