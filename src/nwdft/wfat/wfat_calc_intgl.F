@@ -294,19 +294,22 @@ c           ====            and K^{(n,m)}_{l,m'}                ====
      &              dcpl_mb(k_ik1_0), dcpl_mb(k_ik2_0))
             endif
 
-            if (icent /= -1)
-     &           call wfat_print_debug(icent, ipt, nch, nqn, nsh, v_c,
-     &           dbl_mb(k_vc+nch), dcpl_mb(k_ij0))
+cdebug            if (wfat1 .and. icent /= -1)
+cdebug     &           call wfat_print_debug(icent, ipt, nch, nqn, nsh, v_c,
+cdebug     &           dbl_mb(k_vc+nch), dcpl_mb(k_ij0))
             
-c           ==== Masking of integrands ====#
+c           ==== Masking of integrands ====
+c           No need to use masking routines that is sensitive to icent=-1 since
+c           masking only modifies the existing integrands. In particular if an
+c           integrand is zero, the mask will have no effect on the integral.
             if (ismask) call wfat_mask_intd(geom, natom, nch, nqn, nsh,
      &           v_m, mask_param, dcpl_mb(k_i0))
-            if (ismask .and. wfat1) call wfat_mask_intd(geom, natom, 
-     &           3*nch, nqn, nsh, v_m, mask_param, dcpl_mb(k_ij0))
+            if (ismask .and. wfat1) call wfat_mask_intdj(geom, natom,
+     &           nch, nqn, nsh, v_m, mask_param, dcpl_mb(k_ij0))
             if (ismask .and. wfat1) then
-               call wfat_mask_intd(geom, natom, nch, nqn, nsh, v_m, 
+               call wfat_mask_intd(geom, natom, nch, nqn, nsh, v_m,
      &              mask_param, dcpl_mb(k_ik1_0))
-               call wfat_mask_intd(geom, natom, nch, nqn, nsh, v_m, 
+               call wfat_mask_intd(geom, natom, nch, nqn, nsh, v_m,
      &              mask_param, dcpl_mb(k_ik2_0))
             endif
                            

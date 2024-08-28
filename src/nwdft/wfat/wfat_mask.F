@@ -126,3 +126,33 @@ cOLD         f = 0.5d0 * erfc(mask(1) * (r_-mask(2)))
       end
 c=======================================================
       
+
+c=======================================================
+c=======================================================
+      subroutine wfat_mask_intdj(geom, natom, nch, nqn, nsh,
+     &     v_m, mask, intd_j)
+
+      implicit none
+      integer geom
+      integer natom                           ! [input], the total number of atoms that corresponds to the geometry handle 'geom'.
+      integer nch
+      integer nqn
+      integer nsh
+      double precision v_m(3,nch)             ! [input], the Cartesian coordinate of the evaluation point in molecular-frame.
+      double precision mask(2)
+      double complex intd_j(nsh, nqn, 3, nch)
+
+      integer i, j
+      double precision v(3,3)
+
+      do i = 1, nch
+         do j = 1 ,3
+            v(:,j) = v_m(:,i)
+         enddo
+         call wfat_mask_intd(geom, natom, 3, nqn, nsh, v, mask,
+     &        intd_j(:,:,:,i))
+      enddo
+      
+      end
+c=======================================================
+      

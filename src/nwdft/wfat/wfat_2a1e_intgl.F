@@ -297,8 +297,8 @@ c           =====           and K^{(n,m)}_{l,m'}                ====
 c           ==== Apply masks to the integrands ====
             if (ismask) call wfat_mask_intd(geom, natom, nch, nqn, nsh,
      &           v_m, mask_param, dcpl_mb(k_i0))       ! omega(nsh,nqn)   nch=1
-            if (ismask .and. wfat1) call wfat_mask_intd(geom, natom, 
-     &           3*nch, nqn, nsh, v_m, mask_param, dcpl_mb(k_ij0))     ! omega(nsh,nqn)   nch=1
+            if (ismask .and. wfat1) call wfat_mask_intdj(geom, natom, 
+     &           nch, nqn, nsh, v_m, mask_param, dcpl_mb(k_ij0))     ! omega(nsh,nqn)   nch=1
             if (ismask .and. wfat1) then
                call wfat_mask_intd(geom, natom, nch, nqn, nsh, v_m,
      &              mask_param, dcpl_mb(k_ik1_0))           ! omega(nsh,nqn)   nch=1
