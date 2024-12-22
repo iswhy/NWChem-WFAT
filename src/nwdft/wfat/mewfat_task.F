@@ -18,13 +18,14 @@ c=================================================
       character*4096 fname
       character*2 td
       character*7 jobtype
+      character*26 date
       logical res_mode, rtdb_stat, os, oc, or, extf, isthere, wfat1
       logical pr_srfc, pr_yild, pr_rate, pr_avbeta, pr_avgamma
       logical pr_tmd, pr_tmd_atom, ismask_i, ismask_e, int_nosave
       integer gqual, lmax
       integer ndid, nqn, nlas, ntime, nsh, nintg
       integer nerg, ncpos, ncmm, niond, cx, cy, nocmo0, nocmo1, npcf
-      integer nrcf, nqcf, nscf
+      integer nrcf, nqcf, nscf, nn, ma
       integer l_npa, l_mpa, l_al, l_ftl, l_wl, l_pl, l_tl, l_dl
       integer l_ieg, l_ps, l_cmm, l_idp, l_in, l_mo0, l_mo1, l_pcf
       integer l_rcf, l_qcf, l_scf, l_eg0, l_eg1, l_ed0, l_ed1
@@ -122,6 +123,12 @@ c     ==== Print Dyson orbital ====
      &     g_mov0, g_mov1, oskel)
       
 
+c     ====
+      if (rtdb_get_info(rtdb, 'mewfat:dipdiag', ma, nn, date))
+     &     call mewfat_dipdiag(rtdb, nn)
+      
+      
+      
 c     ==== Calculate determinant coefficients and get MO's ====
       call mewfat_alloc_ocmo(nbas, nel0, nel1, nocmo0, nocmo1,
      &     l_mo0, k_mo0, l_mo1, k_mo1)
@@ -137,7 +144,7 @@ c     ==== Calculate determinant coefficients and get MO's ====
      &     dbl_mb(k_rcf), dbl_mb(k_qcf), dbl_mb(k_scf))
 
       
-c     ==== Calculate (or load) WFAT integrals ====
+c     ==== Create MEWFAT integrals array ====
       nsh = (1 + lmax)**2
       nintg = nsh * natm * nqn
       if (.not. ga_create(mt_dcpl, nintg, 1, 'intgl', 0, 0, g_il))

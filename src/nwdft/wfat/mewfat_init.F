@@ -407,7 +407,7 @@ c     ==== Creating MO coefficients global arrrays ====
       enddo      
 
 
-c     ====Compute numbers of electrons ====
+c     ==== Compute numbers of electrons ====
       nel = 0.0d0
       do is = 1, ns
          ioc = k_oc + (is-1) * nb

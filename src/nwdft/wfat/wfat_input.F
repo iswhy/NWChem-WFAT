@@ -321,7 +321,7 @@ cOLD               gqual_stat = inp_i(wfat_gqual)
             else if (inp_compare(.false., 'intgl', field)) then
                intgl_exist = .true.
                intgl_stat = inp_a(wfat_intgl_name)
-            else if (inp_compare(.false., 'vectors', field)) then
+            else if (inp_compare(.false., 'vectors', field)) then   ! Needed for restarting MEWFAT task.
                movec_exist = .true.
                movec_stat = inp_a(wfat_movec_name)
                if (inp_a(wfat_movec1_name)) then

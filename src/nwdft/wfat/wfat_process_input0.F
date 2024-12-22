@@ -70,11 +70,12 @@ c=======================================================
       subroutine wfat_process_mypos(rtdb)
 
       implicit none
-#include "wfat_const.fh"
+c#include "wfat_const.fh"
 #include "errquit.fh"
 #include "rtdb.fh"
 #include "stdio.fh"
 #include "mafdecls.fh"
+#include "wfat_input.fh"
       integer rtdb
 
       integer nch, n
@@ -83,9 +84,13 @@ c=======================================================
 
 
 c     ==== Get lengths ====
-      if (.not. rtdb_get(rtdb, 'wfat:inp:nch', mt_int, 1, nch))
-     &     call errquit('WFAT: Failed reading wfat:inp:nch from RTDB',
-     &     1, INPUT_ERR)
+      if (wfat_level == 'oe') then
+         if (.not. rtdb_get(rtdb, 'wfat:n_orbid', mt_int, 1, nch))
+     &        call errquit('WFAT: Failed reading wfat:n_orbid from RTDB'
+     &        , 1, INPUT_ERR)
+      else if (wfat_level == 'me') then
+         nch = 1         ! When using mewfat, nch has to be set manually because orbid_need is not .false. so wfat:n_orbid is not recorded into rtdb.
+      endif
       if (.not. rtdb_get(rtdb, 'wfat:inp:chpos_n', mt_int, 1, n))
      &     return
       if (n <= 0) call errquit('WFAT: Bad value for wfat:inp:chpos_n')

@@ -18,9 +18,6 @@ c     ==== Obtain the level of WFAT (OE or ME) ====
      &     1, RTDB_ERR)
 
 
-c     ==== Process inputs using the new algorithm ====
-      call wfat_process_input0(rtdb)      
-      
 c     ==== Check the existence of inputs ====
       call wfat_exist_input(rtdb)
 
@@ -29,7 +26,10 @@ c     ==== Check the sanity of inputs ====
 
 c     ==== Put the checked inputs to the RTDB ====
       call wfat_putrtdb_input(rtdb)
-      
+
+c     ==== Process inputs using the new algorithm ====
+      call wfat_process_input0(rtdb)      
+            
       end
 c=======================================================
 
