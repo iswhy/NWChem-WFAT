@@ -1666,3 +1666,44 @@ c     number nid0 and m quantum number mid0.
 
       end
 c============================================================
+
+
+c============================================================
+c============================================================
+      subroutine wfat_minor(k1, k2, m, n, a, b)
+c     DESCRIPTION:
+C     Returns the minor of a matrix.
+      implicit none
+#include "errquit.fh"
+      integer k1                     ! [input], index of the removed row.
+      integer k2                     ! [input], index of the removed column.
+      integer m                      ! [input], number of rows of input matrix.
+      integer n                      ! [input], number of columns of input matrix
+      double precision a(m,n)        ! [input], input matrix.
+      double precision b(m-1,n-1)    ! [output], minor of the input matrix.
+
+      if (m == 1 .or. n == 1)
+     &     call errquit('WFAT: Argument m and n of wfat_minor must be'//
+     &     ' greater than 1.', 95, UERR)
+      if (k1 < 1 .or. k1 > m)
+     &     call errquit('WFAT: Argument k1 is out of the allowed '//
+     &     'range.', 96, UERR)
+      if (k2 < 1 .or. k2 > n)
+     &     call errquit('WFAT: Argument k2 is out of the allowed '//
+     &     'range.', 96, UERR)
+
+c     ==== Upper left ====
+      if (k1 > 1 .and. k2 > 1) b(1:k1-1, 1:k2-1) = a(1:k1-1, 1:k2-1)
+
+c     ==== Upper right ====
+      if (k1 > 1 .and. k2 < n) b(1:k1-1, k2:n-1) = a(1:k1-1, k2+1:n)
+
+c     ==== Lower left ====
+      if (k1 < m .and. k2 > 1) b(k1:m-1, 1:k2-1) = a(k1+1:m, 1:k2-1)
+
+c     ==== Lower right ====
+      if (k1 < m .and. k2 < n) b(k1:m-1, k2:n-1) = a(k1+1:m, k2+1:n)
+      
+      end
+c============================================================
+      

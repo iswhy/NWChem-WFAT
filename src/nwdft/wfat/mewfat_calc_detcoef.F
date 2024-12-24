@@ -648,4 +648,128 @@ c        ==== Determinant values ====
 
       end
 c=================================================
+
+
+c=================================================
+c=================================================
+      subroutine mewfat_dipslater(nb, nel, mo1, mo2, ovl, dip, dsl)
+c     DESCRIPTION:
+c     Calculates <Sl(MO1)|D|Sl(MO2)>
+c     where Sl(MO) is a Slater determinant represented by molecular orbitals MO and D is
+c     one of x, y, and z position operators.
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer nb
+      integer nel(2)
+      double precision mo1(nb,nb,2)   ! [input], AO coefficients of MO1.
+      double precision mo2(nb,nb,2)   ! [input], AO coefficients of MO2.
+      double precision ovl(nb,nb,2)   ! [input], overlap matrix between MO1 (row) and MO2 (col).
+      double precision dip(nb,nb,3)   ! [input], dipole matrix in AO basis.
+      double precision dsl(3)         ! [output], dipole matrix elements between the two determinants represented by MO1 and MO2.
+
+      integer l_tm, l_d, l_iv, l_mi, l_ovs
+      integer k_tm, k_d, k_iv, k_mi, k_ovs
+      integer is, js, nel_, ntmp, i_d, q, niv, i1, i2, info, g1, g2
+      double precision det0(2), det, h(3)
+
+      integer delkron
+      external delkron
+      
+
+      dsl = 0.0d0
+      do is = 1, 2
+
+c        ==== Temporary array ====
+         nel_ = nel(is) - 1
+         ntmp = max(nb*nel(is), nel_, nel(js))
+         if (.not. ma_alloc_get(mt_dbl, ntmp, 'tmp', l_tm, k_tm))
+     &        call errquit('WFAT: Cannot allocate tmp', 1, MA_ERR)
+         
+c        ==== Dipole matrix between MO1 (row) and MO2 (col) ====
+         if (.not. ma_alloc_get(mt_dbl, 3*nel(is)**2, 'dipmo',
+     &        l_d, k_d))
+     &        call errquit('WFAT: Cannot allocate dipmo', 1, MA_ERR)
+         do q = 1, 3
+            i_d = k_d + (q-1)*nel(is)**2
+            call wfat_dsymm_wrap(nb, nel(is), 1.0d0, dip(:,:,q), 
+     &           mo2(:,1:nel(is),is), 0.0d0, dbl_mb(k_tm))
+            call wfat_dgemm_wrap('t', 'n', nb, nel(is), nb, nel(is), 
+     &           1.0d0, mo1(:,1:nel(is),is), dbl_mb(k_tm), 0.0d0,
+     &           dbl_mb(i_d))
+         enddo
+                           
+         if (is == 1) js = 2
+         if (is == 2) js = 1
+         niv = max(nel_, nel(js))
+         if (.not. ma_alloc_get(mt_int, niv, 'ipvt', l_iv, k_iv))
+     &        call errquit('WFAT: Cannot allocate ipvt', 18, MA_ERR)
+         if (.not. ma_alloc_get(mt_dbl, nel_**2, 'minor', l_mi, k_mi))
+     &        call errquit('WFAT: Cannot allocate minor', 18, MA_ERR)
+         h = 0.0d0
+         do i2 = 1, nel(is)
+            do i1 = 1, nel(is)
+c              ==== Minor matrix for the current (i1,i2) ====
+               call wfat_minor(i1, i2, nel(is), nel(is), 
+     &              ovl(1:nel(is),1:nel(is),is), dbl_mb(k_mi))
+
+c              ==== Calculate the determinant of ====
+c              ==== the current spin block minor ====
+               call dgefa(dbl_mb(k_mi), nel_, nel_, int_mb(k_iv), info)
+               if (info /= 0)
+     &              call errquit('WFAT: Error in dgefa', 45, UERR)
+               call dgedi(dbl_mb(k_mi), nel_, nel_, int_mb(k_iv), det0, 
+     &                    dbl_mb(k_tm), 10)
+               det = det0(1) * 10.0d0**det0(2)
+
+c              ==== Accumulate ====
+               g1 = (-1)**(delkron(2,is)*nel(1)+i1-1)
+               g2 = (-1)**(delkron(2,is)*nel(1)+i2-1)
+               do q = 1, 3
+                  i_d = k_d + (q-1)*nel(is)**2 + (i2-1)*nel(is) + (i1-1)
+                  h(q) = h(q) + dbl_mb(i_d) * det * g1 * g2
+               enddo
+               
+            enddo
+         enddo
+
+         if (.not. MA_free_heap(l_d))
+     &        call errquit('WFAT: dipmo deallocation failed', 7, MA_ERR)
+         if (.not. MA_free_heap(l_mi))
+     &        call errquit('WFAT: minor deallocation failed', 7, MA_ERR)
+
+         
+c        ==== Calculate the determinant of the other spin block ====
+         if (.not. ma_alloc_get(mt_dbl, nel(js)**2, 'ovl(js)',
+     &        l_ovs, k_ovs))
+     &        call errquit('WFAT: Cannot allocate ovl(js)', 58, MA_ERR)
+         call dcopy(nel(js)**2, ovl(1:nel(js),1:nel(js),js), 1,
+     &        dbl_mb(k_ovs), 1)
+         call dgefa(dbl_mb(k_ovs), nel(js), nel(js), int_mb(k_iv), info)
+         if (info /= 0)
+     &        call errquit('WFAT: Error in dgefa', 46, UERR)
+         call dgedi(dbl_mb(k_ovs), nel(js), nel(js), int_mb(k_iv), det0,
+     &              dbl_mb(k_tm), 10)
+         det = det0(1) * 10.0d0**det0(2)
+
+         
+c        ==== Deallocation ====
+         if (.not. MA_free_heap(l_iv))
+     &        call errquit('WFAT: ipvt deallocation failed', 7, MA_ERR)
+         if (.not. MA_free_heap(l_tm))
+     &        call errquit('WFAT: tmp deallocation failed', 7, MA_ERR)
+         if (.not. MA_free_heap(l_ovs))
+     &        call errquit('WFAT: ovl(js) deallocation failed',
+     &        7, MA_ERR)
+
+         
+c        ==== Accumulate ====
+         dsl = dsl + det * h
+      enddo
+      
+
+
+      end
+c=================================================
+      
       

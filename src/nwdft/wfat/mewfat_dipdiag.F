@@ -8,6 +8,8 @@ c===============================================================
 #include "stdio.fh"
 #include "rtdb.fh"
       integer rtdb
+      integer geom
+      integer bas
       integer nchar
 
       character(len=nchar) s
@@ -27,11 +29,6 @@ c      write(luout, '("n dipdiag = ", i4)') nchar
       status = movecs_read_header(s(i1:i2), title, basname, scftype,
      &     nb, ns_, nmo, 2)
       ns = 2
-c      if (ns_ == 2) then       
-c         ns = ns_
-c      else if (ns_ == 1) then ! Take care for spin channels in the case of restricted MO's.
-c         ns = 2
-c      endif
 
       if (.not. ma_alloc_get(mt_dbl, nb, 'occ', l_oc, k_oc))
      &     call errquit('MEWFAT: Allocating occ failed', 14, MA_ERR)
@@ -88,11 +85,62 @@ c      endif
 
       ndets = i
 
-      do j = 1, ndets
-         do i = 1, j
+      
+      if (.not. MA_alloc_get(MT_DBL, nb*nb*2, 'movec1', l_mo1, k_mo1))
+     &     call errquit('WFAT: movec1 allocation failed', 84, MA_ERR)
+      if (.not. MA_alloc_get(MT_DBL, nb*nb*2, 'movec2', l_mo2, k_mo2))
+     &     call errquit('WFAT: movec2 allocation failed', 84, MA_ERR)
+      
+      
+c     ==== Dipole matrices relative to origin ====
+      nmp = nb * nb * NMMT     !! 2)
+      if (.not. MA_alloc_get(MT_DBL, nmp, 'mpmat', l_mp, k_mp))
+     &     call errquit('WFAT: mpmat allocation failed', 41, MA_ERR)
+      orig = 0.0d0
+      call int_mpole_all(bas, nb, 1, orig, dbl_mb(k_mp))
+
+      
+      do is = 1, 2
+         g_ovl(is) = ga_create_atom_blocked(geom, bas, 'MO_overlap')
+      enddo
+      if (.not. ma_alloc_get(mt_dbl, nb*nb*2, 'moov', l_ovl, k_ovl))
+     &     call errquit('WFAT: Cannot allocate moov', 1, MA_ERR)
+      
+      do j = 1, ndets         ! columns of dipole matrix
+         do i = 1, j             ! rows of dipole matrix
+c           ==== Overlap matrix between the two MO sets ====
+            do is = 1, 2
+               call ga_zero(g_ovl(is))
+            enddo
+            call mewfat_calc_moovl(geom, bas, oskel, g_mo(:,j), 
+     &           g_mo(:,i), g_ovl)
+            do is = 1, 2
+               i_ovl = k_ovl + (is-1)*nb*nb
+               call ga_get(g_ovl(is), 1, nb, 1, nb, dbl_mb(i_ovl), nb)
+
+               i_mo1 = k_mo1 + (is-1)*nb*nb
+               call ga_get(g_mo(is,i), 1, nb, 1, nb, dbl_mb(i_mo1), nb)
+               i_mo2 = k_mo2 + (is-1)*nb*nb
+               call ga_get(g_mo(is,j), 1, nb, 1, nb, dbl_mb(i_mo2), nb)
+
+               call mewfat_dipslater()
+            enddo
+
+            
+
             
          enddo
       enddo
+
+      
+      
+      do is = 1, 2
+         if (.not. ga_destroy(g_ovl(is)))
+     &        call errquit('WFAT: Cannot destroy MO_overlap.',
+     &        1, GA_ERR)
+      enddo
+      if (.not. ma_free_heap(l_ovl))
+     &     call errquit('WFAT: Cannot deallocate moov', 64, MA_ERR)
       
 
 
