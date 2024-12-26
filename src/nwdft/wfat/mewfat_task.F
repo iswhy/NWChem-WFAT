@@ -123,10 +123,9 @@ c     ==== Print Dyson orbital ====
      &     g_mov0, g_mov1, oskel)
       
 
-c     ====
+c     ==== Diagonalize total dipole matrix ====
       if (rtdb_get_info(rtdb, 'mewfat:dipdiag', ma, nn, date))
-     &     call mewfat_dipdiag(rtdb, nn)
-      
+     &     call mewfat_dipdiag(rtdb, geom_hd, bas_hd, nn)      
       
       
 c     ==== Calculate determinant coefficients and get MO's ====

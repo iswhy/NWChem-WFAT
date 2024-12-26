@@ -1,29 +1,40 @@
 c===============================================================
 c===============================================================
-      subroutine mewfat_dipdiag(rtdb, nchar)
+      subroutine mewfat_dipdiag(rtdb, geom, bas, nchar)
 
       implicit none
 #include "inp.fh"      
 #include "errquit.fh"
 #include "stdio.fh"
 #include "rtdb.fh"
+#include "global.fh"
+#include "mafdecls.fh"
+#include "mewfat_qm_param.fh"
       integer rtdb
       integer geom
       integer bas
       integer nchar
 
+      character*255 title, basname, scftype
       character(len=nchar) s
+      character*2 si
+      character*7 nm
       logical l, status
       integer l_oc, l_eg, l_mo1, l_mo2, l_mp, l_ovl, l_ds
       integer k_oc, k_eg, k_mo1, k_mo2, k_mp, k_ovl, k_ds
-      integer i1, i2, ndets, nb, ns_, nmo, i, ii, is, nmp, max_ndets
-      integer ns
-      parameter(max_ndets=10)
-      integer g_mo(max_ndets)
+      integer i1, i2, ndets, nb, ns_, nmo, i, j, ii, is, nmp, max_ndets
+      integer ns, nel(2), NMMT, g_ovl(2), i_mp, i_ds, i_ovl, i_mo1
+      integer i_mo2, q, ndid
+      double precision orig(3), dsl(3), osl
+      parameter(max_ndets=10, NMMT=4)
+      integer g_mo(2,max_ndets)      
 
       logical movecs_read_header, movecs_read
-      external movecs_read_header, movecs_read
-      
+      integer ga_create_atom_blocked
+      external movecs_read_header, movecs_read, ga_create_atom_blocked
+
+
+      ndid = ga_nodeid()
       ns = 2
 
 c      write(luout, '("n dipdiag = ", i4)') nchar
@@ -45,10 +56,10 @@ c     ==== Get number of bases ====
 c     ==== Get the MO of the degenerate Slater determinants ====
       i = 0
       i1 = 0
-      write(luout, '("Reading movecs files :")')
+      if (ndid == 0) write(luout, '("Reading movecs files :")')
       do while (inp_strtok(s, ' ', i1, i2))
          i = i + 1
-         write(luout, '(i3, 2x, a)') i, s(i1:i2)
+         if (ndid == 0) write(luout, '(i3, 2x, a)') i, s(i1:i2)
 
          if (i > max_ndets) call errquit('MEWFAT: No. of degenerate '//
      &        'Slater determinants exceeds its maximum.', 78, UERR)
@@ -138,8 +149,13 @@ c           ==== Move MOs and overlap matrix to local buffers ====
 
 c           ==== Calculate total dipole matrix element ====
             i_mp = k_mp + (2-1)*nb**2
-            call mewfat_dipslater(nb, nel, dbl_mb(k_mo1),
-     &           dbl_mb(k_mo2), dbl_mb(k_ovl), dbl_mb(i_mp), dsl)
+            call mewfat_dipslater(nb, nel, dbl_mb(k_mo1), dbl_mb(k_mo2),
+     &           dbl_mb(k_ovl), dbl_mb(i_mp), dsl)
+            call mewfat_ovlslater(nb, nel, dbl_mb(k_mo1), dbl_mb(k_mo2),
+     &           dbl_mb(k_ovl), osl)
+            if (ndid == 0)
+     &           write(luout, '(2x, "Overlap between det. ", i2, '//
+     &           '" and ", i2, " = ", es14.6)') i, j, osl
 
             do q = 1, 3
                i_ds = k_ds + (q-1)*ndets**2 + (j-1)*ndets + (i-1)
@@ -156,7 +172,8 @@ c              == Hermitian: (j,i)=(i,j) ==
 c     ==== Print the diagonalizing Slater determinants ====
       call mewfat_print_dipdiag(rtdb, ndets, dbl_mb(k_ds))
       
-      
+
+c     ==== Deallocations ====
       do is = 1, 2
          if (.not. ga_destroy(g_ovl(is)))
      &        call errquit('WFAT: Cannot destroy MO_overlap.',
@@ -201,6 +218,7 @@ c===============================================================
       integer ndets
       double precision dsl(ndets,ndets,3)
 
+      character*255 fname
       integer ig, ib, k, i, j, i_it, ngm, nbt, l_it, k_it, l_ev, k_ev
       double precision bt_start, bt_last, dbt, gm_start, gm_last, dgm
       double precision bt, gm, protmat(3,3), cu(3)
@@ -218,8 +236,8 @@ c     ==== Obtaining info on gamma ====
       if (.not. MA_alloc_get(MT_DBL, ndets, 'eigval', l_ev, k_ev))
      &     call errquit('WFAT: eigval allocation failed', 2, MA_ERR)
 
-      call util_file_name('wfatd', .false., .false., WF_MEDIPDIAG_UNIT)
-      open(WF_MEDIPDIAG_UNIT, file=, action='write')
+      call util_file_name('wfatd', .false., .false., fname)
+      open(WF_MEDIPDIAG_UNIT, file=fname, action='write')
       do ig = 1, ngm
          gm = gm_start + (ig-1)*dgm
          do ib = 1, nbt
@@ -240,14 +258,15 @@ c     ==== Obtaining info on gamma ====
             do j = 1, ndets
                do i = 1, ndets
                   i_it = k_it + (j-1)*ndets + (i-1)
-                  write(WF_MEDIPDIAG_UNIT, '(es14.6)', advance='no')
+                  write(WF_MEDIPDIAG_UNIT, '(es17.6)', advance='no')
      &                 dbl_mb(i_it)
                enddo
-               write(WF_MEDIPDIAG_UNIT, '("   ")', advance='no')
+               write(WF_MEDIPDIAG_UNIT, '("     ")', advance='no')
             enddo
             write(WF_MEDIPDIAG_UNIT, '("")')
             
          enddo
+         write(WF_MEDIPDIAG_UNIT, '("")')
       enddo
 
 

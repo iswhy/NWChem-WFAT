@@ -655,7 +655,7 @@ c=================================================
       subroutine mewfat_dipslater(nb, nel, mo1, mo2, ovl, dip, dsl)
 c     DESCRIPTION:
 c     Calculates <Sl(MO1)|D|Sl(MO2)>
-c     where Sl(MO) is a Slater determinant represented by molecular orbitals MO and D is
+c     where Sl(MO) is a Slater determinant consisting of molecular orbitals MO and D is
 c     one of x, y, and z position operators.
       implicit none
 #include "errquit.fh"
@@ -767,9 +767,60 @@ c        ==== Accumulate ====
          dsl = dsl + det * h
       enddo
       
-
-
       end
 c=================================================
       
+      
+c=================================================
+c=================================================
+      subroutine mewfat_ovlslater(nb, nel, mo1, mo2, ovl, osl)
+c     DESCRIPTION:
+c     Calculates <Sl(MO1)|Sl(MO2)>
+c     where Sl(MO) is a Slater determinant consisting of molecular orbitals MO.
+      implicit none
+#include "errquit.fh"
+#include "mafdecls.fh"
+      integer nb
+      integer nel(2)
+      double precision mo1(nb,nb,2)   ! [input], AO coefficients of MO1.
+      double precision mo2(nb,nb,2)   ! [input], AO coefficients of MO2.
+      double precision ovl(nb,nb,2)   ! [input], overlap matrix between MO1 (row) and MO2 (col).
+      double precision osl            ! [output], overlap matrix elements between the two determinants represented by MO1 and MO2.
+
+      integer is, l_ovs, k_ovs, l_iv, k_iv, info, niv, ntmp, l_tm, k_tm
+      double precision det0(2), det(2)
+
+      
+      niv = maxval(nel)
+      if (.not. ma_alloc_get(mt_int, niv, 'ipvt', l_iv, k_iv))
+     &     call errquit('WFAT: Cannot allocate ipvt', 23, MA_ERR)
+      ntmp = niv
+      if (.not. ma_alloc_get(mt_dbl, ntmp, 'tmp', l_tm, k_tm))
+     &     call errquit('WFAT: Cannot allocate tmp', 24, MA_ERR)
+         
+      do is = 1, 2
+         if (.not. ma_alloc_get(mt_dbl, nel(is)**2, 'ovl(is)',
+     &        l_ovs, k_ovs))
+     &        call errquit('WFAT: Cannot allocate ovl(is)', 58, MA_ERR)
+         call dcopy(nel(is)**2, ovl(1:nel(is),1:nel(is),is), 1,
+     &        dbl_mb(k_ovs), 1)
+         call dgefa(dbl_mb(k_ovs), nel(is), nel(is), int_mb(k_iv), info)
+         if (info /= 0)
+     &        call errquit('WFAT: Error in dgefa', 46, UERR)
+         call dgedi(dbl_mb(k_ovs), nel(is), nel(is), int_mb(k_iv), det0,
+     &              dbl_mb(k_tm), 10)
+         det(is) = det0(1) * 10.0d0**det0(2)
+         if (.not. MA_free_heap(l_ovs))
+     &        call errquit('WFAT: ovl(js) deallocation failed',
+     &        7, MA_ERR)
+      enddo
+
+      osl = det(1) * det(2)
+
+      if (.not. MA_free_heap(l_iv))
+     &     call errquit('WFAT: ipvt deallocation failed', 11, MA_ERR)
+      if (.not. MA_free_heap(l_tm))
+     &     call errquit('WFAT: tmp deallocation failed', 11, MA_ERR)
+      
+      end
       
