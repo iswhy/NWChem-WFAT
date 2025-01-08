@@ -2,8 +2,8 @@ c=================================================
 c=================================================
       subroutine mewfat_calc_intgl(rtdb, geom, bas, nb, gq, sx, sy, n0, 
      &     n1, ocmo0, ocmo1, pcf, rcf, qcf, scf, zi, chpos, ionerg, 
-     &     mcel, nqn, nid, mid, lmax_, smh, ismask, mask_param, rmode,
-     &     g_il)
+     &     mcel, nqn, nid, mid, lmax_, smh, ismask, mask_param, wphase,
+     &     rmode, g_il)
 
       implicit none
 #include "rtdb.fh"
@@ -38,7 +38,8 @@ c=================================================
       double precision smh      ! [input],
       logical ismask                                  ! [input], 
       double precision mask_param(2)                  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
-      logical rmode               ! [input],
+      double complex wphase
+      logical rmode             ! [input],
       integer g_il                ! [output],
 
       logical cgrid
@@ -83,7 +84,7 @@ c     ==== Perform quadrature summation ====
      &     int_mb(k_icp), int_mb(k_ipp), gq, sx, sy, n0, n1, ocmo0,
      &     ocmo1, pcf, rcf, qcf, scf, zi, chpos, ionerg, max_npt, 
      &     dbl_mb(k_pt), dbl_mb(k_wt), cgrid, geomc, ozn, mcel, nsh, 
-     &     nqn, nid, mid, lmax_, nat, smh, ismask, mask_param, 
+     &     nqn, nid, mid, lmax_, nat, smh, ismask, mask_param, wphase,
      &     dcpl_mb(k_om), dcpl_mb(k_i_), dcpl_mb(k_inc), dcpl_mb(k_i0),
      &     dcpl_mb(k_il))
 
@@ -113,7 +114,7 @@ c=================================================
      &     ipp, gq, sx, sy, n0, n1, ocmo0, ocmo1, pcf, rcf, qcf, scf, 
      &     zi, chpos, ionerg, max_npt, qpt, qwt, cgrid, geomc, ozn, 
      &     mcel, nsh, nqn, nid, mid, lmax_, nat, smh, ismask, 
-     &     mask_param, omega, intg_, cintg, intg0, intg)
+     &     mask_param, wphase, omega, intg_, cintg, intg0, intg)
 
       implicit none
 #include "util.fh"
@@ -159,7 +160,8 @@ c=================================================
       integer nat                                     ! [input], no. of atoms in the molecule.
       double precision smh                            ! [input], smoothing parameter.
       logical ismask                                  ! [input], 
-      double precision mask_param(2)                  ! [input]. Only used when ismask=.true.. Must always be supplied regardless.
+      double precision mask_param(2)                  ! [input], Only used when ismask=.true.. Must always be supplied regardless.
+      double complex wphase                           ! [input], any wave function phase
       double complex omega(nsh, nqn)                  ! [output/scratch],
       double complex intg_(nsh, nqn, nat)             ! [output/scratch],
       double complex cintg(nsh, nqn)                  ! [output/scratch],
@@ -345,6 +347,7 @@ c     ==== to the channel center for the current process ====
       
 c     ==== Reorder elements of intgl ====
       call wfat_reorder_intgl(nsh, nat, nqn, 1, intg_, intg)    ! intg(nsh,nqn,nat)    nch=1
+      intg = wphase * intg
       call ga_sync()
 
 

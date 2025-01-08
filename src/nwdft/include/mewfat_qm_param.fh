@@ -42,7 +42,9 @@ c     ==== Other data ====
       double precision
      &     tol2e, zion
 
-
+      double complex
+     &     wfphase
+      
       
       common /mewfat_qm/
 c     ---- Characters ----
@@ -62,5 +64,8 @@ c     ---- Integers ----
      &     geom_hd, bas_hd, natm, spinx, spiny, nbas, ixcfit,
      &     gwf_ovl, gwf_kin, gwf_pot,
 c     ---- Double precisions ----
-     &     charge0, charge1, tol2e, zion
+     &     charge0, charge1, tol2e, zion,
+c     ---- Double complexes ----
+     &     wfphase
+      
       

@@ -175,7 +175,7 @@ c           ==== Calculate ME-WFAT integrals on 'start' startup mode ====
      &           dbl_mb(k_pcf), dbl_mb(k_rcf), dbl_mb(k_qcf), 
      &           dbl_mb(k_scf), zion, dbl_mb(k_ps), dbl_mb(k_ieg), 
      &           wf_msm, nqn, int_mb(k_npa), int_mb(k_mpa), lmax, smh, 
-     &           ismask_i, mask_param, res_mode, g_il)
+     &           ismask_i, mask_param, wfphase, res_mode, g_il)
          
 c           ==== Store ME-WFAT integrals freshly calculated ====
             if (.not. rtdb_get(rtdb, 'wfat:intgl_nosave', mt_log, 1,

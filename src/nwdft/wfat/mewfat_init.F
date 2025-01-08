@@ -18,7 +18,7 @@ c=================================================
       character*1 sz
       character*5 si_type
       character*20 basis_name, trans_name
-      logical use_nwxc, rtdb_stat, status, reorder, isdft
+      logical use_nwxc, rtdb_stat, status, isdft
       integer ndid, is, basnormid, noio
       double precision nel0_(2), nel1_(2), zn, rscent0(3), dgnthr
 
@@ -106,6 +106,10 @@ c     ==== Basis info ====
      &        call errquit('WFAT: Cannot print basis info', 1,
      &        BASIS_ERR)
       endif
+
+      
+c     ==== Initiate total wave function phase ====
+      wfphase = cmplx(1.0d0, 0.0d0, kind=kind(1.0d0))
 
       
 c     ==== Neutral molecular orbitals ====
@@ -212,7 +216,9 @@ cOLD      if (reorder)
       call mewfat_reorder_neutmo(geom_hd, bas_hd, nbas, nel0, 
      &     spinx, g_mov0, g_mov1, oskel, dbl_mb(k_moerg0), 
      &     dbl_mb(k_moocc0), mo0_swapped)          ! Should only be called after calling int_init(...).
-      
+      if (mo0_swapped) wfphase = -1 * wfphase
+c     The neutral determinant has a phase prefactor of -1 if a pair
+c     of orbitals have been swapped.
 
 c     ==== XC functionals ====
       call nwxc_rtdb_load(rtdb, 'dft', use_nwxc)

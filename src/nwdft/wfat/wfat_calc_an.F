@@ -36,7 +36,7 @@ c============================================================
       double complex kn(nat, nqn, nch)            ! [output], K_n = \exp{-\kappa*\mu_z} * k_n
 
       logical isdiag
-      integer p_hi, p_ev, p_lc, i, nn, k, j, i_hi, jj
+      integer p_hi, p_ev, p_lc, i, nn, k, j, i_hi, jj, iu
       double precision protmat(3,3), cu(3)
 
 
@@ -84,8 +84,13 @@ c              == the H_int-diagonalizing channels  ==
                   jj = dgs(j,i)      ! Where in pb the j-th eigenstate should go.
                   call wfat_construct_polb_cf(nn, scr(i_hi), 
      &                 pbs(1:nn,1:nn,:,i), pb(:,:,jj))             ! 1)
-                  write(luout, '("nondiag: ", 2f10.5, i6, es21.12)')
-     &                 bt, gm, j, scr(p_ev+j-1)
+                  write(luout, '("nondiag: ", 2f10.5, i6, es21.12)',
+     &                 advance='no') bt, gm, j, scr(p_ev+j-1)
+                  do iu = 1, nn
+                     write(luout, '(" u", es15.6)', advance='no')
+     &                    scr(i_hi+iu-1)
+                  enddo
+                  write(luout, '("")')
                enddo
 c           ==== If the above H_int is diagonal ... ====
             else

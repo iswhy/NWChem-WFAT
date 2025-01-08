@@ -1,0 +1,153 @@
+#! /usr/bin/env python
+
+import sys
+import numpy as np
+from contextlib import ExitStack
+
+'''
+>> sftrans <<
+
+This program computes the structure factors due to linearly transformed states given
+the structure factor files due to the old states and the matrix elements of the
+unitary transformation at each orientation angle. The structure factors due to the
+old states must be in separate files, each containing structure factor of an old
+state. The orientation angles among all files: old structure factor files and the
+transformation matrix file, must be consistent.
+
+To use this program, prepare an input file, e.g., named input.txt, that contains
+three keywords each followed by a colon, then followed by the value of the keyword.
+
+prefix : <prefix of the output structure factor file>
+oldsrf : <paths of structure factor files of the old states separated by spaces>
+transm : <path to the transformation matrix file>
+
+Then execute /path/to/sftrans input.txt. Note that the input file name has no
+restrictions. Replace /path/to with the actual path leading to the sftrans
+executable. The file specified for transm must contain lines of the form,
+...
+beta gamma u11 u21 u12 u22
+...
+assuming a space of two states. uij is the (ij)-th element of the unitary 
+transformation matrix at orientation angle (beta,gamma).
+
+Example of a valid input file:
+
+prefix : CH3F
+oldsrf : ./CH3F.degen1/CH3F.wfats ./CH3F.degen2/CH3F.wfats
+transm : ./CH3F.wfatd
+
+The number of beta and gamma orientation angles must be the same across 
+./CH3F.degen1/CH3F.wfats, ./CH3F.degen2/CH3F.wfats, and ./CH3F.wfatd. Omitting the
+header lines in the two *.wfats files, wherever there is a blank line in one of 
+the three files, the corresponding blank line must be present in the other files.
+'''
+
+
+#########################################################
+def read_keyword(lines, keyword, delim=":"):
+    for line in lines:
+        # parse input, assign values to variables
+        if len(line.strip()) == 0:
+            continue
+        key, value = line.split(delim)
+        if key.strip() == keyword: 
+            return value.strip()
+    return 'NotFound'
+#########################################################
+
+
+#########################################################
+def throw_error(keyword):
+    raise ValueError('Input keyword \'%s\' is not found.' % keyword)
+#########################################################
+
+
+#########################################################
+
+#==== Open input file ====#
+inputs = {}
+f = open(str(sys.argv[1]))
+data = f.readlines()
+f.close()
+
+
+#==== Parse keywords ====#
+inputs['prefix'] = read_keyword(data, 'prefix')
+if inputs['prefix'] == 'NotFound': throw_error('prefix')
+    
+inputs['oldsrf'] = read_keyword(data, 'oldsrf').split()
+if inputs['oldsrf'] == 'NotFound': throw_error('oldsrf')
+
+inputs['transm'] = read_keyword(data, 'transm')
+if inputs['transm'] == 'NotFound': throw_error('transm')
+
+
+#==== Output structure factor filename ====#
+oname = inputs['prefix'] + '.wfats'
+
+
+with ExitStack() as stack:
+    files = [stack.enter_context(open(fname, 'r')) for fname in [inputs['transm']] +
+             inputs['oldsrf']] + \
+        [stack.enter_context(open(oname, 'w'))]
+    idiag = 0
+    iout = len(files)-1
+    
+    #==== Reading header ====#
+    for i in range(0,6):    # Loop over header lines.
+        for j in range(1,len(files)-1):    # Loop over degenerate state's *.wfats files.
+            line = files[j].readline()
+            if j == 1: files[iout].write(line)
+
+    while True:        # Loop over orientation angles (lines of the data portion of *.wfats files).
+        #==== Reading transform. matrix ====#
+        dline = files[idiag].readline()    # dline stores a line in the diagonalization file.
+        if not dline: break
+        ddata = dline.split()[2:]
+        words = [files[j].readline().split() for j in range(1,len(files)-1)]
+        blanks = np.array([len(ddata) == 0] + [len(w) == 0 for w in words])
+        # blanks is an array of True's or False's.
+        if len(blanks[blanks]) > 0 and len(blanks[~blanks]) > 0:
+            raise ValueError('When a line is blank in one of the diagonalization ' + \
+                             'file or *.wfats files, the corresponding lines in ' + \
+                             'the other files must also be blank.')
+        else:
+            if all(blanks):
+                files[iout].write('\n')
+                continue
+
+
+        #==== Transformation matrix (from diagonalization) ====#
+        usize = ( int(round(np.sqrt(len(ddata)))), int(round(np.sqrt(len(ddata)))) )
+        u = np.reshape( np.array([float(s) for s in ddata]), usize )
+        # u is a square matrix whose rows index the transformed states while
+        # its columns index the old states.
+
+        #==== Reading structure factor data ====#
+        srdata = []
+        for j in range(0,len(words)):   # Loop over degenerate state's *.wfats files.
+            if j == 1: angles = words[j][0:2]
+            srfc = words[j][2:]
+            srl = []
+            for k in range(0, len(srfc), 3):    # Loop over parabolic quantum numbers.
+                srl += [complex(float(srfc[k]), float(srfc[k+1]))]
+            srdata += [srl]
+        srdata = np.array(srdata)
+        # srdata is a mxn array where m is the number of nondiagonalizing Slater
+        # determinants while n is the number of parabolic channels.
+
+        srdiag = u @ srdata
+        
+        #==== Print to output ====#
+        files[iout].write('     %s    %s' % (angles[0], angles[1]))
+        for j in range(0, srdiag.shape[0]):
+            files[iout].write('      ')
+            for k in range(0, srdiag.shape[1]):
+                files[iout].write('   ')
+                
+                files[iout].write('%15.6E' % srdiag[j,k].real)
+                files[iout].write('%15.6E' % srdiag[j,k].imag)
+                files[iout].write('%15.6E' % np.abs(srdiag[j,k])**2)
+
+        files[iout].write('\n')
+#########################################################

@@ -25,7 +25,7 @@ c===============================================================
       integer i1, i2, ndets, nb, ns_, nmo, i, j, ii, is, nmp, max_ndets
       integer ns, nel(2), NMMT, g_ovl(2), i_mp, i_ds, i_ovl, i_mo1
       integer i_mo2, q, ndid
-      double precision orig(3), dsl(3), osl
+      double precision orig(3), dsl(3), osl, dthr
       parameter(max_ndets=10, NMMT=4)
       integer g_mo(2,max_ndets)      
 
@@ -132,7 +132,7 @@ c     ==== Dipole matrices in AO basis relative to origin ====
      &     call errquit('WFAT: Cannot allocate dipsl', 1, MA_ERR)
       
       do j = 1, ndets         ! columns of dipole matrix
-         do i = 1, j             ! rows of dipole matrix
+         do i = 1, ndets             ! rows of dipole matrix
 c           ==== Overlap matrix between the two MO sets ====
             call mewfat_calc_moovl(geom, bas, oskel, g_mo(:,j), 
      &           g_mo(:,i), g_ovl)
@@ -153,24 +153,30 @@ c           ==== Calculate total dipole matrix element ====
      &           dbl_mb(k_ovl), dbl_mb(i_mp), dsl)
             call mewfat_ovlslater(nb, nel, dbl_mb(k_mo1), dbl_mb(k_mo2),
      &           dbl_mb(k_ovl), osl)
-            if (ndid == 0)
-     &           write(luout, '(2x, "Overlap between det. ", i2, '//
-     &           '" and ", i2, " = ", es14.6)') i, j, osl
+            if (ndid == 0) then
+               write(luout, '(2x, "Overlap between det. ", i2, '//
+     &              '" and ", i2, " = ", es14.6)') i, j, osl
+               write(luout, '(2x, "Dipole between det. ", i2, '//
+     &              '" and ", i2, " (x y z) = ", 3es14.6)') i, j, dsl
+            endif
 
             do q = 1, 3
                i_ds = k_ds + (q-1)*ndets**2 + (j-1)*ndets + (i-1)
                dbl_mb(i_ds) = dsl(q)
 
 c              == Hermitian: (j,i)=(i,j) ==
-               i_ds = k_ds + (q-1)*ndets**2 + (i-1)*ndets + (j-1)
-               dbl_mb(i_ds) = dsl(q)
+c               i_ds = k_ds + (q-1)*ndets**2 + (i-1)*ndets + (j-1)
+c               dbl_mb(i_ds) = dsl(q)
             enddo
          enddo
       enddo
 
 
 c     ==== Print the diagonalizing Slater determinants ====
-      call mewfat_print_dipdiag(rtdb, ndets, dbl_mb(k_ds))
+      if (.not. rtdb_get(rtdb, 'wfat:dthr', mt_dbl, 1, dthr))
+     &     call errquit('WFAT: Failed reading dthr from rtdb',
+     &     1, RTDB_ERR)
+      call mewfat_print_dipdiag(rtdb, ndets, dbl_mb(k_ds), dthr)
       
 
 c     ==== Deallocations ====
@@ -207,7 +213,7 @@ c===============================================================
 
 c===============================================================
 c===============================================================
-      subroutine mewfat_print_dipdiag(rtdb, ndets, dsl)
+      subroutine mewfat_print_dipdiag(rtdb, ndets, dsl, dthr)
 
       implicit none
 #include "errquit.fh"
@@ -217,8 +223,10 @@ c===============================================================
       integer rtdb
       integer ndets
       double precision dsl(ndets,ndets,3)
+      double precision dthr
 
       character*255 fname
+      logical isdiag
       integer ig, ib, k, i, j, i_it, ngm, nbt, l_it, k_it, l_ev, k_ev
       double precision bt_start, bt_last, dbt, gm_start, gm_last, dgm
       double precision bt, gm, protmat(3,3), cu(3)
@@ -254,7 +262,12 @@ c     ==== Obtaining info on gamma ====
      &              dsl(:,:,k), 1.0d0, cu(k))
             enddo
 
-            call wfat_dsyev_wrap(ndets, dbl_mb(k_it), dbl_mb(k_ev))
+            call wfat_isdiag(ndets, dbl_mb(k_it), dthr, isdiag)
+            if (isdiag) then
+               call wfat_get_identity(ndets, dbl_mb(k_it))
+            else
+               call wfat_dsyev_wrap(ndets, dbl_mb(k_it), dbl_mb(k_ev))
+            endif
             do j = 1, ndets
                do i = 1, ndets
                   i_it = k_it + (j-1)*ndets + (i-1)
