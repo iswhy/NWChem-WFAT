@@ -17,24 +17,32 @@ transformation matrix file, must be consistent.
 To use this program, prepare an input file, e.g., named input.txt, that contains
 three keywords each followed by a colon, then followed by the value of the keyword.
 
-prefix : <prefix of the output structure factor file>
-oldsrf : <paths of structure factor files of the old states separated by spaces>
-transm : <path to the transformation matrix file>
+  prefix : <prefix of the output structure factor file>
+  oldsrf : <paths of structure factor files of the old states separated by spaces>
+  transm : <path to the transformation matrix file>
 
-Then execute /path/to/sftrans input.txt. Note that the input file name has no
-restrictions. Replace /path/to with the actual path leading to the sftrans
-executable. The file specified for transm must contain lines of the form,
-...
-beta gamma u11 u21 u12 u22
-...
-assuming a space of two states. uij is the (ij)-th element of the unitary 
-transformation matrix at orientation angle (beta,gamma).
+Then run 
+
+  /path/to/sftrans input.txt
+
+Note that the input file name has no restrictions. Replace /path/to with the 
+actual path leading to the sftrans executable. The file specified for transm must 
+contain lines of the form,
+
+  beta1 gamma1 u1_{11} u1_{21} u1_{12} u1_{22}
+  beta2 gamma2 u2_{11} u2_{21} u2_{12} u2_{22}
+  ...
+
+assuming a space of two states. u_{ij} is the (ij)-th element of the unitary 
+transformation matrix at the orientation angle (beta,gamma) specified in the same
+row. i and j are the indices of the old and transformed states, respectively. The
+first row of the transformation matrix file cannot be blank.
 
 Example of a valid input file:
 
-prefix : CH3F
-oldsrf : ./CH3F.degen1/CH3F.wfats ./CH3F.degen2/CH3F.wfats
-transm : ./CH3F.wfatd
+  prefix : CH3F
+  oldsrf : ./CH3F.degen1/CH3F.wfats ./CH3F.degen2/CH3F.wfats
+  transm : ./CH3F.wfatd
 
 The number of beta and gamma orientation angles must be the same across 
 ./CH3F.degen1/CH3F.wfats, ./CH3F.degen2/CH3F.wfats, and ./CH3F.wfatd. Omitting the
@@ -59,6 +67,69 @@ def read_keyword(lines, keyword, delim=":"):
 #########################################################
 def throw_error(keyword):
     raise ValueError('Input keyword \'%s\' is not found.' % keyword)
+#########################################################
+
+
+#########################################################
+def colnumber(start, line):
+    '''
+    Print column numbers.
+    '''
+    
+    lineo = line      # lineo is output line.
+    linex = line.split()
+    istart = start
+    for i in range(1, len(linex), 2):
+        #==== Old column number ====#
+        col_old = linex[i-1] + ' ' + linex[i]
+        old_start = line.index(col_old)
+        old_end = old_start + len(col_old) - 1
+
+        #==== New column number ====#
+        col_new = 'col. #' + str(istart)
+        new_start = old_end - len(col_new) + 1
+
+        #==== Replacement ====#
+        if len(col_old) > len(col_new):
+            liner = lineo[old_start:].replace(col_old, col_new.rjust(len(col_old)))
+            lineo = lineo[0:old_start] + liner
+        else:
+            liner = lineo[new_start:].replace(col_old.rjust(len(col_new)), col_new)
+            lineo = lineo[0:new_start] + liner
+        istart += 1
+
+    return lineo
+#########################################################
+
+
+#########################################################
+def colstate(istate, line):
+    '''
+    Print state numbers.
+    '''
+    
+    lineo = line
+    linex = line.split()
+
+    #==== New state number ====#
+    col_new = 'state #' + str(istate)
+    for i in range(0, len(linex)):
+        #==== Old state number ====#
+        col_old = linex[i]
+        old_start = line.index(col_old)
+        old_end = old_start + len(col_old) - 1
+
+        new_start = old_end - len(col_new) + 1
+
+        #==== Replacement ====#
+        if len(col_old) > len(col_new):
+            liner = lineo[old_start:].replace(col_old, col_new.rjust(len(col_old)))
+            lineo = lineo[0:old_start] + liner
+        else:
+            liner = lineo[new_start:].replace(col_old.rjust(len(col_new)), col_new)
+            lineo = lineo[0:new_start] + liner
+
+    return lineo
 #########################################################
 
 
@@ -90,14 +161,36 @@ with ExitStack() as stack:
     files = [stack.enter_context(open(fname, 'r')) for fname in [inputs['transm']] +
              inputs['oldsrf']] + \
         [stack.enter_context(open(oname, 'w'))]
+    # files = [transform_file  wfats_file1 ... wfats_fileN  output_wfats_file]
     idiag = 0
-    iout = len(files)-1
+    iout = len(files) - 1
+    nstates = len(files) - 2
     
     #==== Reading header ====#
     for i in range(0,6):    # Loop over header lines.
+        colstart = 3
         for j in range(1,len(files)-1):    # Loop over degenerate state's *.wfats files.
             line = files[j].readline()
-            if j == 1: files[iout].write(line)
+            if j == 1: files[iout].write(line[0:31])    # 0:31 is the space for orientation angles.
+
+            #==== Print headers ====#
+            if i == 0 or i == 5:
+                g = -1
+            else:
+                g = -2
+            if i == 1:
+                pline = colnumber(colstart, line[31:g])
+                colstart += round(len(pline.split()) / 2)
+            elif i == 2:
+                pline = colstate(j, line[31:g])
+            else:
+                pline = line[31:g]
+            files[iout].write(pline)
+            # For some reason, NWChem's WFAT module prints the header line in
+            # a way that some lines have a white space at the end of the line.
+            # These are the column number, title, quantum number, and complex
+            # components have a white space.
+            if j == len(files)-2: files[iout].write('\n')
 
     while True:        # Loop over orientation angles (lines of the data portion of *.wfats files).
         #==== Reading transform. matrix ====#
@@ -115,7 +208,6 @@ with ExitStack() as stack:
             if all(blanks):
                 files[iout].write('\n')
                 continue
-
 
         #==== Transformation matrix (from diagonalization) ====#
         usize = ( int(round(np.sqrt(len(ddata)))), int(round(np.sqrt(len(ddata)))) )

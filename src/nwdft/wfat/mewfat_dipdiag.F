@@ -214,7 +214,10 @@ c===============================================================
 c===============================================================
 c===============================================================
       subroutine mewfat_print_dipdiag(rtdb, ndets, dsl, dthr)
-
+c     DESCRIPTION:
+c     Prints the matrix elements of the unitary transform that diagonalizes
+c     the lab frame z-component dipole matrix at each orientation angle into
+c     a file.
       implicit none
 #include "errquit.fh"
 #include "mafdecls.fh"
@@ -244,16 +247,19 @@ c     ==== Obtaining info on gamma ====
       if (.not. MA_alloc_get(MT_DBL, ndets, 'eigval', l_ev, k_ev))
      &     call errquit('WFAT: eigval allocation failed', 2, MA_ERR)
 
+c     ==== File name of the unitary matrix file ====
       call util_file_name('wfatd', .false., .false., fname)
+      
       open(WF_MEDIPDIAG_UNIT, file=fname, action='write')
-      do ig = 1, ngm
+      do ig = 1, ngm            ! Loop over gamma
          gm = gm_start + (ig-1)*dgm
-         do ib = 1, nbt
+         do ib = 1, nbt            ! Loop over beta
             bt = bt_start + (ib-1)*dbt
             
             write(WF_MEDIPDIAG_UNIT, '(2es14.6, 3x)', advance='no')
      &           bt, gm
 
+c           ==== Construct the lab frame z-component dipole matrix ====
             call wfat_passrot(bt, gm, protmat)
             cu = protmat(:,3)
             dbl_mb(k_it:k_it+ndets**2-1) = 0.0d0
@@ -262,14 +268,15 @@ c     ==== Obtaining info on gamma ====
      &              dsl(:,:,k), 1.0d0, cu(k))
             enddo
 
+c           ==== Diagonalization ====
             call wfat_isdiag(ndets, dbl_mb(k_it), dthr, isdiag)
             if (isdiag) then
                call wfat_get_identity(ndets, dbl_mb(k_it))
             else
                call wfat_dsyev_wrap(ndets, dbl_mb(k_it), dbl_mb(k_ev))
             endif
-            do j = 1, ndets
-               do i = 1, ndets
+            do j = 1, ndets      ! Loop over diagonalizing states
+               do i = 1, ndets      ! Loop over non-diagonalizing determinants
                   i_it = k_it + (j-1)*ndets + (i-1)
                   write(WF_MEDIPDIAG_UNIT, '(es17.6)', advance='no')
      &                 dbl_mb(i_it)
